@@ -9,6 +9,8 @@ import QuestionBankModal from './components/QuestionBankModal';
 import EditQuestionModal from './components/EditQuestionModal';
 import AnswerSheet from './components/AnswerSheet';
 import ExamHistoryModal from './components/ExamHistoryModal';
+import AzotaExportModal from './components/AzotaExportModal';
+import ExamImportModal from './components/ExamImportModal';
 
 import {
   ExamConfig,
@@ -129,6 +131,8 @@ export default function App() {
   const [showQAModal, setShowQAModal] = useState(false);
   const [showAnswerSheetModal, setShowAnswerSheetModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showAzotaModal, setShowAzotaModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(null);
 
   // Sync config, bank & history to localStorage
@@ -384,6 +388,28 @@ export default function App() {
     setEditingQuestion(newQ);
   };
 
+  const handleImportQuestions = (importedQs: QuestionItem[]) => {
+    // Automatically count sections
+    const p1 = importedQs.filter((q) => q.part === 'part1' || q.type === 'mcq_single').length;
+    const p2 = importedQs.filter((q) => q.part === 'part2' || q.type === 'true_false_group').length;
+    const p3 = importedQs.filter((q) => q.part === 'part3' || q.type === 'short_answer').length;
+    const p4 = importedQs.filter((q) => q.part === 'part4' || q.type === 'essay').length;
+
+    const newConfig: ExamConfig = {
+      ...config,
+      sectionCounts: { part1: p1, part2: p2, part3: p3, part4: p4 },
+    };
+
+    applyScoringRules(importedQs, newConfig);
+    setConfig(newConfig);
+    setQuestions(importedQs);
+    setActiveCode('101');
+  };
+
+  const handleSaveImportedToBank = (importedQs: QuestionItem[]) => {
+    setBank((prev) => [...prev, ...importedQs]);
+  };
+
   // Exporters
   const getActiveExam = () => {
     return shuffledCodes.find((c) => c.code === activeCode) || {
@@ -466,7 +492,7 @@ export default function App() {
               <GenerationStepper currentStep={progressStep} message={progressMsg} />
             )}
 
-            {/* 5 Tab Workspace */}
+            {/* 6 Tab Workspace */}
             <Workspace
               config={config}
               questions={questions}
@@ -478,6 +504,8 @@ export default function App() {
               qaReport={qaReport}
               onOpenQA={() => setShowQAModal(true)}
               onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
+              onOpenAzotaExport={() => setShowAzotaModal(true)}
+              onOpenImport={() => setShowImportModal(true)}
               onExportExamOnly={handleExportExamOnly}
               onExportAnswerOnly={handleExportAnswerOnly}
               onExportFullWord={handleExportFullWord}
@@ -524,6 +552,21 @@ export default function App() {
         onRestore={handleRestoreHistory}
         onDeleteHistoryItem={handleDeleteHistoryItem}
         onClearAllHistory={handleClearAllHistory}
+      />
+
+      <AzotaExportModal
+        isOpen={showAzotaModal}
+        onClose={() => setShowAzotaModal(false)}
+        questions={questions}
+        config={config}
+      />
+
+      <ExamImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        config={config}
+        onImportToExam={handleImportQuestions}
+        onSaveToBank={handleSaveImportedToBank}
       />
 
       <QuestionBankModal

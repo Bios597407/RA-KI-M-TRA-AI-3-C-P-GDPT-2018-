@@ -43,10 +43,25 @@ export interface QuestionItem {
   subItems?: SubStatement[]; // Cho câu Đúng/Sai 4 ý
   correctAnswer: string | boolean | string[]; // "A", "B", "C", "D" hoặc kết quả số/chuỗi ngắn
   explanation: string;
+  distractorAnalysis?: Record<string, string>; // Phân tích bẫy tư duy của các phương án sai (A, B, C, D)
   rubric?: RubricStep[]; // Biểu điểm tự luận
   score: number;
   needsReview?: boolean;
   reviewReason?: string;
+}
+
+export interface StudyGuideFormula {
+  name: string;
+  formula: string;
+  note: string;
+}
+
+export interface StudyGuideData {
+  topicTitle: string;
+  coreConcepts: Array<{ term: string; definition: string }>;
+  keyFormulas: StudyGuideFormula[];
+  commonMistakes: string[];
+  reviewTips: string[];
 }
 
 export interface ExamMatrixRow {

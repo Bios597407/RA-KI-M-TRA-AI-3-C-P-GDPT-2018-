@@ -128,7 +128,12 @@ NGUYÊN TẮC:
     "question": "Nội dung câu hỏi (chứa LaTeX nếu có)...",
     "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
     "correctAnswer": "A",
-    "explanation": "Lời giải thích cặn kẽ và phương pháp giải..."
+    "explanation": "Lời giải thích cặn kẽ và phương pháp giải...",
+    "distractorAnalysis": {
+      "B": "Học sinh dễ chọn nhầm do quên đổi dấu khi chuyển vế.",
+      "C": "Học sinh nhầm lẫn giữa điểm cực đại và giá trị cực đại.",
+      "D": "Học sinh quên xét điều kiện tập xác định của biểu thức."
+    }
   },
   {
     "id": "q2",
@@ -279,6 +284,11 @@ function createMockPart1Question(
         options: [`$y_{\\text{CĐ}} = ${b}$`, `$y_{\\text{CĐ}} = ${a}$`, `$y_{\\text{CĐ}} = -${b}$`, `$y_{\\text{CĐ}} = 0$`],
         correctAnswer: 'A',
         explanation: `Theo định nghĩa cực trị, điểm cực đại của hàm số là $x = ${a}$ và giá trị cực đại tương ứng là $f(${a}) = ${b}$. Do đó chọn A.`,
+        distractorAnalysis: {
+          B: `Học sinh nhầm lẫn giữa điểm cực đại x = ${a} với giá trị cực đại y.`,
+          C: `Học sinh nhầm dấu âm do đọc sai bảng biến thiên hoặc nhầm cực tiểu.`,
+          D: `Học sinh ngộ nhận giá trị cực đại luôn bằng 0 tại gốc tọa độ.`,
+        },
         score: 0.25,
       };
     } else if (grade >= 6) {

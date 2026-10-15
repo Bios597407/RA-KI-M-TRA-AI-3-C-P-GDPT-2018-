@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   FileText,
   CheckCircle,
@@ -19,6 +19,9 @@ import {
   AlertTriangle,
   Layers,
   ChevronRight,
+  BookOpen,
+  Share2,
+  Upload,
 } from 'lucide-react';
 import {
   QuestionItem,
@@ -27,8 +30,10 @@ import {
   ExamSpecificationRow,
   ShuffledExamCode,
   QAReport,
+  StudyGuideData,
 } from '../types/exam';
 import MathRenderer from '../utils/mathRenderer';
+import { buildStudyGuide } from '../utils/studyGuideBuilder';
 
 interface WorkspaceProps {
   config: ExamConfig;
@@ -41,6 +46,8 @@ interface WorkspaceProps {
   qaReport: QAReport | null;
   onOpenQA: () => void;
   onOpenAnswerSheet: () => void;
+  onOpenAzotaExport: () => void;
+  onOpenImport: () => void;
   onExportExamOnly: () => void;
   onExportAnswerOnly: () => void;
   onExportFullWord: () => void;
@@ -67,6 +74,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   qaReport,
   onOpenQA,
   onOpenAnswerSheet,
+  onOpenAzotaExport,
+  onOpenImport,
   onExportExamOnly,
   onExportAnswerOnly,
   onExportFullWord,
@@ -81,7 +90,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onAddNewQuestion,
   isGenerating,
 }) => {
-  const [activeTab, setActiveTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec'>('exam');
+  const [activeTab, setActiveTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [showWordMenu, setShowWordMenu] = useState(false);
 
@@ -90,6 +99,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     questions,
     quickAnswers: [],
   };
+
+  const studyGuide = useMemo(() => buildStudyGuide(config, questions), [config, questions]);
 
   const handleCopy = () => {
     onCopyContent();
@@ -145,6 +156,26 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             >
               <Layers className="h-3.5 w-3.5 text-emerald-600" />
               <span>In Phiếu Trắc Nghiệm</span>
+            </button>
+
+            {/* Xuất Azota / K12 Button */}
+            <button
+              onClick={onOpenAzotaExport}
+              className="flex items-center space-x-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-800 hover:bg-orange-100 transition shadow-xs"
+              title="Xuất sang cú pháp Azota, bảng K12Online hoặc Google Forms"
+            >
+              <Share2 className="h-3.5 w-3.5 text-orange-600" />
+              <span>Xuất Azota/K12</span>
+            </button>
+
+            {/* Nhập đề có sẵn Button */}
+            <button
+              onClick={onOpenImport}
+              className="flex items-center space-x-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 transition shadow-xs"
+              title="Nhập đề thi cũ từ Word (.docx), PDF hoặc dán văn bản để bóc tách câu hỏi và vẽ ma trận"
+            >
+              <Upload className="h-3.5 w-3.5 text-teal-600" />
+              <span>Nhập đề có sẵn</span>
             </button>
           </div>
 
@@ -249,6 +280,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             { id: 'rubric', label: '3. Hướng Dẫn Chấm', icon: HelpCircle },
             { id: 'matrix', label: '4. Ma Trận Đề', icon: Grid },
             { id: 'spec', label: '5. Bản Đặc Tả', icon: ListTree },
+            { id: 'study_guide', label: '6. Đề Cương Ôn Tập', icon: BookOpen },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -446,6 +478,21 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   <strong className="text-blue-800 block">Hướng dẫn giải:</strong>
                   <MathRenderer text={q.explanation || 'Áp dụng định lý và tính toán theo chuẩn kiến thức.'} />
                 </div>
+                {q.distractorAnalysis && Object.keys(q.distractorAnalysis).length > 0 && (
+                  <div className="rounded-lg bg-amber-50/80 p-3 border border-amber-200 text-xs space-y-1.5">
+                    <strong className="text-amber-900 block flex items-center space-x-1.5">
+                      <span>🧠 Phân tích bẫy tư duy học sinh hay chọn nhầm:</span>
+                    </strong>
+                    <div className="space-y-1 text-slate-700">
+                      {Object.entries(q.distractorAnalysis).map(([opt, reason]) => (
+                        <div key={opt} className="flex items-start space-x-1.5">
+                          <span className="font-bold text-amber-800 shrink-0">Phương án {opt}:</span>
+                          <span>{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -675,6 +722,111 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: ĐỀ CƯƠNG ÔN TẬP & CẨM NANG KHÁI NIỆM CỐT LÕI */}
+      {activeTab === 'study_guide' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="border-b pb-3 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 text-base">
+                Đề Cương Ôn Tập & Cẩm Nang Kiến Thức Cốt Lõi
+              </h3>
+              <p className="text-xs text-slate-500">
+                Tài liệu bổ trợ phát cho học sinh trước kỳ kiểm tra để ôn tập trọng tâm và tránh các bẫy sai kinh điển
+              </p>
+            </div>
+            <button
+              onClick={onPrintA4}
+              className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>In Đề Cương</span>
+            </button>
+          </div>
+
+          {/* 1. Core Concepts */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <span className="text-blue-600">💡</span>
+              <span>1. Khái Niệm & Định Nghĩa Then Chốt</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {studyGuide.coreConcepts.map((item, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
+                  <div className="font-bold text-xs text-blue-900">{item.term}</div>
+                  <div className="text-xs text-slate-700 leading-relaxed font-exam">
+                    <MathRenderer text={item.definition} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Key Formulas */}
+          {studyGuide.keyFormulas.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span className="text-indigo-600">📐</span>
+                <span>2. Bảng Công Thức & Quy Tắc Vàng</span>
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border border-slate-300">
+                  <thead className="bg-slate-100 font-bold text-slate-700">
+                    <tr>
+                      <th className="p-2 border border-slate-300 w-1/4">Tên quy tắc / công thức</th>
+                      <th className="p-2 border border-slate-300 w-2/5">Biểu thức toán học / khoa học</th>
+                      <th className="p-2 border border-slate-300">Ghi chú vận dụng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studyGuide.keyFormulas.map((f, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="p-2 border border-slate-300 font-bold text-slate-800">{f.name}</td>
+                        <td className="p-2 border border-slate-300 font-exam text-center font-bold text-indigo-900">
+                          <MathRenderer text={f.formula} />
+                        </td>
+                        <td className="p-2 border border-slate-300 text-slate-600">{f.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Common Pitfalls & Mistakes */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <span className="text-amber-600">⚠️</span>
+              <span>3. Các Bẫy Sai Kinh Điển Cần Tránh Khi Làm Bài</span>
+            </h4>
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
+              {studyGuide.commonMistakes.map((mistake, idx) => (
+                <div key={idx} className="flex items-start space-x-2 text-xs text-amber-950">
+                  <span className="font-bold text-amber-700 shrink-0">•</span>
+                  <span>{mistake}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Strategic Review Tips */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <span className="text-emerald-600">🎯</span>
+              <span>4. Chiến Thuật & Kỹ Năng Làm Bài Thi</span>
+            </h4>
+            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 space-y-2">
+              {studyGuide.reviewTips.map((tip, idx) => (
+                <div key={idx} className="flex items-start space-x-2 text-xs text-emerald-950">
+                  <span className="font-bold text-emerald-700 shrink-0">✔</span>
+                  <span>{tip}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
