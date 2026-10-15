@@ -1,0 +1,89 @@
+/**
+ * Utility to extract text from files in browser (TXT, DOCX via mammoth, PDF via pdf.js)
+ */
+
+declare global {
+  interface Window {
+    mammoth?: {
+      extractRawText: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string; messages: unknown[] }>;
+    };
+    pdfjsLib?: {
+      GlobalWorkerOptions: { workerSrc: string };
+      getDocument: (src: { data: Uint8Array }) => {
+        promise: Promise<{
+          numPages: number;
+          getPage: (pageNo: number) => Promise<{
+            getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
+          }>;
+        }>;
+      };
+    };
+  }
+}
+
+export async function extractTextFromFile(file: File): Promise<string> {
+  const fileName = file.name.toLowerCase();
+
+  // 1. Plain text, markdown, csv
+  if (fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.csv') || file.type.startsWith('text/')) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.onerror = () => reject(new Error('Không thể đọc file văn bản.'));
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  // 2. Word documents (.docx)
+  if (fileName.endsWith('.docx')) {
+    if (window.mammoth) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await window.mammoth.extractRawText({ arrayBuffer });
+        return result.value;
+      } catch (err) {
+        console.warn('Mammoth extraction failed, fallback to binary string scan', err);
+      }
+    }
+  }
+
+  // 3. PDF documents (.pdf)
+  if (fileName.endsWith('.pdf')) {
+    if (window.pdfjsLib) {
+      try {
+        // Set worker
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        const pageTexts: string[] = [];
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageString = textContent.items
+            .map((item) => ('str' in item ? item.str : ''))
+            .filter(Boolean)
+            .join(' ');
+          pageTexts.push(`--- Trang ${pageNum} ---\n${pageString}`);
+        }
+
+        return pageTexts.join('\n\n');
+      } catch (err) {
+        console.warn('PDF.js extraction error', err);
+      }
+    }
+  }
+
+  // Fallback: Try reading as text
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = (e.target?.result as string) || '';
+      resolve(content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ''));
+    };
+    reader.onerror = () => resolve(`[Đã nhận file ${file.name} - ${Math.round(file.size / 1024)} KB]`);
+    reader.readAsText(file, 'utf-8');
+  });
+}
