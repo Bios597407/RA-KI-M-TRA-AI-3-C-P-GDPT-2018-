@@ -13,9 +13,11 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Wand2,
 } from 'lucide-react';
 import { ExamConfig, GradeLevel, CognitiveSystem } from '../types/exam';
 import { extractTextFromFile } from '../utils/fileParser';
+import { useToast } from './Toast';
 
 interface ConfigPanelProps {
   config: ExamConfig;
@@ -32,6 +34,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onBuildMatrixOnly,
   isGenerating,
 }) => {
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -66,6 +69,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       cognitiveSystem: newCognitiveSystem,
       cognitiveDist: defaultDist,
     });
+    toast.info(`Đã chuyển sang cấp: ${newLevel === 'primary' ? 'Tiểu học' : newLevel === 'secondary' ? 'THCS' : 'THPT'}`);
   };
 
   const handleCognitiveSystemToggle = (system: CognitiveSystem) => {
@@ -83,6 +87,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       cognitiveSystem: system,
       cognitiveDist: defaultDist,
     });
+    toast.info(`Đã chuyển sang hệ đánh giá: ${system === 'secondary_4' ? '4 Mức (NB-TH-VD-VDC)' : '3 Mức (CV 7991)'}`);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +96,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     setUploading(true);
     const newDocs = [...(config.uploadedDocs || [])];
+    let countSuccess = 0;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -101,8 +107,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           content: text,
           size: file.size,
         });
+        countSuccess++;
       } catch (err) {
         console.error('File parsing error', err);
+        toast.error(`Không thể đọc file: ${file.name}`);
       }
     }
 
@@ -112,11 +120,17 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     });
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+
+    if (countSuccess > 0) {
+      toast.success(`Đã trích xuất thành công ${countSuccess} tài liệu tham chiếu!`);
+    }
   };
 
   const removeDoc = (idx: number) => {
+    const docName = config.uploadedDocs[idx]?.name || 'Tài liệu';
     const newDocs = config.uploadedDocs.filter((_, i) => i !== idx);
     onChange({ ...config, uploadedDocs: newDocs });
+    toast.info(`Đã gỡ bỏ: ${docName}`);
   };
 
   // Section Counts calculation
@@ -136,6 +150,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   // Cognitive % verification
   const totalPercent = Object.values(config.cognitiveDist).reduce((sum, val) => sum + (val || 0), 0);
   const isPercentValid = config.distMode === 'count' || totalPercent === 100;
+
+  // Auto-balance cognitive distribution to exactly 100%
+  const handleAutoBalanceCognitive = () => {
+    const keys = Object.keys(config.cognitiveDist);
+    if (keys.length === 0) return;
+
+    let newDist: Record<string, number> = {};
+    if (config.gradeLevel === 'primary' || config.cognitiveSystem === 'primary_3') {
+      newDist = { 'Mức 1': 40, 'Mức 2': 40, 'Mức 3': 20 };
+    } else if (config.cognitiveSystem === 'secondary_3') {
+      newDist = { Biết: 40, Hiểu: 30, 'Vận dụng': 30 };
+    } else {
+      newDist = { 'Nhận biết': 40, 'Thông hiểu': 30, 'Vận dụng': 20, 'Vận dụng cao': 10 };
+    }
+
+    onChange({
+      ...config,
+      cognitiveDist: newDist,
+    });
+    toast.success('Đã tự động cân bằng tỷ lệ nhận thức về 100% chuẩn Bộ GD&ĐT!');
+  };
 
   const subjectOptions = [
     'Toán học',
@@ -170,6 +205,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         gradingRuleTF: 'stepped',
         totalScore: 10,
       });
+      toast.success('Đã nạp mẫu: THPT Chuẩn 2025 (12 Trắc nghiệm 4 lựa chọn, 4 Đúng/Sai, 6 Trả lời ngắn, 90 phút)');
     } else if (presetType === 'thcs_70_30') {
       onChange({
         ...config,
@@ -181,6 +217,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         cognitiveDist: { Biết: 40, Hiểu: 30, 'Vận dụng': 30 },
         totalScore: 10,
       });
+      toast.success('Đã nạp mẫu: THCS 70% Trắc nghiệm (16 câu Phần I, 2 câu Phần II) & 30% Tự luận (2 câu)');
     } else if (presetType === 'primary_tt27') {
       onChange({
         ...config,
@@ -193,6 +230,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         cognitiveDist: { 'Mức 1': 40, 'Mức 2': 40, 'Mức 3': 20 },
         totalScore: 10,
       });
+      toast.success('Đã nạp mẫu: Tiểu học Thông tư 27 (3 Mức độ đánh giá, 40 phút)');
     } else if (presetType === 'quick_15') {
       onChange({
         ...config,
@@ -202,6 +240,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         sectionCounts: { part1: 10, part2: 0, part3: 0, part4: 0 },
         totalScore: 10,
       });
+      toast.success('Đã nạp mẫu: Kiểm tra 15 phút (10 câu trắc nghiệm nhanh)');
     } else if (presetType === 'traditional_45') {
       onChange({
         ...config,
@@ -211,7 +250,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         sectionCounts: { part1: 20, part2: 0, part3: 0, part4: 2 },
         totalScore: 10,
       });
+      toast.success('Đã nạp mẫu: Kiểm tra 1 tiết (20 câu TN + 2 câu Tự luận, 45 phút)');
     }
+  };
+
+  const handleGenerateClick = () => {
+    if (isGenerating) return;
+
+    if (!isPercentValid) {
+      // Auto balance and notify
+      handleAutoBalanceCognitive();
+    }
+    onGenerate();
   };
 
   return (
@@ -781,15 +831,26 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
 
         {/* Total Percent Warning */}
-        <div className="mt-2 flex items-center justify-between text-xs">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
           <span className="text-slate-500">
             Tổng tỷ lệ: <strong className={isPercentValid ? 'text-emerald-700' : 'text-rose-600 font-bold'}>{totalPercent}%</strong>
           </span>
           {!isPercentValid && (
-            <span className="text-rose-600 font-bold flex items-center space-x-1 text-[11px]">
-              <AlertCircle className="h-3.5 w-3.5" />
-              <span>Tổng tỷ lệ phải bằng 100%</span>
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-rose-600 font-bold flex items-center space-x-1 text-[11px]">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>Chưa đủ 100%</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleAutoBalanceCognitive}
+                className="text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-lg flex items-center space-x-1 transition shadow-2xs cursor-pointer"
+                title="Tự động chia lại tỷ lệ thành 100% chuẩn GDPT"
+              >
+                <Wand2 className="h-3 w-3" />
+                <span>Cân bằng 100%</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -882,9 +943,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       <div className="space-y-2 pt-2">
         <button
           type="button"
-          onClick={onGenerate}
-          disabled={isGenerating || !isPercentValid}
-          className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 hover:from-blue-800 hover:to-indigo-700 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-sm sm:text-base cursor-pointer"
+          onClick={handleGenerateClick}
+          disabled={isGenerating}
+          className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 hover:from-blue-800 hover:to-indigo-700 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-sm sm:text-base cursor-pointer active:scale-99"
         >
           <Sparkles className="h-5 w-5 animate-pulse" />
           <span>{isGenerating ? 'ĐANG TẠO ĐỀ KIỂM TRA...' : '✨ TẠO ĐỀ KIỂM TRA CHUẨN'}</span>
@@ -893,9 +954,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <button
           type="button"
           onClick={onBuildMatrixOnly}
-          className="w-full py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center space-x-2"
+          className="w-full py-3 px-3.5 rounded-xl border-2 border-blue-200 bg-blue-50/70 hover:bg-blue-100 hover:border-blue-400 text-blue-900 text-xs sm:text-sm font-extrabold transition flex items-center justify-center space-x-2 shadow-xs cursor-pointer active:scale-98"
+          title="Xem trước khung Ma trận 2 chiều và Bản đặc tả kỹ thuật theo cấu hình hiện tại trước khi tạo câu hỏi"
         >
-          <FileCheck2 className="h-4 w-4 text-blue-600" />
+          <FileCheck2 className="h-4.5 w-4.5 text-blue-700 shrink-0" />
           <span>📊 XEM MA TRẬN & BẢN ĐẶC TẢ TRƯỚC</span>
         </button>
       </div>

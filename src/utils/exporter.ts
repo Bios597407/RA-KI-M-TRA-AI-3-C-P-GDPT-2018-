@@ -172,6 +172,88 @@ export function exportToWordDoc(
   downloadBlob(htmlContent, `Tron_Bo_De_Kiem_Tra_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
 }
 
+/**
+ * 4. Xuất MA TRẬN & BẢN ĐẶC TẢ RIÊNG BIỆT (Để nộp duyệt chuyên môn, Ban Giám hiệu theo chuẩn Công văn 7991/3280)
+ */
+export function exportMatrixAndSpecsOnlyWordDoc(
+  config: ExamConfig,
+  matrix: ExamMatrix,
+  specs: ExamSpecificationRow[]
+): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA';
+  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const subject = config.customSubject || config.subject || 'Môn học';
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>MA TRẬN VÀ BẢN ĐẶC TẢ - ${title}</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      <td style="width: 45%; text-align: center; vertical-align: top;">
+        <span class="bold uppercase">${school}</span><br>
+        <span class="bold">TỔ CHUYÊN MÔN</span><br>
+        <span>----------------</span>
+      </td>
+      <td style="width: 55%; text-align: center; vertical-align: top;">
+        <span class="bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</span><br>
+        <span class="bold">Độc lập – Tự do – Hạnh phúc</span><br>
+        <span>-----------------------</span>
+      </td>
+    </tr>
+  </table>
+
+  <div class="text-center" style="margin-top: 10pt; margin-bottom: 15pt;">
+    <div class="bold uppercase" style="font-size: 13pt;">MA TRẬN VÀ BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KỲ</div>
+    <div class="bold uppercase">${title}</div>
+    <div class="bold">MÔN: ${subject.toUpperCase()} – ${gradeStr.toUpperCase()}</div>
+    <div class="italic">Chương trình GDPT 2018 – Bộ sách: ${config.textbook}</div>
+    <div class="italic">Thời gian làm bài: ${config.durationMinutes} phút | Thang điểm: ${config.totalScore || 10} điểm</div>
+  </div>
+
+  <div class="bold uppercase" style="font-size: 12pt; margin-bottom: 6pt; color: #003366;">
+    A. KHUNG MA TRẬN ĐỀ KIỂM TRA
+  </div>
+  ${renderMatrixTable(matrix)}
+
+  <div class="page-break"></div>
+  <div class="bold uppercase" style="font-size: 12pt; margin-top: 10pt; margin-bottom: 6pt; color: #003366;">
+    B. BẢN ĐẶC TẢ KỸ THUẬT ĐỀ KIỂM TRA
+  </div>
+  ${renderSpecTable(specs)}
+
+  <div style="margin-top: 30pt;">
+    <table class="header-table" style="width: 100%;">
+      <tr>
+        <td style="width: 33%; text-align: center; vertical-align: top;">
+          <span class="bold">NGƯỜI LẬP MA TRẬN</span><br>
+          <span class="italic">(Ký và ghi rõ họ tên)</span>
+        </td>
+        <td style="width: 33%; text-align: center; vertical-align: top;">
+          <span class="bold">TỔ TRƯỞNG CHUYÊN MÔN</span><br>
+          <span class="italic">(Ký và ghi rõ họ tên)</span>
+        </td>
+        <td style="width: 34%; text-align: center; vertical-align: top;">
+          <span class="bold">DUYỆT CỦA BAN GIÁM HIỆU</span><br>
+          <span class="italic">(Ký tên và đóng dấu)</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `Ma_Tran_Ban_Dac_Ta_${subject}_Lop${config.grade}.doc`);
+}
+
+
 function downloadBlob(content: string, filename: string): void {
   const blob = new Blob(['\ufeff', content], {
     type: 'application/msword;charset=utf-8',

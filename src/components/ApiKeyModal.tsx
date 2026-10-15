@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Key, CheckCircle2, AlertCircle, X, ShieldCheck, Sparkles } from 'lucide-react';
+import { useToast } from './Toast';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   apiKey,
   onSaveApiKey,
 }) => {
+  const toast = useToast();
   const [inputKey, setInputKey] = useState(apiKey);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
@@ -63,6 +65,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 
   const handleSave = () => {
     onSaveApiKey(inputKey.trim());
+    toast.success('Đã lưu cấu hình Gemini API Key!');
     onClose();
   };
 
@@ -70,6 +73,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     setInputKey('');
     onSaveApiKey('');
     setTestResult(null);
+    toast.info('Đã xóa API Key, chuyển sang chế độ Smart Fallback Generator.');
   };
 
   return (

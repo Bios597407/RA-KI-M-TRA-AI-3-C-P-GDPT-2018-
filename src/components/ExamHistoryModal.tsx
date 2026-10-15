@@ -111,12 +111,8 @@ export const ExamHistoryModal: React.FC<ExamHistoryModalProps> = ({
         <div className="border-t bg-slate-50 px-6 py-3 flex items-center justify-between rounded-b-2xl">
           {history.length > 0 ? (
             <button
-              onClick={() => {
-                if (confirm('Xóa toàn bộ lịch sử các đề đã tạo?')) {
-                  onClearAllHistory();
-                }
-              }}
-              className="text-xs font-medium text-rose-600 hover:underline"
+              onClick={onClearAllHistory}
+              className="text-xs font-medium text-rose-600 hover:underline cursor-pointer"
             >
               Xóa sạch lịch sử
             </button>

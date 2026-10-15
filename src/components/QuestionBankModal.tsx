@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Search, Plus, Trash2, Copy, ArrowRight, Database } from 'lucide-react';
 import { QuestionItem } from '../types/exam';
 import MathRenderer from '../utils/mathRenderer';
+import { useToast } from './Toast';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
@@ -47,6 +49,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
       score: 0.25,
     };
     onAddNewToBank(newQ);
+    toast.success('Đã thêm 1 câu hỏi mẫu vào ngân hàng!');
   };
 
   return (
@@ -150,8 +153,11 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
                       <ArrowRight className="h-3 w-3" />
                     </button>
                     <button
-                      onClick={() => onDeleteFromBank(q.id)}
-                      className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                      onClick={() => {
+                        onDeleteFromBank(q.id);
+                        toast.info('Đã xóa câu hỏi khỏi ngân hàng.');
+                      }}
+                      className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
                       title="Xóa khỏi ngân hàng"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

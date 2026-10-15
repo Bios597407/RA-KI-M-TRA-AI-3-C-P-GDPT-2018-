@@ -11,6 +11,9 @@ import AnswerSheet from './components/AnswerSheet';
 import ExamHistoryModal from './components/ExamHistoryModal';
 import AzotaExportModal from './components/AzotaExportModal';
 import ExamImportModal from './components/ExamImportModal';
+import MatrixSpecModal from './components/MatrixSpecModal';
+import ConfirmModal from './components/ConfirmModal';
+import { useToast } from './components/Toast';
 
 import {
   ExamConfig,
@@ -30,6 +33,7 @@ import {
   exportToWordDoc,
   exportExamOnlyWordDoc,
   exportAnswerKeyOnlyWordDoc,
+  exportMatrixAndSpecsOnlyWordDoc,
 } from './utils/exporter';
 import { downloadStandaloneSingleFileHtml } from './utils/singleFileBundle';
 
@@ -133,7 +137,24 @@ export default function App() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showAzotaModal, setShowAzotaModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showMatrixModal, setShowMatrixModal] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(null);
+
+  const toast = useToast();
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    isDestructive?: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Sync config, bank & history to localStorage
   useEffect(() => {
@@ -250,9 +271,19 @@ export default function App() {
       };
 
       setHistory((prev) => [newHistoryItem, ...prev.slice(0, 19)]); // Keep last 20
+
+      toast.success(
+        isEquivalent
+          ? 'Đã tạo xong Đề tương đương (Đề B) với số liệu mới!'
+          : `Đã biên soạn thành công ${generated.length} câu hỏi theo chuẩn GDPT 2018!`
+      );
+
+      // Smooth scroll to workspace
+      const el = document.getElementById('workspace-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     } catch (err: unknown) {
       console.error('Generation error', err);
-      alert(`Đã xảy ra lỗi khi tạo đề: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Đã xảy ra lỗi khi tạo đề: ${err instanceof Error ? err.message : String(err)}`, 'Lỗi tạo đề');
     } finally {
       setIsGenerating(false);
       setProgressStep(0);
@@ -269,14 +300,28 @@ export default function App() {
   };
 
   const handleBuildMatrixOnly = () => {
-    alert('Ma trận & Bản đặc tả đã được cập nhật theo cấu hình hiện tại! Mời thầy cô xem ở Tab 4 và Tab 5.');
+    setShowMatrixModal(true);
+    setWorkspaceTab('matrix');
+  };
+
+  const handleExportMatrixOnlyWord = () => {
+    exportMatrixAndSpecsOnlyWordDoc(config, matrix, specs);
+    toast.success('Đang tải xuống tài liệu: Ma trận & Bản đặc tả (.doc)...');
   };
 
   const handleResetDefaults = () => {
-    if (confirm('Khôi phục toàn bộ cấu hình về mặc định chuẩn Bộ GD&ĐT?')) {
-      setConfig(DEFAULT_CONFIG);
-      triggerGeneration(DEFAULT_CONFIG, false);
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Khôi phục cấu hình mặc định',
+      message: 'Bạn có chắc chắn muốn đưa toàn bộ cấu hình về chuẩn gốc của Bộ GD&ĐT (Trường THPT Chuyên, Toán 12, cấu trúc 12-4-6)?',
+      confirmLabel: 'Khôi phục ngay',
+      isDestructive: true,
+      onConfirm: () => {
+        setConfig(DEFAULT_CONFIG);
+        triggerGeneration(DEFAULT_CONFIG, false);
+        toast.info('Đã khôi phục cấu hình mặc định và tạo lại đề chuẩn.');
+      },
+    });
   };
 
   // History Handlers
@@ -284,14 +329,26 @@ export default function App() {
     setConfig(item.config);
     setQuestions(item.questions);
     setActiveCode('101');
+    toast.success(`Đã nạp lại đề thi từ lịch sử: ${item.examTitle}`);
   };
 
   const handleDeleteHistoryItem = (id: string) => {
     setHistory((prev) => prev.filter((item) => item.id !== id));
+    toast.info('Đã xóa đề khỏi lịch sử.');
   };
 
   const handleClearAllHistory = () => {
-    setHistory([]);
+    setConfirmState({
+      isOpen: true,
+      title: 'Xóa toàn bộ lịch sử',
+      message: 'Bạn có chắc chắn muốn xóa sạch toàn bộ lịch sử các đề đã tạo? Thao tác này không thể hoàn tác.',
+      confirmLabel: 'Xóa sạch',
+      isDestructive: true,
+      onConfirm: () => {
+        setHistory([]);
+        toast.info('Đã xóa sạch toàn bộ lịch sử.');
+      },
+    });
   };
 
   // Inline Question Tools
@@ -303,14 +360,23 @@ export default function App() {
     const newQuestions = questions.map((q) => (q.id === updated.id ? updated : q));
     applyScoringRules(newQuestions, config);
     setQuestions(newQuestions);
+    toast.success('Đã lưu các chỉnh sửa của câu hỏi!');
   };
 
   const handleDeleteQuestion = (id: string) => {
-    if (confirm('Xóa câu hỏi này khỏi đề thi?')) {
-      const newQuestions = questions.filter((q) => q.id !== id);
-      applyScoringRules(newQuestions, config);
-      setQuestions(newQuestions);
-    }
+    setConfirmState({
+      isOpen: true,
+      title: 'Xóa câu hỏi khỏi đề',
+      message: 'Bạn có chắc chắn muốn xóa câu hỏi này khỏi đề thi? Thang điểm toàn đề sẽ tự động cân bằng lại.',
+      confirmLabel: 'Xóa câu hỏi',
+      isDestructive: true,
+      onConfirm: () => {
+        const newQuestions = questions.filter((q) => q.id !== id);
+        applyScoringRules(newQuestions, config);
+        setQuestions(newQuestions);
+        toast.info('Đã xóa 1 câu hỏi khỏi đề thi.');
+      },
+    });
   };
 
   const handleRegenerateSingleQuestion = async (oldQ: QuestionItem) => {
@@ -339,9 +405,11 @@ export default function App() {
         const updatedList = questions.map((q) => (q.id === oldQ.id ? newQ : q));
         applyScoringRules(updatedList, config);
         setQuestions(updatedList);
+        toast.success('Đã biên soạn lại câu hỏi này với dữ liệu mới!');
       }
     } catch (e) {
       console.error(e);
+      toast.error('Không thể tạo lại câu hỏi, vui lòng thử lại.');
     } finally {
       setIsGenerating(false);
       setProgressStep(0);
@@ -351,11 +419,11 @@ export default function App() {
   const handleSaveToBank = (q: QuestionItem) => {
     const exists = bank.some((b) => b.id === q.id || b.question === q.question);
     if (exists) {
-      alert('Câu hỏi này đã có trong Ngân hàng câu hỏi cá nhân!');
+      toast.warning('Câu hỏi này đã có trong Ngân hàng câu hỏi cá nhân!');
       return;
     }
     setBank([...bank, { ...q, id: `bank_${Date.now()}` }]);
-    alert('Đã lưu thành công câu hỏi vào Ngân hàng câu hỏi!');
+    toast.success('Đã lưu thành công câu hỏi vào Ngân hàng câu hỏi!');
   };
 
   const handleInsertFromBank = (bankQ: QuestionItem) => {
@@ -366,7 +434,7 @@ export default function App() {
     const updated = [...questions, newQ];
     applyScoringRules(updated, config);
     setQuestions(updated);
-    alert('Đã chèn câu hỏi từ Ngân hàng vào đề thi!');
+    toast.success('Đã chèn 1 câu hỏi từ Ngân hàng vào đề thi!');
   };
 
   const handleAddNewQuestion = () => {
@@ -386,6 +454,7 @@ export default function App() {
     applyScoringRules(updated, config);
     setQuestions(updated);
     setEditingQuestion(newQ);
+    toast.info('Đã thêm 1 câu hỏi mới. Mời thầy cô hoàn thiện nội dung trong hộp thoại.');
   };
 
   const handleImportQuestions = (importedQs: QuestionItem[]) => {
@@ -404,10 +473,12 @@ export default function App() {
     setConfig(newConfig);
     setQuestions(importedQs);
     setActiveCode('101');
+    toast.success(`Đã nạp thành công ${importedQs.length} câu hỏi vào đề và vẽ lại Ma trận!`);
   };
 
   const handleSaveImportedToBank = (importedQs: QuestionItem[]) => {
     setBank((prev) => [...prev, ...importedQs]);
+    toast.success(`Đã lưu ${importedQs.length} câu hỏi vào Ngân hàng!`);
   };
 
   // Exporters
@@ -421,18 +492,26 @@ export default function App() {
 
   const handleExportFullWord = () => {
     exportToWordDoc(config, getActiveExam(), matrix, specs);
+    toast.success('Đang tải xuống Trọn bộ Hồ sơ (Đề + ĐA + Ma trận + Bản đặc tả)...');
   };
 
   const handleExportExamOnly = () => {
     exportExamOnlyWordDoc(config, getActiveExam());
+    toast.success('Đang tải xuống Đề thi riêng cho học sinh (.doc)...');
   };
 
   const handleExportAnswerOnly = () => {
     exportAnswerKeyOnlyWordDoc(config, getActiveExam());
+    toast.success('Đang tải xuống Bảng đáp án & HD chấm riêng (.doc)...');
   };
 
   const handlePrintA4 = () => {
     window.print();
+  };
+
+  const handleDownloadStandalone = () => {
+    downloadStandaloneSingleFileHtml();
+    toast.success('Đang tải xuống bản HTML Offline độc lập chạy không cần mạng!');
   };
 
   const handleCopyContent = () => {
@@ -453,6 +532,7 @@ export default function App() {
     navigator.clipboard.writeText(
       `${config.examTitle}\nMôn: ${config.customSubject || config.subject} - Lớp ${config.grade}\n\n` + plainText
     );
+    toast.success('Đã sao chép toàn bộ nội dung đề vào bộ nhớ tạm (Clipboard)!');
   };
 
   return (
@@ -463,7 +543,7 @@ export default function App() {
         onOpenQuestionBank={() => setShowBankModal(true)}
         onOpenHistory={() => setShowHistoryModal(true)}
         onResetDefaults={handleResetDefaults}
-        onDownloadStandalone={downloadStandaloneSingleFileHtml}
+        onDownloadStandalone={handleDownloadStandalone}
         savedBankCount={bank.length}
         historyCount={history.length}
         hasApiKey={!!apiKey}
@@ -486,7 +566,7 @@ export default function App() {
           </div>
 
           {/* Cột Phải: Không gian làm việc 5 Tab & Trình diễn đề (7/12) */}
-          <div className="lg:col-span-7 space-y-4">
+          <div id="workspace-section" className="lg:col-span-7 space-y-4">
             {/* Realtime 7-Step Stepper during Generation */}
             {isGenerating && (
               <GenerationStepper currentStep={progressStep} message={progressMsg} />
@@ -502,13 +582,17 @@ export default function App() {
               matrix={matrix}
               specs={specs}
               qaReport={qaReport}
+              currentTab={workspaceTab}
+              onTabChange={setWorkspaceTab}
               onOpenQA={() => setShowQAModal(true)}
               onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
               onOpenAzotaExport={() => setShowAzotaModal(true)}
               onOpenImport={() => setShowImportModal(true)}
+              onOpenMatrixModal={() => setShowMatrixModal(true)}
               onExportExamOnly={handleExportExamOnly}
               onExportAnswerOnly={handleExportAnswerOnly}
               onExportFullWord={handleExportFullWord}
+              onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
               onPrintA4={handlePrintA4}
               onCopyContent={handleCopyContent}
               onRegenerateAll={handleGenerate}
@@ -583,6 +667,37 @@ export default function App() {
         onClose={() => setEditingQuestion(null)}
         question={editingQuestion}
         onSave={handleSaveEditedQuestion}
+      />
+
+      <MatrixSpecModal
+        isOpen={showMatrixModal}
+        onClose={() => setShowMatrixModal(false)}
+        config={config}
+        matrix={matrix}
+        specs={specs}
+        onGenerateFromMatrix={() => {
+          setShowMatrixModal(false);
+          handleGenerate();
+        }}
+        onExportWord={handleExportMatrixOnlyWord}
+        onPrint={handlePrintA4}
+        onOpenInWorkspace={() => {
+          setShowMatrixModal(false);
+          setWorkspaceTab('matrix');
+          const el = document.getElementById('workspace-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
+        isGenerating={isGenerating}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        isDestructive={confirmState.isDestructive}
+        onConfirm={confirmState.onConfirm}
+        onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

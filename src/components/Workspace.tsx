@@ -51,6 +51,8 @@ interface WorkspaceProps {
   onExportExamOnly: () => void;
   onExportAnswerOnly: () => void;
   onExportFullWord: () => void;
+  onExportMatrixSpecsWord?: () => void;
+  onOpenMatrixModal?: () => void;
   onPrintA4: () => void;
   onCopyContent: () => void;
   onRegenerateAll: () => void;
@@ -61,6 +63,8 @@ interface WorkspaceProps {
   onSaveToBank: (q: QuestionItem) => void;
   onAddNewQuestion: () => void;
   isGenerating: boolean;
+  currentTab?: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide';
+  onTabChange?: (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => void;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = ({
@@ -79,6 +83,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onExportExamOnly,
   onExportAnswerOnly,
   onExportFullWord,
+  onExportMatrixSpecsWord,
+  onOpenMatrixModal,
   onPrintA4,
   onCopyContent,
   onRegenerateAll,
@@ -89,8 +95,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onSaveToBank,
   onAddNewQuestion,
   isGenerating,
+  currentTab,
+  onTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
+  const [localTab, setLocalTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
+  const activeTab = currentTab !== undefined ? currentTab : localTab;
+  const setActiveTab = (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => {
+    setLocalTab(tab);
+    onTabChange?.(tab);
+  };
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [showWordMenu, setShowWordMenu] = useState(false);
 
@@ -235,6 +248,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   >
                     <span>🔑</span>
                     <span>Xuất Đáp án & HD chấm riêng</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onExportMatrixSpecsWord?.();
+                      setShowWordMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center space-x-2"
+                  >
+                    <span>📊</span>
+                    <span>Xuất riêng Ma trận & Bản đặc tả (.doc)</span>
                   </button>
                   <div className="border-t my-1"></div>
                   <button
@@ -581,12 +604,34 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 Tính toán tự động bằng thuật toán, khớp tuyệt đối 100% với số lượng câu hỏi và tỷ lệ % trong đề
               </p>
             </div>
-            <button
-              onClick={onPrintA4}
-              className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"
-            >
-              In Ma trận
-            </button>
+            <div className="flex items-center space-x-2">
+              {onOpenMatrixModal && (
+                <button
+                  onClick={onOpenMatrixModal}
+                  className="no-print text-xs font-bold text-indigo-700 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center space-x-1"
+                  title="Mở ma trận & bản đặc tả dạng cửa sổ đầy đủ"
+                >
+                  <span>🔍 Phóng to / Chi tiết</span>
+                </button>
+              )}
+              {onExportMatrixSpecsWord && (
+                <button
+                  onClick={onExportMatrixSpecsWord}
+                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1"
+                  title="Xuất file Word Ma trận & Bản đặc tả riêng biệt"
+                >
+                  <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Xuất Word (.doc)</span>
+                </button>
+              )}
+              <button
+                onClick={onPrintA4}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Ma trận</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -685,12 +730,34 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 Quy định chuẩn năng lực, yêu cầu cần đạt và phân loại dạng câu hỏi theo Thông tư GDPT 2018
               </p>
             </div>
-            <button
-              onClick={onPrintA4}
-              className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"
-            >
-              In Bản đặc tả
-            </button>
+            <div className="flex items-center space-x-2">
+              {onOpenMatrixModal && (
+                <button
+                  onClick={onOpenMatrixModal}
+                  className="no-print text-xs font-bold text-indigo-700 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center space-x-1"
+                  title="Mở ma trận & bản đặc tả dạng cửa sổ đầy đủ"
+                >
+                  <span>🔍 Phóng to / Chi tiết</span>
+                </button>
+              )}
+              {onExportMatrixSpecsWord && (
+                <button
+                  onClick={onExportMatrixSpecsWord}
+                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1"
+                  title="Xuất file Word Ma trận & Bản đặc tả riêng biệt"
+                >
+                  <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Xuất Word (.doc)</span>
+                </button>
+              )}
+              <button
+                onClick={onPrintA4}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Bản đặc tả</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -891,32 +958,32 @@ function renderExamQuestions(
         {/* Question Container */}
         <div className="group relative rounded-xl p-3 sm:p-4 hover:bg-blue-50/30 border border-transparent hover:border-blue-200 transition">
           {/* Mini Toolbar on Hover */}
-          <div className="no-print absolute right-3 top-3 hidden group-hover:flex items-center space-x-1 bg-white/90 backdrop-blur-xs p-1 rounded-lg border border-slate-200 shadow-md z-10">
+          <div className="no-print absolute right-2 top-2 flex sm:opacity-0 sm:group-hover:opacity-100 items-center space-x-1 bg-white/95 backdrop-blur-xs p-1 rounded-lg border border-slate-200 shadow-md z-10 transition-opacity">
             <button
               onClick={() => onRegenerate(q)}
-              className="p-1 rounded text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition"
+              className="p-1.5 rounded-md text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
               title="Tạo lại riêng câu này với AI"
             >
               <RotateCw className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onEdit(q)}
-              className="p-1 rounded text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition"
-              title="Chỉnh sửa trực tiếp"
+              className="p-1.5 rounded-md text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
+              title="Chỉnh sửa trực tiếp câu hỏi"
             >
               <Edit3 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onSaveBank(q)}
-              className="p-1 rounded text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition"
-              title="Lưu vào ngân hàng câu hỏi"
+              className="p-1.5 rounded-md text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              title="Lưu câu hỏi này vào ngân hàng cá nhân"
             >
               <BookmarkPlus className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onDelete(q.id)}
-              className="p-1 rounded text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
-              title="Xóa câu hỏi này"
+              className="p-1.5 rounded-md text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              title="Xóa câu hỏi này khỏi đề thi"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

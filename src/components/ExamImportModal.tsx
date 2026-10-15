@@ -4,6 +4,7 @@ import { QuestionItem, ExamConfig } from '../types/exam';
 import { parseRawExamText } from '../utils/examParser';
 import { extractTextFromFile } from '../utils/fileParser';
 import MathRenderer from '../utils/mathRenderer';
+import { useToast } from './Toast';
 
 interface ExamImportModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const ExamImportModal: React.FC<ExamImportModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inputText, setInputText] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -39,9 +41,10 @@ export const ExamImportModal: React.FC<ExamImportModalProps> = ({
       const parsed = parseRawExamText(text, config.topicTitle || 'Chủ đề từ file cũ');
       setParsedList(parsed);
       setHasParsed(true);
+      toast.success(`Đã phân tích thành công ${parsed.length} câu hỏi từ file!`);
     } catch (err) {
       console.error(err);
-      alert('Không thể đọc nội dung file. Vui lòng thử sao chép và dán trực tiếp.');
+      toast.error('Không thể đọc nội dung file. Vui lòng thử sao chép và dán trực tiếp.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -50,26 +53,27 @@ export const ExamImportModal: React.FC<ExamImportModalProps> = ({
 
   const handleParseText = () => {
     if (!inputText.trim()) {
-      alert('Vui lòng dán nội dung đề kiểm tra cũ vào ô trước khi phân tích!');
+      toast.warning('Vui lòng dán nội dung đề kiểm tra cũ vào ô trước khi phân tích!');
       return;
     }
     const parsed = parseRawExamText(inputText, config.topicTitle || 'Chủ đề từ đề cũ');
     setParsedList(parsed);
     setHasParsed(true);
+    toast.success(`Đã bóc tách thành công ${parsed.length} câu hỏi!`);
   };
 
   const handleApplyToExam = () => {
     if (parsedList.length === 0) return;
     onImportToExam(parsedList);
     onClose();
-    alert(`Đã nạp thành công ${parsedList.length} câu hỏi vào đề kiểm tra hiện tại và tự động cập nhật Ma trận!`);
+    toast.success(`Đã nạp ${parsedList.length} câu hỏi vào đề kiểm tra và cập nhật Ma trận!`);
   };
 
   const handleAddToBank = () => {
     if (parsedList.length === 0) return;
     onSaveToBank(parsedList);
     onClose();
-    alert(`Đã lưu ${parsedList.length} câu hỏi vào Ngân hàng câu hỏi cá nhân!`);
+    toast.success(`Đã lưu ${parsedList.length} câu hỏi vào Ngân hàng câu hỏi cá nhân!`);
   };
 
   return (
