@@ -40,7 +40,10 @@ interface WorkspaceProps {
   specs: ExamSpecificationRow[];
   qaReport: QAReport | null;
   onOpenQA: () => void;
-  onExportWord: () => void;
+  onOpenAnswerSheet: () => void;
+  onExportExamOnly: () => void;
+  onExportAnswerOnly: () => void;
+  onExportFullWord: () => void;
   onPrintA4: () => void;
   onCopyContent: () => void;
   onRegenerateAll: () => void;
@@ -63,7 +66,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   specs,
   qaReport,
   onOpenQA,
-  onExportWord,
+  onOpenAnswerSheet,
+  onExportExamOnly,
+  onExportAnswerOnly,
+  onExportFullWord,
   onPrintA4,
   onCopyContent,
   onRegenerateAll,
@@ -77,6 +83,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec'>('exam');
   const [copiedNotification, setCopiedNotification] = useState(false);
+  const [showWordMenu, setShowWordMenu] = useState(false);
 
   const currentExam = shuffledCodes.find((c) => c.code === activeCode) || {
     code: '101',
@@ -129,6 +136,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <ShieldAlert className="h-3.5 w-3.5" />
               <span>Kiểm tra QA ({qaReport?.score || 100}/100)</span>
             </button>
+
+            {/* In Phiếu Trả Lời Trắc Nghiệm Button */}
+            <button
+              onClick={onOpenAnswerSheet}
+              className="flex items-center space-x-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-xs"
+              title="In Phiếu trả lời trắc nghiệm chuẩn Bộ GD&ĐT (A4) để phát kèm cho học sinh"
+            >
+              <Layers className="h-3.5 w-3.5 text-emerald-600" />
+              <span>In Phiếu Trắc Nghiệm</span>
+            </button>
           </div>
 
           {/* Export Group */}
@@ -153,13 +170,55 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               </div>
             )}
 
-            <button
-              onClick={onExportWord}
-              className="flex items-center space-x-1.5 rounded-lg bg-blue-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-800 transition shadow-xs"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              <span>Xuất Word (.doc)</span>
-            </button>
+            {/* Split Word Export Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowWordMenu(!showWordMenu)}
+                className="flex items-center space-x-1.5 rounded-lg bg-blue-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-800 transition shadow-xs"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                <span>Xuất file Word (.doc) ▾</span>
+              </button>
+
+              {showWordMenu && (
+                <div
+                  className="absolute right-0 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl z-30 animate-in fade-in zoom-in-95"
+                  onMouseLeave={() => setShowWordMenu(false)}
+                >
+                  <button
+                    onClick={() => {
+                      onExportExamOnly();
+                      setShowWordMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center space-x-2"
+                  >
+                    <span>📝</span>
+                    <span>Xuất Đề thi riêng (cho học sinh)</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onExportAnswerOnly();
+                      setShowWordMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center space-x-2"
+                  >
+                    <span>🔑</span>
+                    <span>Xuất Đáp án & HD chấm riêng</span>
+                  </button>
+                  <div className="border-t my-1"></div>
+                  <button
+                    onClick={() => {
+                      onExportFullWord();
+                      setShowWordMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs font-bold text-blue-800 hover:bg-blue-50 flex items-center space-x-2"
+                  >
+                    <span>📦</span>
+                    <span>Xuất Trọn bộ Hồ sơ (Đề+ĐA+Ma trận)</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={onPrintA4}

@@ -157,8 +157,110 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     'Đạo đức',
   ];
 
+  const applyPreset = (presetType: 'thpt_2025' | 'thcs_70_30' | 'primary_tt27' | 'quick_15' | 'traditional_45') => {
+    if (presetType === 'thpt_2025') {
+      onChange({
+        ...config,
+        gradeLevel: 'high',
+        grade: '12',
+        durationMinutes: 90,
+        sectionCounts: { part1: 12, part2: 4, part3: 6, part4: 0 },
+        cognitiveSystem: 'secondary_4',
+        cognitiveDist: { 'Nhận biết': 40, 'Thông hiểu': 30, 'Vận dụng': 20, 'Vận dụng cao': 10 },
+        gradingRuleTF: 'stepped',
+        totalScore: 10,
+      });
+    } else if (presetType === 'thcs_70_30') {
+      onChange({
+        ...config,
+        gradeLevel: 'secondary',
+        grade: '8',
+        durationMinutes: 60,
+        sectionCounts: { part1: 16, part2: 2, part3: 0, part4: 2 },
+        cognitiveSystem: 'secondary_3',
+        cognitiveDist: { Biết: 40, Hiểu: 30, 'Vận dụng': 30 },
+        totalScore: 10,
+      });
+    } else if (presetType === 'primary_tt27') {
+      onChange({
+        ...config,
+        gradeLevel: 'primary',
+        grade: '4',
+        subject: 'Toán',
+        durationMinutes: 40,
+        sectionCounts: { part1: 8, part2: 2, part3: 0, part4: 2 },
+        cognitiveSystem: 'primary_3',
+        cognitiveDist: { 'Mức 1': 40, 'Mức 2': 40, 'Mức 3': 20 },
+        totalScore: 10,
+      });
+    } else if (presetType === 'quick_15') {
+      onChange({
+        ...config,
+        examType: 'Kiểm tra 15 phút',
+        examTitle: 'ĐỀ KIỂM TRA 15 PHÚT',
+        durationMinutes: 15,
+        sectionCounts: { part1: 10, part2: 0, part3: 0, part4: 0 },
+        totalScore: 10,
+      });
+    } else if (presetType === 'traditional_45') {
+      onChange({
+        ...config,
+        examType: 'Kiểm tra 45 phút (1 tiết)',
+        examTitle: 'ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)',
+        durationMinutes: 45,
+        sectionCounts: { part1: 20, part2: 0, part3: 0, part4: 2 },
+        totalScore: 10,
+      });
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-6">
+      {/* 1-Click Presets Bar */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-2">
+        <div className="flex items-center space-x-1.5 text-blue-900 font-bold text-xs uppercase tracking-wide">
+          <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
+          <span>Nạp nhanh Cấu trúc Mẫu Chuẩn Bộ GD&ĐT (1-Click Preset):</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => applyPreset('thpt_2025')}
+            className="px-2.5 py-1 rounded-lg bg-white border border-blue-300 hover:bg-blue-600 hover:text-white text-blue-800 text-[11px] font-bold shadow-2xs transition"
+          >
+            🏛️ THPT Chuẩn 2025 (12-4-6)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('thcs_70_30')}
+            className="px-2.5 py-1 rounded-lg bg-white border border-blue-300 hover:bg-blue-600 hover:text-white text-blue-800 text-[11px] font-bold shadow-2xs transition"
+          >
+            🏫 THCS (70% TN - 30% TL)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('primary_tt27')}
+            className="px-2.5 py-1 rounded-lg bg-white border border-blue-300 hover:bg-blue-600 hover:text-white text-blue-800 text-[11px] font-bold shadow-2xs transition"
+          >
+            🎒 Tiểu học (TT 27: 3 Mức)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('quick_15')}
+            className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-700 hover:text-white text-slate-700 text-[11px] font-medium shadow-2xs transition"
+          >
+            ⚡ 15 Phút (10 câu)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('traditional_45')}
+            className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-700 hover:text-white text-slate-700 text-[11px] font-medium shadow-2xs transition"
+          >
+            📝 1 Tiết (45 phút)
+          </button>
+        </div>
+      </div>
+
       {/* Step 1: Chọn Cấp học */}
       <div>
         <div className="flex items-center space-x-2 mb-2">

@@ -133,6 +133,20 @@ export interface ShuffledExamCode {
   }>;
 }
 
+export interface ExamHistoryItem {
+  id: string;
+  timestamp: number;
+  dateStr: string;
+  examTitle: string;
+  subject: string;
+  grade: string;
+  gradeLevel: GradeLevel;
+  totalQuestions: number;
+  totalScore: number;
+  config: ExamConfig;
+  questions: QuestionItem[];
+}
+
 export interface QAResultItem {
   id: number;
   title: string;

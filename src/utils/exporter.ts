@@ -1,30 +1,11 @@
 import { QuestionItem, ExamConfig, ExamMatrix, ExamSpecificationRow, ShuffledExamCode } from '../types/exam';
 
-/**
- * Generates an official Microsoft Word (.doc) document file from exam content
- */
-export function exportToWordDoc(
-  config: ExamConfig,
-  currentCode: ShuffledExamCode,
-  matrix: ExamMatrix,
-  specs: ExamSpecificationRow[]
-): void {
-  const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
-  const subject = config.customSubject || config.subject || 'Môn học';
-  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
-
-  const htmlContent = `
-<!DOCTYPE html>
-<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-<head>
-  <meta charset="utf-8">
-  <title>${title}</title>
+const WORD_HEADER_STYLE = `
   <style>
     body {
       font-family: 'Times New Roman', serif;
       font-size: 12pt;
-      line-height: 1.3;
+      line-height: 1.35;
       color: #000;
       margin: 20mm;
     }
@@ -55,18 +36,164 @@ export function exportToWordDoc(
       border: none !important;
       padding: 2pt 5pt;
     }
-    .rubric-table th { background-color: #f0f0f0; }
   </style>
+`;
+
+/**
+ * 1. Xuất ĐỀ THI RIÊNG BIỆT (Phát cho học sinh làm bài)
+ */
+export function exportExamOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA';
+  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const subject = config.customSubject || config.subject || 'Môn học';
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>${title} - ĐỀ THI</title>
+  ${WORD_HEADER_STYLE}
 </head>
 <body>
+  ${renderExamHeader(school, currentCode.code, title, subject, gradeStr, config)}
+  ${renderExamQuestionsToWord(currentCode.questions)}
+  <div class="text-center bold italic" style="margin-top: 25pt; margin-bottom: 15pt;">
+    --- HẾT ---<br>
+    <span style="font-size: 10pt; font-weight: normal;">(Cán bộ coi thi không giải thích gì thêm)</span>
+  </div>
+</body>
+</html>
+  `;
 
-  <!-- PHẦN HEADER ĐỀ THI CHUẨN BỘ GIÁO DỤC -->
+  downloadBlob(htmlContent, `De_Thi_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+}
+
+/**
+ * 2. Xuất ĐÁP ÁN & HƯỚNG DẪN CHẤM RIÊNG BIỆT (Cho cán bộ chấm thi & lưu hồ sơ)
+ */
+export function exportAnswerKeyOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA';
+  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const subject = config.customSubject || config.subject || 'Môn học';
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>${title} - ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <div class="text-center bold uppercase" style="font-size: 14pt; margin-bottom: 4pt;">
+    ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM CHI TIẾT
+  </div>
+  <div class="text-center bold uppercase" style="font-size: 12pt; margin-bottom: 2pt;">
+    ${title} – MÃ ĐỀ: ${currentCode.code}
+  </div>
+  <div class="text-center italic" style="margin-bottom: 15pt;">
+    Môn: ${subject} – ${gradeStr} (Thang điểm: ${config.totalScore || 10})
+  </div>
+
+  <div class="bold" style="margin-bottom: 5pt; font-size: 12pt;">I. BẢNG ĐÁP ÁN TRẮC NGHIỆM</div>
+  ${renderQuickAnswerTable(currentCode)}
+
+  <div class="bold" style="margin-top: 18pt; margin-bottom: 5pt; font-size: 12pt;">II. LỜI GIẢI VÀ BIỂU ĐIỂM CHI TIẾT</div>
+  ${renderDetailedSolutionsToWord(currentCode.questions)}
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `Dap_An_HDCham_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+}
+
+/**
+ * 3. Xuất TRỌN BỘ HỒ SƠ ĐỀ KIỂM TRA (Đề thi + Đáp án + Ma trận + Bản đặc tả)
+ */
+export function exportToWordDoc(
+  config: ExamConfig,
+  currentCode: ShuffledExamCode,
+  matrix: ExamMatrix,
+  specs: ExamSpecificationRow[]
+): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA';
+  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const subject = config.customSubject || config.subject || 'Môn học';
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <!-- TRANG 1: ĐỀ THI -->
+  ${renderExamHeader(school, currentCode.code, title, subject, gradeStr, config)}
+  ${renderExamQuestionsToWord(currentCode.questions)}
+  <div class="text-center bold italic" style="margin-top: 20pt; margin-bottom: 20pt;">
+    --- HẾT ---<br>
+    <span style="font-size: 10pt; font-weight: normal;">(Cán bộ coi thi không giải thích gì thêm)</span>
+  </div>
+
+  <!-- TRANG 2: ĐÁP ÁN & HƯỚNG DẪN CHẤM -->
+  <div class="page-break"></div>
+  <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 4pt;">
+    ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM – MÃ ĐỀ ${currentCode.code}
+  </div>
+  <div class="text-center italic" style="margin-bottom: 12pt;">
+    Môn: ${subject} – ${gradeStr} (Thang điểm: ${config.totalScore || 10})
+  </div>
+  <div class="bold" style="margin-bottom: 5pt;">I. BẢNG ĐÁP ÁN TRẮC NGHIỆM</div>
+  ${renderQuickAnswerTable(currentCode)}
+  <div class="bold" style="margin-top: 15pt; margin-bottom: 5pt;">II. HƯỚNG DẪN CHẤM CHI TIẾT</div>
+  ${renderDetailedSolutionsToWord(currentCode.questions)}
+
+  <!-- TRANG 3: MA TRẬN & BẢN ĐẶC TẢ -->
+  <div class="page-break"></div>
+  <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
+    MA TRẬN ĐỀ KIỂM TRA
+  </div>
+  ${renderMatrixTable(matrix)}
+
+  <div class="text-center bold uppercase" style="font-size: 13pt; margin-top: 20pt; margin-bottom: 8pt;">
+    BẢN ĐẶC TẢ ĐỀ KIỂM TRA
+  </div>
+  ${renderSpecTable(specs)}
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `Tron_Bo_De_Kiem_Tra_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+}
+
+function downloadBlob(content: string, filename: string): void {
+  const blob = new Blob(['\ufeff', content], {
+    type: 'application/msword;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const downloadLink = document.createElement('a');
+  downloadLink.href = url;
+  downloadLink.download = filename;
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(url);
+}
+
+function renderExamHeader(school: string, code: string, title: string, subject: string, gradeStr: string, config: ExamConfig): string {
+  return `
   <table class="header-table">
     <tr>
       <td style="width: 45%; text-align: center; vertical-align: top;">
         <span class="bold uppercase">${school}</span><br>
         <span>TỔ CHUYÊN MÔN</span><br>
-        <span class="bold">Mã đề thi: ${currentCode.code}</span>
+        <span class="bold">Mã đề thi: ${code}</span>
       </td>
       <td style="width: 55%; text-align: center; vertical-align: top;">
         <span class="bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</span><br>
@@ -76,50 +203,34 @@ export function exportToWordDoc(
     </tr>
   </table>
 
-  <div class="text-center" style="margin-top: 10pt; margin-bottom: 15pt;">
-    <div class="bold uppercase" style="font-size: 14pt;">${title}</div>
+  <div class="text-center" style="margin-top: 8pt; margin-bottom: 12pt;">
+    <div class="bold uppercase" style="font-size: 13pt;">${title}</div>
     <div class="bold">MÔN: ${subject.toUpperCase()} – ${gradeStr.toUpperCase()}</div>
     <div class="italic">Chương trình GDPT 2018 – Bộ sách: ${config.textbook}</div>
     <div class="italic">Thời gian làm bài: ${config.durationMinutes} phút (Không kể thời gian phát đề)</div>
   </div>
 
-  <table style="width: 100%; margin-bottom: 15pt;">
+  <table style="width: 100%; margin-bottom: 12pt;">
     <tr>
-      <td style="width: 60%; height: 28pt; vertical-align: middle;">
+      <td style="width: 60%; height: 26pt; vertical-align: middle;">
         Họ và tên thí sinh: ..................................................................... Lớp: .................
       </td>
-      <td style="width: 40%; height: 28pt; vertical-align: middle;">
+      <td style="width: 40%; height: 26pt; vertical-align: middle;">
         Số báo danh: ...............................................
       </td>
     </tr>
   </table>
+  `;
+}
 
-  <!-- NỘI DUNG CÂU HỎI -->
-  ${renderExamQuestionsToWord(currentCode.questions)}
-
-  <div class="text-center bold italic" style="margin-top: 20pt; margin-bottom: 20pt;">
-    --- HẾT ---<br>
-    <span style="font-size: 10pt; font-weight: normal;">(Cán bộ coi thi không giải thích gì thêm)</span>
-  </div>
-
-  <!-- TRANG MỚI: ĐÁP ÁN & HƯỚNG DẪN CHẤM -->
-  <div class="page-break"></div>
-
-  <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
-    ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM – MÃ ĐỀ ${currentCode.code}
-  </div>
-  <div class="text-center italic" style="margin-bottom: 15pt;">
-    Môn: ${subject} – ${gradeStr} (Thang điểm: ${config.totalScore || 10})
-  </div>
-
-  <!-- BẢNG ĐÁP ÁN NHANH -->
-  <div class="bold" style="margin-bottom: 5pt;">I. BẢNG ĐÁP ÁN TRẮC NGHIỆM</div>
+function renderQuickAnswerTable(currentCode: ShuffledExamCode): string {
+  return `
   <table>
     <thead>
       <tr style="background-color: #f2f2f2;">
         <th style="width: 10%; text-align: center;">Câu</th>
-        <th style="width: 15%; text-align: center;">Phần</th>
-        <th style="text-align: left;">Đáp án</th>
+        <th style="width: 20%; text-align: center;">Phần thi</th>
+        <th style="text-align: left;">Đáp án chuẩn</th>
       </tr>
     </thead>
     <tbody>
@@ -129,24 +240,18 @@ export function exportToWordDoc(
         <tr>
           <td style="text-align: center; font-weight: bold;">${qa.stt}</td>
           <td style="text-align: center;">${qa.part === 'part1' ? 'Phần I' : qa.part === 'part2' ? 'Phần II' : qa.part === 'part3' ? 'Phần III' : 'Phần IV'}</td>
-          <td>${qa.answer}</td>
+          <td style="font-weight: bold; color: #006600;">${qa.answer}</td>
         </tr>
       `
         )
         .join('')}
     </tbody>
   </table>
+  `;
+}
 
-  <!-- HƯỚNG DẪN CHẤM CHI TIẾT -->
-  <div class="bold" style="margin-top: 15pt; margin-bottom: 5pt;">II. HƯỚNG DẪN CHẤM VÀ LỜI GIẢI CHI TIẾT</div>
-  ${renderDetailedSolutionsToWord(currentCode.questions)}
-
-  <!-- TRANG MỚI: MA TRẬN & BẢN ĐẶC TẢ -->
-  <div class="page-break"></div>
-
-  <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
-    MA TRẬN ĐỀ KIỂM TRA
-  </div>
+function renderMatrixTable(matrix: ExamMatrix): string {
+  return `
   <table>
     <thead>
       <tr style="background-color: #f2f2f2;">
@@ -171,7 +276,7 @@ export function exportToWordDoc(
           ${matrix.levels
             .map((lvl) => {
               const count = (row.part1[lvl] || 0) + (row.part2[lvl] || 0) + (row.part3[lvl] || 0) + (row.part4[lvl] || 0);
-              return `<td style="text-align: center;">${count > 0 ? count : '-'}</td><td style="text-align: center;">-</td>`;
+              return `<td style="text-align: center;">${count > 0 ? count : '-'}</td><td style="text-align: center;">${count > 0 ? (count * 0.25).toFixed(2) : '-'}</td>`;
             })
             .join('')}
           <td style="text-align: center; font-weight: bold;">${row.totalQuestions}</td>
@@ -193,11 +298,11 @@ export function exportToWordDoc(
       </tr>
     </tbody>
   </table>
+  `;
+}
 
-  <!-- BẢN ĐẶC TẢ -->
-  <div class="text-center bold uppercase" style="font-size: 13pt; margin-top: 20pt; margin-bottom: 8pt;">
-    BẢN ĐẶC TẢ ĐỀ KIỂM TRA
-  </div>
+function renderSpecTable(specs: ExamSpecificationRow[]): string {
+  return `
   <table>
     <thead>
       <tr style="background-color: #f2f2f2;">
@@ -226,23 +331,7 @@ export function exportToWordDoc(
         .join('')}
     </tbody>
   </table>
-
-</body>
-</html>
   `;
-
-  // Create and download Blob
-  const blob = new Blob(['\ufeff', htmlContent], {
-    type: 'application/msword;charset=utf-8',
-  });
-  const url = URL.createObjectURL(blob);
-  const downloadLink = document.createElement('a');
-  downloadLink.href = url;
-  downloadLink.download = `De_Kiem_Tra_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`;
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  document.body.removeChild(downloadLink);
-  URL.revokeObjectURL(url);
 }
 
 function renderExamQuestionsToWord(questions: QuestionItem[]): string {
@@ -251,7 +340,6 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
   let qNumber = 1;
 
   questions.forEach((q) => {
-    // Check if new section starts
     if (q.part !== currentPart) {
       currentPart = q.part;
       let partHeader = '';
@@ -268,7 +356,6 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
       html += `<div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 8pt; text-decoration: underline;">${partHeader}</div>`;
     }
 
-    // Passage if clustered
     if (q.passage) {
       html += `
         <div style="background-color: #f9f9f9; padding: 6pt; border-left: 3px solid #333; margin-bottom: 8pt; font-style: italic;">
@@ -278,11 +365,9 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
       `;
     }
 
-    // Question content
     html += `<div class="question-block">`;
     html += `<div><strong>Câu ${qNumber++} (${q.score || 0} điểm):</strong> ${q.question}</div>`;
 
-    // Part I: Options
     if ((q.type === 'mcq_single' || q.part === 'part1') && q.options && q.options.length === 4) {
       html += `
         <table class="option-table" style="width: 100%; margin-top: 4pt;">
@@ -298,7 +383,6 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
       `;
     }
 
-    // Part II: 4 Sub-statements
     if ((q.type === 'true_false_group' || q.part === 'part2') && q.subItems) {
       html += `<div style="margin-left: 15pt; margin-top: 4pt;">`;
       q.subItems.forEach((sub) => {

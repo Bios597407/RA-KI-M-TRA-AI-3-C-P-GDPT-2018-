@@ -1,21 +1,25 @@
 import React from 'react';
-import { Sparkles, Key, Download, Database, RotateCcw } from 'lucide-react';
+import { Sparkles, Key, Download, Database, RotateCcw, History } from 'lucide-react';
 
 interface HeaderProps {
   onOpenApiKey: () => void;
   onOpenQuestionBank: () => void;
+  onOpenHistory: () => void;
   onResetDefaults: () => void;
   onDownloadStandalone: () => void;
   savedBankCount: number;
+  historyCount: number;
   hasApiKey: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenApiKey,
   onOpenQuestionBank,
+  onOpenHistory,
   onResetDefaults,
   onDownloadStandalone,
   savedBankCount,
+  historyCount,
   hasApiKey,
 }) => {
   return (
@@ -43,6 +47,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Header Actions */}
         <div className="flex items-center space-x-2">
+          {/* History */}
+          <button
+            onClick={onOpenHistory}
+            className="flex items-center space-x-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+            title="Lịch sử các đề thi đã tạo"
+          >
+            <History className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Lịch sử</span>
+            <span className="rounded-full bg-indigo-100 px-1.5 py-0.2 text-[10px] font-bold text-indigo-700">
+              {historyCount}
+            </span>
+          </button>
+
           {/* Bank */}
           <button
             onClick={onOpenQuestionBank}

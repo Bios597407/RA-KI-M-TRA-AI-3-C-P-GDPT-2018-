@@ -7,6 +7,8 @@ import ApiKeyModal from './components/ApiKeyModal';
 import AutoQAModal from './components/AutoQAModal';
 import QuestionBankModal from './components/QuestionBankModal';
 import EditQuestionModal from './components/EditQuestionModal';
+import AnswerSheet from './components/AnswerSheet';
+import ExamHistoryModal from './components/ExamHistoryModal';
 
 import {
   ExamConfig,
@@ -15,18 +17,24 @@ import {
   ExamMatrix,
   ExamSpecificationRow,
   QAReport,
+  ExamHistoryItem,
 } from './types/exam';
 
 import { generateExamQuestions, applyScoringRules } from './services/aiGenerator';
 import { buildExamMatrix, buildExamSpecification } from './utils/matrixSpecBuilder';
 import { runExamQA } from './utils/autoQA';
 import { generateShuffledCodes } from './utils/examShuffler';
-import { exportToWordDoc } from './utils/exporter';
+import {
+  exportToWordDoc,
+  exportExamOnlyWordDoc,
+  exportAnswerKeyOnlyWordDoc,
+} from './utils/exporter';
 import { downloadStandaloneSingleFileHtml } from './utils/singleFileBundle';
 
 const STORAGE_KEY_CONFIG = 'exam_ai_config_v2';
 const STORAGE_KEY_QUESTIONS = 'exam_ai_questions_v2';
 const STORAGE_KEY_BANK = 'exam_ai_bank_v2';
+const STORAGE_KEY_HISTORY = 'exam_ai_history_v2';
 const STORAGE_KEY_API_KEY = 'exam_ai_gemini_key_v2';
 
 const DEFAULT_CONFIG: ExamConfig = {
@@ -98,6 +106,15 @@ export default function App() {
     }
   });
 
+  const [history, setHistory] = useState<ExamHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_HISTORY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [activeCode, setActiveCode] = useState<string>('101');
 
@@ -110,9 +127,11 @@ export default function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
   const [showQAModal, setShowQAModal] = useState(false);
+  const [showAnswerSheetModal, setShowAnswerSheetModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(null);
 
-  // Sync config & bank to localStorage
+  // Sync config, bank & history to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
@@ -128,6 +147,14 @@ export default function App() {
       console.warn('Storage quota', e);
     }
   }, [bank]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
+    } catch (e) {
+      console.warn('Storage quota', e);
+    }
+  }, [history]);
 
   const handleSaveApiKey = (newKey: string) => {
     setApiKey(newKey);
@@ -201,6 +228,24 @@ export default function App() {
 
       setQuestions(generated);
       setActiveCode('101');
+
+      // Auto-save to History
+      const now = new Date();
+      const newHistoryItem: ExamHistoryItem = {
+        id: `exam_${Date.now()}`,
+        timestamp: Date.now(),
+        dateStr: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} - ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`,
+        examTitle: currentConfig.examTitle,
+        subject: currentConfig.customSubject || currentConfig.subject,
+        grade: currentConfig.grade,
+        gradeLevel: currentConfig.gradeLevel,
+        totalQuestions: generated.length,
+        totalScore: currentConfig.totalScore,
+        config: currentConfig,
+        questions: generated,
+      };
+
+      setHistory((prev) => [newHistoryItem, ...prev.slice(0, 19)]); // Keep last 20
     } catch (err: unknown) {
       console.error('Generation error', err);
       alert(`Đã xảy ra lỗi khi tạo đề: ${err instanceof Error ? err.message : String(err)}`);
@@ -228,6 +273,21 @@ export default function App() {
       setConfig(DEFAULT_CONFIG);
       triggerGeneration(DEFAULT_CONFIG, false);
     }
+  };
+
+  // History Handlers
+  const handleRestoreHistory = (item: ExamHistoryItem) => {
+    setConfig(item.config);
+    setQuestions(item.questions);
+    setActiveCode('101');
+  };
+
+  const handleDeleteHistoryItem = (id: string) => {
+    setHistory((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleClearAllHistory = () => {
+    setHistory([]);
   };
 
   // Inline Question Tools
@@ -325,13 +385,24 @@ export default function App() {
   };
 
   // Exporters
-  const handleExportWord = () => {
-    const activeExam = shuffledCodes.find((c) => c.code === activeCode) || {
+  const getActiveExam = () => {
+    return shuffledCodes.find((c) => c.code === activeCode) || {
       code: '101',
       questions,
       quickAnswers: [],
     };
-    exportToWordDoc(config, activeExam, matrix, specs);
+  };
+
+  const handleExportFullWord = () => {
+    exportToWordDoc(config, getActiveExam(), matrix, specs);
+  };
+
+  const handleExportExamOnly = () => {
+    exportExamOnlyWordDoc(config, getActiveExam());
+  };
+
+  const handleExportAnswerOnly = () => {
+    exportAnswerKeyOnlyWordDoc(config, getActiveExam());
   };
 
   const handlePrintA4 = () => {
@@ -364,9 +435,11 @@ export default function App() {
       <Header
         onOpenApiKey={() => setShowApiKeyModal(true)}
         onOpenQuestionBank={() => setShowBankModal(true)}
+        onOpenHistory={() => setShowHistoryModal(true)}
         onResetDefaults={handleResetDefaults}
         onDownloadStandalone={downloadStandaloneSingleFileHtml}
         savedBankCount={bank.length}
+        historyCount={history.length}
         hasApiKey={!!apiKey}
       />
 
@@ -404,7 +477,10 @@ export default function App() {
               specs={specs}
               qaReport={qaReport}
               onOpenQA={() => setShowQAModal(true)}
-              onExportWord={handleExportWord}
+              onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
+              onExportExamOnly={handleExportExamOnly}
+              onExportAnswerOnly={handleExportAnswerOnly}
+              onExportFullWord={handleExportFullWord}
               onPrintA4={handlePrintA4}
               onCopyContent={handleCopyContent}
               onRegenerateAll={handleGenerate}
@@ -432,6 +508,22 @@ export default function App() {
         isOpen={showQAModal}
         onClose={() => setShowQAModal(false)}
         report={qaReport}
+      />
+
+      <AnswerSheet
+        isOpen={showAnswerSheetModal}
+        onClose={() => setShowAnswerSheetModal(false)}
+        config={config}
+        currentCode={getActiveExam()}
+      />
+
+      <ExamHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        history={history}
+        onRestore={handleRestoreHistory}
+        onDeleteHistoryItem={handleDeleteHistoryItem}
+        onClearAllHistory={handleClearAllHistory}
       />
 
       <QuestionBankModal

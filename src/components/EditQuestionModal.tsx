@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Check, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { QuestionItem, SubStatement, RubricStep } from '../types/exam';
+import MathToolbar from './MathToolbar';
 
 interface EditQuestionModalProps {
   isOpen: boolean;
@@ -98,9 +99,14 @@ export const EditQuestionModal: React.FC<EditQuestionModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Nội dung câu hỏi (Hỗ trợ LaTeX $...$)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                Nội dung câu hỏi (Hỗ trợ LaTeX $...$)
+              </label>
+            </div>
+            <div className="mb-1.5">
+              <MathToolbar onInsert={(snippet) => setFormData({ ...formData, question: formData.question + ' ' + snippet })} />
+            </div>
             <textarea
               rows={3}
               value={formData.question}
