@@ -33,7 +33,9 @@ import {
   StudyGuideData,
 } from '../types/exam';
 import MathRenderer from '../utils/mathRenderer';
-import { buildStudyGuide } from '../utils/studyGuideBuilder';
+import { buildStudyGuide, generateAIStudyGuide } from '../utils/studyGuideBuilder';
+import { useToast } from './Toast';
+import OfficialExamHeader from './OfficialExamHeader';
 
 interface WorkspaceProps {
   config: ExamConfig;
@@ -65,6 +67,7 @@ interface WorkspaceProps {
   onSaveToBank: (q: QuestionItem) => void;
   onAddNewQuestion: () => void;
   isGenerating: boolean;
+  apiKey?: string;
   currentTab?: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide';
   onTabChange?: (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => void;
 }
@@ -99,9 +102,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onSaveToBank,
   onAddNewQuestion,
   isGenerating,
+  apiKey,
   currentTab,
   onTabChange,
 }) => {
+  const toast = useToast();
   const [localTab, setLocalTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
   const activeTab = currentTab !== undefined ? currentTab : localTab;
   const setActiveTab = (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => {
@@ -110,6 +115,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   };
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [showWordMenu, setShowWordMenu] = useState(false);
+  const [aiStudyGuide, setAiStudyGuide] = useState<StudyGuideData | null>(null);
+  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
 
   const currentExam = shuffledCodes.find((c) => c.code === activeCode) || {
     code: '101',
@@ -117,7 +124,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     quickAnswers: [],
   };
 
-  const studyGuide = useMemo(() => buildStudyGuide(config, questions), [config, questions]);
+  const defaultStudyGuide = useMemo(() => buildStudyGuide(config, questions), [config, questions]);
+  const studyGuide = aiStudyGuide || defaultStudyGuide;
+
+  const handleSynthesizeAIStudyGuide = async () => {
+    setIsGeneratingGuide(true);
+    try {
+      const guide = await generateAIStudyGuide(config, questions, apiKey);
+      setAiStudyGuide(guide);
+      toast.success('🎉 Gemini AI đã tổng hợp thành công Cẩm Nang Ôn Tập & Bẫy Thi Kinh Điển!');
+    } catch (err: unknown) {
+      console.error('AI Study guide error', err);
+      toast.error(`Không thể tổng hợp Cẩm nang: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsGeneratingGuide(false);
+    }
+  };
 
   const handleCopy = () => {
     onCopyContent();
@@ -199,17 +221,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {/* Export Group */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Shuffled Code selector */}
-            {shuffledCodes.length > 1 && (
-              <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-                <span className="text-[10px] font-bold text-slate-500 px-1">Mã đề:</span>
+            {shuffledCodes.length >= 1 && (
+              <div className="flex items-center space-x-1 rounded-lg border border-indigo-200 bg-indigo-50/70 p-1 shadow-2xs">
+                <span className="text-[10px] font-extrabold uppercase text-indigo-900 px-1">Mã đề:</span>
                 {shuffledCodes.map((sc) => (
                   <button
                     key={sc.code}
                     onClick={() => onSelectCode(sc.code)}
-                    className={`rounded px-2 py-0.5 text-xs font-bold transition ${
+                    className={`rounded px-2.5 py-0.5 text-xs font-bold transition cursor-pointer ${
                       activeCode === sc.code
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-200'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-indigo-800 hover:bg-indigo-200/60'
                     }`}
                   >
                     {sc.code}
@@ -406,53 +428,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </div>
           </div>
 
-          {/* Exam Header */}
-          <div className="border-b-2 border-slate-800 pb-4 mb-6">
-            <div className="flex justify-between items-start text-xs sm:text-sm font-exam leading-tight">
-              <div className="text-center w-5/12">
-                <div className="font-bold uppercase tracking-wider">{config.schoolName || 'SỞ GIÁO DỤC VÀ ĐÀO TẠO'}</div>
-                <div className="font-semibold uppercase text-xs">TRƯỜNG THPT / THCS CHUYÊN</div>
-                <div className="mt-1 font-bold">MÃ ĐỀ THI: {currentExam.code}</div>
-              </div>
-              <div className="text-center w-7/12">
-                <div className="font-bold uppercase tracking-wider">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-                <div className="font-semibold underline">Độc lập – Tự do – Hạnh phúc</div>
-                <div className="text-[11px] italic mt-1">Chuẩn Chương trình GDPT 2018</div>
-              </div>
-            </div>
-
-            <div className="text-center mt-5">
-              <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wide font-exam text-slate-900">
-                {config.examTitle || 'ĐỀ KIỂM TRA ĐỊNH KỲ'}
-              </h2>
-              <div className="text-sm font-bold uppercase font-exam text-slate-800 mt-0.5">
-                MÔN: {config.customSubject || config.subject} – {config.gradeLevel === 'primary' ? `KHỐI ${config.grade}` : `LỚP ${config.grade}`}
-              </div>
-              <div className="text-xs italic text-slate-600 font-exam mt-1">
-                Bộ sách: {config.textbook} • Thời gian làm bài: {config.durationMinutes} phút (Không kể phát đề)
-              </div>
-            </div>
-
-            {/* Student info box */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-exam p-2 border border-slate-300 rounded">
-              <div>
-                Họ và tên thí sinh: ................................................................ Lớp: ................
-              </div>
-              <div>Số báo danh: ............................................................................................</div>
-            </div>
-
-            {/* Teacher comment and score box */}
-            <div className="mt-2 grid grid-cols-3 border border-slate-400 text-center text-xs font-exam">
-              <div className="p-2 border-r border-slate-400">
-                <div className="font-bold uppercase">Điểm số</div>
-                <div className="h-10 flex items-center justify-center text-slate-400 italic">(Bằng số & chữ)</div>
-              </div>
-              <div className="col-span-2 p-2">
-                <div className="font-bold uppercase">Lời phê của giáo viên</div>
-                <div className="h-10"></div>
-              </div>
-            </div>
-          </div>
+          {/* Official Exam Header */}
+          <OfficialExamHeader config={config} activeCode={currentExam.code} />
 
           {/* Exam Questions List */}
           <div className="space-y-6 font-exam text-slate-900 leading-relaxed text-sm sm:text-base">
@@ -880,35 +857,53 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       )}
 
-      {/* Tab 6: ĐỀ CƯƠNG ÔN TẬP & CẨM NANG KHÁI NIỆM CỐT LÕI */}
+      {/* Tab 6: ĐỀ CƯƠNG ÔN TẬP & CẨM NANG BẮT BẪY THI DÀNH CHO HỌC SINH */}
       {activeTab === 'study_guide' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="border-b pb-3 flex items-center justify-between">
+          <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-slate-800 text-base">
-                Đề Cương Ôn Tập & Cẩm Nang Kiến Thức Cốt Lõi
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-purple-100 text-purple-800 font-extrabold text-[11px] uppercase tracking-wide">
+                  Tài liệu phát cho học sinh
+                </span>
+                <span className="text-xs text-slate-400">• Ôn trước giờ G</span>
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-base sm:text-lg mt-1">
+                Đề Cương Ôn Tập & Cẩm Nang Phòng Tránh Bẫy Sai Kinh Điển
               </h3>
-              <p className="text-xs text-slate-500">
-                Tài liệu bổ trợ phát cho học sinh trước kỳ kiểm tra để ôn tập trọng tâm và tránh các bẫy sai kinh điển
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tài liệu bổ trợ phát trực tiếp cho học sinh để hệ thống hóa kiến thức trọng tâm, tránh các bẫy phương án nhiễu & tối ưu thời gian làm bài
               </p>
             </div>
-            <div className="flex items-center space-x-2">
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleSynthesizeAIStudyGuide}
+                disabled={isGeneratingGuide}
+                className="no-print text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-3.5 py-2 rounded-xl shadow-xs flex items-center space-x-1.5 transition cursor-pointer disabled:opacity-50"
+                title="Dùng Gemini AI tổng hợp chi tiết cẩm nang bẫy thi dựa trên danh sách câu hỏi thực tế"
+              >
+                <Sparkles className={`h-4 w-4 text-yellow-300 ${isGeneratingGuide ? 'animate-spin' : ''}`} />
+                <span>{isGeneratingGuide ? 'AI Đang tổng hợp Cẩm nang...' : '✨ AI Tổng hợp Bắt Bẫy Thi'}</span>
+              </button>
+
               {onExportStudyGuideWord && (
                 <button
                   onClick={onExportStudyGuideWord}
-                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
-                  title="Xuất file Word Đề cương ôn tập bổ trợ"
+                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center space-x-1 cursor-pointer shadow-2xs"
+                  title="Xuất file Word Cẩm nang phát cho học sinh"
                 >
-                  <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                  <FileDown className="h-4 w-4 text-blue-600" />
                   <span>Xuất Word (.doc)</span>
                 </button>
               )}
+
               <button
                 onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('study_guide') : onPrintA4())}
-                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-2 rounded-xl hover:bg-blue-100 flex items-center space-x-1 cursor-pointer shadow-2xs"
               >
-                <Printer className="h-3.5 w-3.5" />
-                <span>In Đề Cương</span>
+                <Printer className="h-4 w-4" />
+                <span>In Cẩm Nang</span>
               </button>
             </div>
           </div>
@@ -916,14 +911,19 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {/* 1. Core Concepts */}
           <div className="space-y-3">
             <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <span className="text-blue-600">💡</span>
-              <span>1. Khái Niệm & Định Nghĩa Then Chốt</span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-blue-700 text-xs font-bold">
+                1
+              </span>
+              <span>💡 Khái Niệm & Từ Khóa Cốt Lõi (Core Concepts)</span>
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {studyGuide.coreConcepts.map((item, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
-                  <div className="font-bold text-xs text-blue-900">{item.term}</div>
-                  <div className="text-xs text-slate-700 leading-relaxed font-exam">
+                <div key={idx} className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 space-y-1">
+                  <div className="font-bold text-xs text-blue-900 flex items-center space-x-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-600"></span>
+                    <span>{item.term}</span>
+                  </div>
+                  <div className="text-xs text-slate-700 leading-relaxed font-exam pl-3">
                     <MathRenderer text={item.definition} />
                   </div>
                 </div>
@@ -935,26 +935,28 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {studyGuide.keyFormulas.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                <span className="text-indigo-600">📐</span>
-                <span>2. Bảng Công Thức & Quy Tắc Vàng</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-xs font-bold">
+                  2
+                </span>
+                <span>📐 Bảng Công Thức Vàng & Quy Tắc Giải Nhanh</span>
               </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border border-slate-300">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-xs">
                   <thead className="bg-slate-100 font-bold text-slate-700">
                     <tr>
-                      <th className="p-2 border border-slate-300 w-1/4">Tên quy tắc / công thức</th>
-                      <th className="p-2 border border-slate-300 w-2/5">Biểu thức toán học / khoa học</th>
-                      <th className="p-2 border border-slate-300">Ghi chú vận dụng</th>
+                      <th className="p-2.5 border-b border-r border-slate-200 text-left w-1/4">Tên quy tắc / công thức</th>
+                      <th className="p-2.5 border-b border-r border-slate-200 text-center w-2/5">Biểu thức toán / khoa học</th>
+                      <th className="p-2.5 border-b border-slate-200 text-left">Ghi chú & Mẹo vận dụng</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-200">
                     {studyGuide.keyFormulas.map((f, idx) => (
                       <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-2 border border-slate-300 font-bold text-slate-800">{f.name}</td>
-                        <td className="p-2 border border-slate-300 font-exam text-center font-bold text-indigo-900">
+                        <td className="p-2.5 border-r border-slate-200 font-bold text-slate-800">{f.name}</td>
+                        <td className="p-2.5 border-r border-slate-200 font-exam text-center font-bold text-indigo-900 bg-indigo-50/30">
                           <MathRenderer text={f.formula} />
                         </td>
-                        <td className="p-2 border border-slate-300 text-slate-600">{f.note}</td>
+                        <td className="p-2.5 text-slate-600">{f.note}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -963,33 +965,129 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </div>
           )}
 
-          {/* 3. Common Pitfalls & Mistakes */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <span className="text-amber-600">⚠️</span>
-              <span>3. Các Bẫy Sai Kinh Điển Cần Tránh Khi Làm Bài</span>
-            </h4>
-            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
-              {studyGuide.commonMistakes.map((mistake, idx) => (
-                <div key={idx} className="flex items-start space-x-2 text-xs text-amber-950">
-                  <span className="font-bold text-amber-700 shrink-0">•</span>
-                  <span>{mistake}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* 3. 🔥 CRITICAL PITFALL & TRAP HANDBOOK */}
+          {studyGuide.trapList && studyGuide.trapList.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">
+                    3
+                  </span>
+                  <span className="text-rose-900 font-extrabold">🔥 CẨM NANG BẪY SAI KINHDIỂN VÀ BÍ QUYẾT PHÒNG TRÁNH</span>
+                </h4>
+                <span className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                  ⚠️ Trọng tâm phát học sinh
+                </span>
+              </div>
 
-          {/* 4. Strategic Review Tips */}
+              <div className="grid grid-cols-1 gap-3">
+                {studyGuide.trapList.map((trap, idx) => (
+                  <div key={idx} className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 space-y-2 relative overflow-hidden">
+                    <div className="flex items-start justify-between">
+                      <span className="font-bold text-xs text-rose-900 flex items-center space-x-1.5">
+                        <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                        <span>Bẫy #{idx + 1}: {trap.trapType}</span>
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-800 leading-relaxed pl-5">
+                      <MathRenderer text={trap.description} />
+                    </div>
+
+                    {trap.exampleQuestion && (
+                      <div className="ml-5 p-2 rounded-lg bg-white/80 border border-rose-200/60 text-[11px] italic text-slate-600">
+                        <span className="font-bold text-slate-700 not-italic">Ví dụ trong đề: </span>
+                        <MathRenderer text={trap.exampleQuestion} />
+                      </div>
+                    )}
+
+                    <div className="ml-5 pt-1 flex items-center space-x-1.5 text-xs font-bold text-emerald-800">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <span>Bí quyết phòng tránh: </span>
+                      <span className="font-normal text-emerald-900"><MathRenderer text={trap.avoidanceTip} /></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Common Mistakes */}
+          {studyGuide.commonMistakes.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-amber-700 text-xs font-bold">
+                  4
+                </span>
+                <span>⚠️ Lỗi Tác Phong & Sai Lầm Thường Gặp Khi Tô Phiếu</span>
+              </h4>
+              <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
+                {studyGuide.commonMistakes.map((mistake, idx) => (
+                  <div key={idx} className="flex items-start space-x-2 text-xs text-amber-950">
+                    <span className="font-bold text-amber-700 shrink-0">•</span>
+                    <span><MathRenderer text={mistake} /></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Time Strategy */}
+          {studyGuide.timeStrategy && studyGuide.timeStrategy.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold">
+                  5
+                </span>
+                <span>⏰ Phân Bổ Thời Gian & Chiến Thuật Từng Dạng Đề GDPT 2018</span>
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {studyGuide.timeStrategy.map((ts, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1">
+                    <div className="font-bold text-xs text-emerald-900">{ts.partTitle}</div>
+                    <div className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded w-fit">
+                      ⏱ {ts.timeAlloc}
+                    </div>
+                    <p className="text-xs text-slate-700 pt-1 leading-relaxed">{ts.strategy}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 6. Pre-Exam Readiness Checklist */}
+          {studyGuide.readinessChecklist && studyGuide.readinessChecklist.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-xs font-bold">
+                  6
+                </span>
+                <span>✅ Checklist Tự Kiểm Tra Kiến Thức Trước Giờ G</span>
+              </h4>
+              <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/60 space-y-2">
+                {studyGuide.readinessChecklist.map((chk, idx) => (
+                  <label key={idx} className="flex items-center space-x-2.5 text-xs text-indigo-950 cursor-pointer">
+                    <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4" defaultChecked />
+                    <span><MathRenderer text={chk} /></span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 7. Review Tips & Teacher Notes */}
           <div className="space-y-3">
             <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-              <span className="text-emerald-600">🎯</span>
-              <span>4. Chiến Thuật & Kỹ Năng Làm Bài Thi</span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-100 text-teal-700 text-xs font-bold">
+                7
+              </span>
+              <span>🎯 Lời Dặn Của Giáo Viên & Bí Quyết Bứt Phá Điểm Số</span>
             </h4>
-            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 space-y-2">
+            <div className="p-4 rounded-xl border border-teal-200 bg-teal-50/60 space-y-2">
               {studyGuide.reviewTips.map((tip, idx) => (
-                <div key={idx} className="flex items-start space-x-2 text-xs text-emerald-950">
-                  <span className="font-bold text-emerald-700 shrink-0">✔</span>
-                  <span>{tip}</span>
+                <div key={idx} className="flex items-start space-x-2 text-xs text-teal-950">
+                  <span className="font-bold text-teal-700 shrink-0">✔</span>
+                  <span><MathRenderer text={tip} /></span>
                 </div>
               ))}
             </div>

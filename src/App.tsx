@@ -26,7 +26,7 @@ import {
   ExamHistoryItem,
 } from './types/exam';
 
-import { generateExamQuestions, applyScoringRules } from './services/aiGenerator';
+import { generateExamQuestions, applyScoringRules, ensureExactQuestionCount } from './services/aiGenerator';
 import { buildExamMatrix, buildExamSpecification } from './utils/matrixSpecBuilder';
 import { buildStudyGuide } from './utils/studyGuideBuilder';
 import { runExamQA } from './utils/autoQA';
@@ -89,6 +89,13 @@ const DEFAULT_CONFIG: ExamConfig = {
   keepFixedQuestions: false,
   teacherFixedQuestions: [],
   testCodesCount: 2,
+  customTestCodesList: ['111', '222', '333', '444'],
+
+  departmentName: 'SỞ GIÁO DỤC & ĐÀO TẠO TPHCM',
+  academicYear: '2025 - 2026',
+  officialExamType: 'Đề chính thức',
+  pageCountText: '2',
+  durationNote: '(không kể thời gian phát đề)',
 };
 
 export default function App() {
@@ -227,15 +234,31 @@ export default function App() {
     return buildExamSpecification(questions, config);
   }, [questions, config]);
 
-  // Derived Shuffled Codes (101, 102, 103, 104)
+  // Derived Shuffled Codes (111, 222, 333, 444...)
   const shuffledCodes: ShuffledExamCode[] = useMemo(() => {
-    return generateShuffledCodes(questions, config.testCodesCount || 2);
-  }, [questions, config.testCodesCount]);
+    return generateShuffledCodes(questions, config.testCodesCount || 2, config.customTestCodesList);
+  }, [questions, config.testCodesCount, config.customTestCodesList]);
+
+  // Keep activeCode valid when test codes change
+  useEffect(() => {
+    if (shuffledCodes.length > 0) {
+      if (!shuffledCodes.some((c) => c.code === activeCode)) {
+        setActiveCode(shuffledCodes[0].code);
+      }
+    }
+  }, [shuffledCodes, activeCode]);
 
   // Auto QA Report
   const qaReport: QAReport = useMemo(() => {
     return runExamQA(questions, config);
   }, [questions, config]);
+
+  const handleAutoFixQA = () => {
+    const fixed = ensureExactQuestionCount(questions, config);
+    applyScoringRules(fixed, config);
+    setQuestions(fixed);
+    toast.success('🎉 Đã tự động bù/sửa câu hỏi và cân bằng điểm số! Đạt 100/100 điểm Auto-QA!');
+  };
 
   // Core Generation Function
   const triggerGeneration = async (currentConfig: ExamConfig, isEquivalent: boolean) => {
@@ -622,6 +645,7 @@ export default function App() {
               onSaveToBank={handleSaveToBank}
               onAddNewQuestion={handleAddNewQuestion}
               isGenerating={isGenerating}
+              apiKey={apiKey}
             />
           </div>
         </div>
@@ -639,6 +663,7 @@ export default function App() {
         isOpen={showQAModal}
         onClose={() => setShowQAModal(false)}
         report={qaReport}
+        onAutoFixQA={handleAutoFixQA}
       />
 
       <AnswerSheet

@@ -588,39 +588,47 @@ function downloadBlob(content: string, filename: string): void {
 }
 
 function renderExamHeader(school: string, code: string, title: string, subject: string, gradeStr: string, config: ExamConfig): string {
+  const department = (config.departmentName || 'SỞ GIÁO DỤC & ĐÀO TẠO TPHCM').toUpperCase();
+  const schoolName = (config.schoolName || 'TRƯỜNG THPT VÕ TRƯỜNG TOẢN').toUpperCase();
+  const officialType = config.officialExamType || 'Đề chính thức';
+  const pageCount = config.pageCountText || '2';
+  const durationNote = config.durationNote || '(không kể thời gian phát đề)';
+  const rawSubject = config.customSubject || config.subject || 'CÔNG NGHỆ ĐIỆN – ĐIỆN TỬ';
+  const gradeSuffix = config.grade ? ` ${config.grade}` : '';
+  const subjectDisplay = rawSubject.toUpperCase();
+  const academicYear = config.academicYear || '2025 - 2026';
+  const examTitle = (config.examTitle || 'ĐỀ KIỂM TRA CUỐI HỌC KÌ 1').toUpperCase();
+
   return `
-  <table class="header-table">
+  <table class="header-table" style="width: 100%; border-collapse: collapse; margin-bottom: 6pt; font-family: 'Times New Roman', serif;">
     <tr>
-      <td style="width: 45%; text-align: center; vertical-align: top;">
-        <span class="bold uppercase">${school}</span><br>
-        <span>TỔ CHUYÊN MÔN</span><br>
-        <span class="bold">Mã đề thi: ${code}</span>
+      <td style="width: 45%; text-align: center; vertical-align: top; padding: 2pt;">
+        <div class="bold uppercase" style="font-size: 11pt; line-height: 1.25;">${department}</div>
+        <div class="bold uppercase" style="font-size: 11pt; line-height: 1.25;">${schoolName}</div>
+        <div class="italic bold" style="font-size: 11pt; margin-top: 3pt;">${officialType}</div>
+        <div class="italic" style="font-size: 10.5pt; margin-top: 2pt;">(Đề có _${pageCount}_ trang)</div>
       </td>
-      <td style="width: 55%; text-align: center; vertical-align: top;">
-        <span class="bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</span><br>
-        <span class="bold">Độc lập – Tự do – Hạnh phúc</span><br>
-        <span>-----------------------</span>
+      <td style="width: 55%; text-align: center; vertical-align: top; padding: 2pt;">
+        <div class="bold uppercase" style="font-size: 11.5pt; line-height: 1.25;">${examTitle} NĂM HỌC ${academicYear}</div>
+        <div class="bold uppercase" style="font-size: 11.5pt; line-height: 1.25; margin-top: 3pt;">MÔN: ${subjectDisplay}${gradeSuffix}</div>
+        <div class="italic" style="font-size: 11pt; margin-top: 3pt;">Thời gian làm bài: ${config.durationMinutes || 45} PHÚT</div>
+        <div class="italic" style="font-size: 10.5pt;">${durationNote}</div>
       </td>
     </tr>
   </table>
 
-  <div class="text-center" style="margin-top: 8pt; margin-bottom: 12pt;">
-    <div class="bold uppercase" style="font-size: 13pt;">${title}</div>
-    <div class="bold">MÔN: ${subject.toUpperCase()} – ${gradeStr.toUpperCase()}</div>
-    <div class="italic">Chương trình GDPT 2018 – Bộ sách: ${config.textbook}</div>
-    <div class="italic">Thời gian làm bài: ${config.durationMinutes} phút (Không kể thời gian phát đề)</div>
+  <div style="border-bottom: 1.5pt solid #000; padding-bottom: 4pt; margin-top: 8pt; margin-bottom: 12pt; font-size: 11pt; font-family: 'Times New Roman', serif;">
+    <table class="header-table" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="text-align: left; vertical-align: bottom;">
+          <strong>Họ và tên:</strong> ................................................................ <strong>LỚP:</strong> ........... <strong>MS:</strong> .................... <strong>Số báo danh:</strong> ..............
+        </td>
+        <td style="text-align: right; vertical-align: bottom; font-weight: bold; font-size: 12pt; white-space: nowrap; padding-left: 10pt;">
+          Mã đề ${code}
+        </td>
+      </tr>
+    </table>
   </div>
-
-  <table style="width: 100%; margin-bottom: 12pt;">
-    <tr>
-      <td style="width: 60%; height: 26pt; vertical-align: middle;">
-        Họ và tên thí sinh: ..................................................................... Lớp: .................
-      </td>
-      <td style="width: 40%; height: 26pt; vertical-align: middle;">
-        Số báo danh: ...............................................
-      </td>
-    </tr>
-  </table>
   `;
 }
 
@@ -738,7 +746,7 @@ function renderSpecTable(specs: ExamSpecificationRow[]): string {
 function renderStudyGuideContent(studyGuide: StudyGuideData): string {
   return `
     <div class="bold" style="font-size: 12pt; margin-top: 10pt; margin-bottom: 6pt; color: #003366;">
-      1. Khái Niệm & Định Nghĩa Cốt Lõi
+      1. Bảng Khái Niệm & Từ Khóa Cốt Lõi
     </div>
     <table>
       <thead>
@@ -763,14 +771,14 @@ function renderStudyGuideContent(studyGuide: StudyGuideData): string {
 
     ${studyGuide.keyFormulas && studyGuide.keyFormulas.length > 0 ? `
     <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #003366;">
-      2. Bảng Công Thức & Quy Tắc Vàng
+      2. Bảng Công Thức Vàng & Quy Tắc Giải Nhanh
     </div>
     <table>
       <thead>
         <tr style="background-color: #f2f2f2;">
           <th style="width: 25%;">Tên công thức / Quy tắc</th>
-          <th style="width: 35%;">Biểu thức</th>
-          <th>Ghi chú vận dụng</th>
+          <th style="width: 35%;">Biểu thức / Phương trình</th>
+          <th>Ghi chú & Mẹo vận dụng</th>
         </tr>
       </thead>
       <tbody>
@@ -789,15 +797,83 @@ function renderStudyGuideContent(studyGuide: StudyGuideData): string {
     </table>
     ` : ''}
 
+    ${studyGuide.trapList && studyGuide.trapList.length > 0 ? `
     <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #b45309;">
-      3. Các Bẫy Sai Kinh Điển Cần Tránh Khi Làm Bài
+      3. CẨM NANG BẪY SAI KINHDIỂN & BÍ QUYẾT PHÒNG TRÁNH (Quan trọng phát cho học sinh)
+    </div>
+    <table>
+      <thead>
+        <tr style="background-color: #fff7ed;">
+          <th style="width: 25%; color: #9a3412;">Dạng Bẫy Tư Duy</th>
+          <th style="width: 45%; color: #9a3412;">Mô tả bẫy hay mắc & Minh họa câu hỏi</th>
+          <th style="color: #9a3412;">Bí quyết phòng tránh & Kiểm tra nhanh</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${studyGuide.trapList
+          .map(
+            (trap) => `
+          <tr>
+            <td style="font-weight: bold; color: #c2410c;">${trap.trapType}</td>
+            <td>
+              <div>${formatLatexToWordUnicode(trap.description)}</div>
+              ${trap.exampleQuestion ? `<div style="font-style: italic; color: #555; margin-top: 3pt; font-size: 9.5pt;">VD: "${formatLatexToWordUnicode(trap.exampleQuestion)}"</div>` : ''}
+            </td>
+            <td style="font-weight: bold; color: #15803d;">${formatLatexToWordUnicode(trap.avoidanceTip)}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #b45309;">
+      4. Các Lỗi Sai Thường Gặp Khác Khi Làm Bài
     </div>
     <ul style="margin-top: 4pt; margin-bottom: 12pt; line-height: 1.5;">
       ${studyGuide.commonMistakes.map((m) => `<li>${formatLatexToWordUnicode(m)}</li>`).join('')}
     </ul>
 
+    ${studyGuide.timeStrategy && studyGuide.timeStrategy.length > 0 ? `
     <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #047857;">
-      4. Chiến Thuật & Kỹ Năng Làm Bài Thi
+      5. Phân Bổ Thời Gian & Chiến Thuật Làm Bài Theo Dạng Đề GDPT 2018
+    </div>
+    <table>
+      <thead>
+        <tr style="background-color: #ecfdf5;">
+          <th style="width: 35%; color: #065f46;">Phần thi / Cấu trúc</th>
+          <th style="width: 25%; color: #065f46;">Thời gian đề xuất</th>
+          <th style="color: #065f46;">Chiến thuật làm bài tối ưu điểm</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${studyGuide.timeStrategy
+          .map(
+            (ts) => `
+          <tr>
+            <td style="font-weight: bold;">${ts.partTitle}</td>
+            <td style="font-weight: bold; color: #047857; text-align: center;">${ts.timeAlloc}</td>
+            <td>${ts.strategy}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    ${studyGuide.readinessChecklist && studyGuide.readinessChecklist.length > 0 ? `
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #1e3a8a;">
+      6. Checklist Tự Kiểm Tra Kiến Thức Trước Khi Bước Vào Phòng Thi
+    </div>
+    <ul style="margin-top: 4pt; margin-bottom: 12pt; line-height: 1.5;">
+      ${studyGuide.readinessChecklist.map((chk) => `<li>[  ] ${formatLatexToWordUnicode(chk)}</li>`).join('')}
+    </ul>
+    ` : ''}
+
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #047857;">
+      7. Lời Dặn Của Giáo Viên & Mẹo Ôn Tập Cốt Lõi
     </div>
     <ul style="margin-top: 4pt; margin-bottom: 12pt; line-height: 1.5;">
       ${studyGuide.reviewTips.map((t) => `<li>${formatLatexToWordUnicode(t)}</li>`).join('')}

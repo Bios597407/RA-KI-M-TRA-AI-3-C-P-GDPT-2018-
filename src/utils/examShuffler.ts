@@ -8,12 +8,31 @@ import { QuestionItem, ShuffledExamCode } from '../types/exam';
  * 3. Shuffles options A, B, C, D safely (avoids shuffling if contains "Tất cả đều đúng/sai").
  * 4. Automatically recomputes the answer key for each test code.
  */
-export function generateShuffledCodes(baseQuestions: QuestionItem[], count: 1 | 2 | 3 | 4): ShuffledExamCode[] {
-  const codes: string[] = ['101', '102', '103', '104'].slice(0, count);
+export function generateShuffledCodes(
+  baseQuestions: QuestionItem[],
+  count: number = 2,
+  customCodes?: string[]
+): ShuffledExamCode[] {
+  let codes: string[] = [];
+  if (customCodes && customCodes.length > 0) {
+    codes = customCodes.slice(0, count);
+    // If count > customCodes length, fill remaining with auto numbers
+    while (codes.length < count) {
+      const nextNum = 101 + codes.length;
+      codes.push(String(nextNum));
+    }
+  } else {
+    const defaultCodes = ['101', '102', '103', '104', '105', '106', '107', '108'];
+    codes = defaultCodes.slice(0, Math.min(count, defaultCodes.length));
+    while (codes.length < count) {
+      const nextNum = 101 + codes.length;
+      codes.push(String(nextNum));
+    }
+  }
 
   return codes.map((code, codeIdx) => {
     if (codeIdx === 0) {
-      // Code 101: Keep original order
+      // Code 1: Keep original order
       return {
         code,
         questions: baseQuestions,

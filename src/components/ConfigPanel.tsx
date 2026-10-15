@@ -42,6 +42,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const [uploading, setUploading] = useState(false);
   const [isAnalyzingLesson, setIsAnalyzingLesson] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showHeaderForm, setShowHeaderForm] = useState(true);
 
   // Grade options based on level
   const gradesByLevel: Record<GradeLevel, string[]> = {
@@ -56,30 +57,57 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     try {
       const result = await analyzeAndSuggestLessonContent(docs, config, apiKey);
 
+      let targetGradeLevel: GradeLevel = result.gradeLevel || config.gradeLevel;
+      let targetGrade = result.grade || config.grade;
+
+      // Ensure grade matches grade level if grade level is updated
+      if (result.grade && !result.gradeLevel) {
+        const num = parseInt(result.grade, 10);
+        if (num >= 1 && num <= 5) targetGradeLevel = 'primary';
+        else if (num >= 6 && num <= 9) targetGradeLevel = 'secondary';
+        else if (num >= 10 && num <= 12) targetGradeLevel = 'high';
+      }
+
+      // Default cognitive system & distribution based on inferred grade level
+      let targetCognitiveSystem: CognitiveSystem = config.cognitiveSystem;
+      let targetCognitiveDist = { ...config.cognitiveDist };
+
+      if (targetGradeLevel !== config.gradeLevel) {
+        if (targetGradeLevel === 'primary') {
+          targetCognitiveSystem = 'primary_3';
+          targetCognitiveDist = { 'Mức 1': 40, 'Mức 2': 40, 'Mức 3': 20 };
+        } else if (targetGradeLevel === 'secondary') {
+          targetCognitiveSystem = 'secondary_3';
+          targetCognitiveDist = { 'Biết': 40, 'Hiểu': 30, 'Vận dụng': 30 };
+        } else {
+          targetCognitiveSystem = 'secondary_4';
+          targetCognitiveDist = { 'Nhận biết': 40, 'Thông hiểu': 30, 'Vận dụng': 20, 'Vận dụng cao': 10 };
+        }
+      }
+
       const updatedConfig: ExamConfig = {
         ...config,
+        gradeLevel: targetGradeLevel,
+        grade: targetGrade,
+        subject: result.subject || config.subject,
+        textbook: result.textbook || config.textbook,
+        cognitiveSystem: targetCognitiveSystem,
+        cognitiveDist: targetCognitiveDist,
         topicTitle: result.topicTitle || config.topicTitle,
         chapter: result.chapter || config.chapter,
         learningOutcomes: result.learningOutcomes || config.learningOutcomes,
         readingPassage: result.readingPassage || config.readingPassage,
       };
 
-      if (result.subject && result.subject !== config.subject) {
-        updatedConfig.subject = result.subject;
-      }
-      if (result.grade && result.grade !== config.grade) {
-        updatedConfig.grade = result.grade;
-      }
-
       onChange(updatedConfig);
       toast.success(
         docs.length > 0
-          ? '🎉 AI đã tự động phân tích file đính kèm và điền Tên bài, Chương, Yêu cầu cần đạt!'
+          ? `🎉 AI đã suy luận 100% thông tin File: Cấp ${targetGradeLevel === 'high' ? 'THPT' : targetGradeLevel === 'secondary' ? 'THCS' : 'Tiểu học'}, Lớp ${targetGrade}, Môn ${updatedConfig.subject}, Sách "${updatedConfig.textbook}", Tên bài & Yêu cầu cần đạt!`
           : '✨ AI đã tự động đề xuất Nội dung bài học & Yêu cầu cần đạt chuẩn GDPT 2018!'
       );
     } catch (err: unknown) {
       console.error('Lesson analysis error', err);
-      toast.error(`Lỗi phân tích bài học: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(`Lỗi suy luận tài liệu: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsAnalyzingLesson(false);
     }
@@ -362,6 +390,260 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             📝 1 Tiết (45 phút)
           </button>
         </div>
+      </div>
+
+      {/* Form Tiêu Đề Đề Thi & Quản Lý Mã Đề Động */}
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <GraduationCap className="h-4 w-4 text-indigo-700" />
+            <h3 className="text-xs font-extrabold uppercase text-indigo-950 tracking-wider">
+              Form Tiêu Đề Đề Thi & Quản Lý Mã Đề Động (Chuẩn Bộ / Sở GD&ĐT)
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowHeaderForm(!showHeaderForm)}
+            className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center space-x-1 cursor-pointer"
+          >
+            <span>{showHeaderForm ? 'Thu gọn' : 'Mở rộng'}</span>
+            {showHeaderForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
+        {showHeaderForm && (
+          <div className="space-y-3 pt-1 border-t border-indigo-200/60">
+            {/* Row 1: Sở/Phòng GD&ĐT & Tên Trường */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Sở / Phòng GD&ĐT chủ quản:
+                </label>
+                <input
+                  type="text"
+                  value={config.departmentName || ''}
+                  onChange={(e) => onChange({ ...config, departmentName: e.target.value })}
+                  placeholder="VD: SỞ GIÁO DỤC & ĐÀO TẠO TPHCM"
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Tên Trường THPT / THCS:
+                </label>
+                <input
+                  type="text"
+                  value={config.schoolName || ''}
+                  onChange={(e) => onChange({ ...config, schoolName: e.target.value })}
+                  placeholder="VD: TRƯỜNG THPT VÕ TRƯỜNG TOẢN"
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Môn Thi & Kỳ Thi */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Môn thi chính thức:
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <select
+                    value={config.subject}
+                    onChange={(e) => onChange({ ...config, subject: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
+                  >
+                    {subjectOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={config.customSubject || ''}
+                    onChange={(e) => onChange({ ...config, customSubject: e.target.value })}
+                    placeholder="Môn khác..."
+                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-[11px] font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Kỳ thi / Tên Đề kiểm tra:
+                </label>
+                <select
+                  value={config.examTitle}
+                  onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-950 focus:border-indigo-500 focus:outline-hidden mb-1"
+                >
+                  <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 1">ĐỀ KIỂM TRA GIỮA HỌC KÌ 1</option>
+                  <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 1">ĐỀ KIỂM TRA CUỐI HỌC KÌ 1</option>
+                  <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 2">ĐỀ KIỂM TRA GIỮA HỌC KÌ 2</option>
+                  <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 2">ĐỀ KIỂM TRA CUỐI HỌC KÌ 2</option>
+                  <option value="ĐỀ KIỂM TRA 15 PHÚT">ĐỀ KIỂM TRA 15 PHÚT</option>
+                  <option value="ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)">ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)</option>
+                  <option value="ĐỀ THI THỬ TỐT NGHIỆP THPT">ĐỀ THI THỬ TỐT NGHIỆP THPT</option>
+                </select>
+                <input
+                  type="text"
+                  value={config.examTitle}
+                  onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                  placeholder="Hoặc gõ tên kỳ thi tùy chỉnh..."
+                  className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-[11px]"
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Năm học, Thời gian & Số trang */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Năm học:
+                </label>
+                <input
+                  type="text"
+                  value={config.academicYear || ''}
+                  onChange={(e) => onChange({ ...config, academicYear: e.target.value })}
+                  placeholder="VD: 2025 - 2026"
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
+                />
+                <div className="flex gap-1 mt-1">
+                  {['2025 - 2026', '2024 - 2025', '2026 - 2027'].map((yr) => (
+                    <button
+                      key={yr}
+                      type="button"
+                      onClick={() => onChange({ ...config, academicYear: yr })}
+                      className="px-1.5 py-0.5 bg-white border border-slate-200 text-[10px] rounded hover:bg-indigo-50 text-slate-700 cursor-pointer"
+                    >
+                      {yr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian làm bài:</label>
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="number"
+                    min="5"
+                    max="180"
+                    value={config.durationMinutes}
+                    onChange={(e) => onChange({ ...config, durationMinutes: Number(e.target.value) || 45 })}
+                    className="w-16 rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 text-center"
+                  />
+                  <span className="text-xs font-semibold text-slate-600">phút</span>
+                </div>
+                <div className="flex gap-1 mt-1">
+                  {[15, 45, 60, 90].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => onChange({ ...config, durationMinutes: t })}
+                      className="px-1.5 py-0.5 bg-white border border-slate-200 text-[10px] rounded hover:bg-indigo-50 text-slate-700 font-bold cursor-pointer"
+                    >
+                      {t}'
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Số trang đề thi:</label>
+                <input
+                  type="text"
+                  value={config.pageCountText || '2'}
+                  onChange={(e) => onChange({ ...config, pageCountText: e.target.value })}
+                  placeholder="VD: 2 hoặc 3"
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-center font-bold text-indigo-900"
+                />
+                <span className="block text-[10px] text-slate-500 mt-1 text-center">Hiển thị "(Đề có _2_ trang)"</span>
+              </div>
+            </div>
+
+            {/* Row 4: Quản lý Mã Đề Thi Tùy Chọn & Số Lượng */}
+            <div className="pt-2 border-t border-indigo-200/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-extrabold text-indigo-950 uppercase tracking-wide">
+                  Mã đề thi (Đảo đề tùy chọn linh hoạt):
+                </label>
+                <span className="text-[10px] text-slate-500">Hiển thị khung "Mã đề xxx" cho học sinh</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Số lượng mã đề sinh ra:</label>
+                  <select
+                    value={config.testCodesCount || 2}
+                    onChange={(e) => {
+                      const count = Number(e.target.value);
+                      const defaultPreset = ['101', '102', '103', '104', '105', '106', '107', '108'].slice(0, count);
+                      onChange({ ...config, testCodesCount: count, customTestCodesList: defaultPreset });
+                    }}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-900"
+                  >
+                    <option value={1}>1 Mã đề (Đề gốc - 101)</option>
+                    <option value={2}>2 Mã đề đảo (vd: 101, 102)</option>
+                    <option value={4}>4 Mã đề đảo (vd: 101, 102, 103, 104)</option>
+                    <option value={6}>6 Mã đề đảo</option>
+                    <option value={8}>8 Mã đề đảo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                    Tùy chỉnh danh sách Mã đề (ngăn cách bởi dấu phẩy):
+                  </label>
+                  <input
+                    type="text"
+                    value={config.customTestCodesList ? config.customTestCodesList.join(', ') : '101, 102, 103, 104'}
+                    onChange={(e) => {
+                      const list = e.target.value
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      onChange({
+                        ...config,
+                        customTestCodesList: list,
+                        testCodesCount: Math.max(1, list.length),
+                      });
+                    }}
+                    placeholder="VD: 101, 102, 103, 104 hoặc 111, 222, 333, 444"
+                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-mono text-indigo-900 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Sample Preset Buttons for Test Codes */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold text-slate-500">Mẫu mã đề nhanh:</span>
+                {[
+                  { label: '1 mã (101)', list: ['101'] },
+                  { label: '2 mã (101, 102)', list: ['101', '102'] },
+                  { label: '4 mã (101, 102, 103, 104)', list: ['101', '102', '103', '104'] },
+                  { label: '4 mã (111, 222, 333, 444)', list: ['111', '222', '333', '444'] },
+                  { label: '4 mã (201, 202, 203, 204)', list: ['201', '202', '203', '204'] },
+                ].map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...config,
+                        testCodesCount: p.list.length,
+                        customTestCodesList: p.list,
+                      })
+                    }
+                    className="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-900 text-[10px] rounded-md font-bold hover:bg-indigo-100 transition cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Step 1: Chọn Cấp học */}

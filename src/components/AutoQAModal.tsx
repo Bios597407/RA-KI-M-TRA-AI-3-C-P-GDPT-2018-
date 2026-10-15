@@ -1,14 +1,15 @@
 import React from 'react';
-import { X, CheckCircle2, AlertTriangle, XCircle, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle2, AlertTriangle, XCircle, ShieldCheck, Wand2 } from 'lucide-react';
 import { QAReport } from '../types/exam';
 
 interface AutoQAModalProps {
   isOpen: boolean;
   onClose: () => void;
   report: QAReport | null;
+  onAutoFixQA?: () => void;
 }
 
-export const AutoQAModal: React.FC<AutoQAModalProps> = ({ isOpen, onClose, report }) => {
+export const AutoQAModal: React.FC<AutoQAModalProps> = ({ isOpen, onClose, report, onAutoFixQA }) => {
   if (!isOpen || !report) return null;
 
   return (
@@ -92,16 +93,30 @@ export const AutoQAModal: React.FC<AutoQAModalProps> = ({ isOpen, onClose, repor
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-slate-50 px-6 py-3 flex items-center justify-between rounded-b-2xl">
+        <div className="border-t bg-slate-50 px-6 py-3 flex flex-wrap items-center justify-between gap-2 rounded-b-2xl">
           <span className="text-xs text-slate-500">
             Hệ thống tự động rà soát trước khi xuất bản file Word và in ấn.
           </span>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm"
-          >
-            Đóng báo cáo
-          </button>
+          <div className="flex items-center space-x-2">
+            {!report.passedAll && onAutoFixQA && (
+              <button
+                type="button"
+                onClick={() => {
+                  onAutoFixQA();
+                }}
+                className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Wand2 className="h-3.5 w-3.5 text-yellow-300" />
+                <span>✨ Tự động bù/sửa câu để ĐẠT 100/100</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer"
+            >
+              Đóng báo cáo
+            </button>
+          </div>
         </div>
       </div>
     </div>

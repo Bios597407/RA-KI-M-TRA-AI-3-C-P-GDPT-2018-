@@ -56,11 +56,21 @@ export interface StudyGuideFormula {
   note: string;
 }
 
+export interface StudyGuideTrapItem {
+  trapType: string;         // Tên bẫy tư duy (VD: "Bẫy điều kiện nghiệm", "Bẫy nhầm điểm cực trị x với y", "Bẫy đơn vị đo")
+  description: string;      // Mô tả bẫy sai kinh điển mà học sinh rất hay mắc phải
+  exampleQuestion?: string; // Ví dụ hoặc minh họa câu hỏi thực tế trong đề
+  avoidanceTip: string;     // Bí quyết phòng tránh & Quy tắc kiểm tra nhanh trước khi chép đáp án
+}
+
 export interface StudyGuideData {
   topicTitle: string;
   coreConcepts: Array<{ term: string; definition: string }>;
   keyFormulas: StudyGuideFormula[];
   commonMistakes: string[];
+  trapList?: StudyGuideTrapItem[];       // Bẫy sai kinh điển & Bí quyết phòng tránh
+  timeStrategy?: Array<{ partTitle: string; timeAlloc: string; strategy: string }>; // Phân bổ thời gian & Mẹo từng phần
+  readinessChecklist?: string[];          // Checklist tự ôn luyện trước giờ G
   reviewTips: string[];
 }
 
@@ -135,7 +145,15 @@ export interface ExamConfig {
 
   keepFixedQuestions: boolean;
   teacherFixedQuestions: QuestionItem[];
-  testCodesCount: 1 | 2 | 3 | 4;
+  testCodesCount: number; // Số mã đề thi (1 - 8)
+  customTestCodesList?: string[]; // Danh sách mã đề tự chọn (vd: ["111", "222", "333", "444"])
+
+  // Form tiêu đề chuẩn Bộ GD&ĐT / Sở GD&ĐT
+  departmentName?: string;  // VD: "SỞ GIÁO DỤC & ĐÀO TẠO TPHCM"
+  academicYear?: string;    // VD: "2025 - 2026"
+  officialExamType?: string;// VD: "Đề chính thức" | "Đề dự bị"
+  pageCountText?: string;   // VD: "2" trong "(Đề có _2_ trang)"
+  durationNote?: string;    // VD: "(không kể thời gian phát đề)"
 }
 
 export interface ShuffledExamCode {

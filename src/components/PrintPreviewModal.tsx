@@ -31,6 +31,7 @@ import {
   wrapHtmlForPrint,
 } from '../utils/exporter';
 import { useToast } from './Toast';
+import OfficialExamHeader from './OfficialExamHeader';
 
 export type PrintDocType = 'exam' | 'answers' | 'matrix' | 'spec' | 'study_guide' | 'full';
 
@@ -259,42 +260,8 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             {/* View 1: ĐỀ THI */}
             {(docType === 'exam' || docType === 'full') && (
               <div className="space-y-4">
-                {/* Header Tiêu Ngữ & Trường */}
-                <div className="grid grid-cols-12 gap-2 text-center text-[11pt] border-b pb-4 mb-4">
-                  <div className="col-span-5 leading-tight">
-                    <div className="font-bold uppercase tracking-wider">{school}</div>
-                    <div className="font-semibold text-slate-700">TỔ CHUYÊN MÔN</div>
-                    <div className="mt-1 font-bold text-blue-900">Mã đề thi: {currentCode.code}</div>
-                  </div>
-                  <div className="col-span-7 leading-tight">
-                    <div className="font-bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-                    <div className="font-bold">Độc lập – Tự do – Hạnh phúc</div>
-                    <div className="text-slate-500 tracking-tighter">-----------------------</div>
-                  </div>
-                </div>
-
-                <div className="text-center my-3">
-                  <h1 className="text-base sm:text-lg font-black uppercase text-slate-900">{title}</h1>
-                  <div className="font-bold uppercase text-sm mt-0.5">
-                    MÔN: {subject} – {gradeStr}
-                  </div>
-                  <div className="text-xs italic text-slate-600 mt-1">
-                    Chương trình GDPT 2018 – Bộ sách: {config.textbook}
-                  </div>
-                  <div className="text-xs italic text-slate-600">
-                    Thời gian làm bài: {config.durationMinutes} phút (Không kể thời gian phát đề)
-                  </div>
-                </div>
-
-                {/* Candidate Info Line */}
-                <div className="grid grid-cols-12 gap-2 text-xs border border-slate-400 p-2 my-3 rounded-xs">
-                  <div className="col-span-7">
-                    Họ và tên thí sinh: ..................................................................... Lớp: .............
-                  </div>
-                  <div className="col-span-5 text-right">
-                    Số báo danh: .......................................
-                  </div>
-                </div>
+                {/* Official Exam Header */}
+                <OfficialExamHeader config={config} activeCode={currentCode.code} />
 
                 {/* Questions Content */}
                 <div className="space-y-4 mt-4">
