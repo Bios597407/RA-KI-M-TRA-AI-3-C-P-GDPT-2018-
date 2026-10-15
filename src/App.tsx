@@ -47,7 +47,7 @@ const STORAGE_KEY_HISTORY = 'exam_ai_history_v2';
 const STORAGE_KEY_API_KEY = 'exam_ai_gemini_key_v2';
 
 const DEFAULT_CONFIG: ExamConfig = {
-  schoolName: 'TRƯỜNG THPT CHUYÊN LÊ QUÝ ĐÔN',
+  schoolName: 'TRƯỜNG THPT VÕ TRƯỜNG TOẢN',
   examTitle: 'ĐỀ KIỂM TRA ĐỊNH KỲ GIỮA HỌC KỲ I',
   examType: 'Kiểm tra giữa học kỳ',
   gradeLevel: 'high',

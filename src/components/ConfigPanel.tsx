@@ -505,11 +505,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   type="text"
                   value={config.academicYear || ''}
                   onChange={(e) => onChange({ ...config, academicYear: e.target.value })}
-                  placeholder="VD: 2025 - 2026"
+                  placeholder="VD: 2026 - 2027"
                   className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
                 />
                 <div className="flex gap-1 mt-1">
-                  {['2025 - 2026', '2024 - 2025', '2026 - 2027'].map((yr) => (
+                  {['2026 - 2027', '2027 - 2028', '2028 - 2029'].map((yr) => (
                     <button
                       key={yr}
                       type="button"
