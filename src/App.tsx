@@ -70,17 +70,17 @@ const DEFAULT_CONFIG: ExamConfig = {
   },
 
   sectionCounts: {
-    part1: 12, // 12 câu TN nhiều lựa chọn (3.0đ)
-    part2: 4,  // 4 câu Đúng/Sai 4 ý (4.0đ)
-    part3: 6,  // 6 câu Trả lời ngắn (3.0đ)
-    part4: 0,  // Tự luận (nếu có)
+    part1: 12, // 12 câu TN nhiều lựa chọn
+    part2: 4,  // 4 câu Đúng/Sai 4 ý
+    part3: 6,  // 6 câu Trả lời ngắn
+    part4: 0,  // Tự luận
   },
 
-  topicTitle: 'Ứng dụng đạo hàm khảo sát hàm số & Cực trị',
-  chapter: 'Chương I: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số',
-  knowledgeScope: 'Tính đơn điệu, cực trị, giá trị lớn nhất - nhỏ nhất và tiệm cận của đồ thị hàm số.',
-  learningOutcomes: 'Xác định được cực trị, tiệm cận, vận dụng đạo hàm giải bài toán tối ưu trong thực tế.',
-  teacherNotes: 'Chú ý các điểm phân loại vận dụng cao và định dạng cấu trúc mới 2025.',
+  topicTitle: '',
+  chapter: '',
+  knowledgeScope: '',
+  learningOutcomes: '',
+  teacherNotes: '',
   readingPassage: '',
 
   sourceOption: 'doc_plus_standard',
@@ -191,7 +191,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY_API_KEY, newKey);
   };
 
-  // Generate initial questions on mount if none exist
+  // Load initial saved questions on mount
   useEffect(() => {
     const savedQs = localStorage.getItem(STORAGE_KEY_QUESTIONS);
     if (savedQs) {
@@ -205,8 +205,6 @@ export default function App() {
         console.warn(e);
       }
     }
-    // Generate initial sample exam
-    triggerGeneration(config, false);
   }, []);
 
   // Sync questions to localStorage
@@ -724,11 +722,11 @@ export default function App() {
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         config={config}
-        currentExam={getActiveExam()}
+        currentCode={getActiveExam()}
         matrix={matrix}
         specs={specs}
         studyGuide={useMemo(() => buildStudyGuide(config, questions), [config, questions])}
-        initialDoc={printDocType}
+        initialDocType={printDocType}
       />
     </div>
   );

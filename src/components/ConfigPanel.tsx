@@ -569,7 +569,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   onChange={() => onChange({ ...config, sourceOption: 'doc_only' })}
                   className="text-blue-600"
                 />
-                <span className="text-slate-700">Chỉ sử dụng tài liệu tải lên (Tuyệt đối không bịa dữ kiện ngoài)</span>
+                <span className="text-slate-700 font-medium">Chỉ sử dụng tài liệu tải lên (Tuyệt đối không bịa dữ kiện ngoài)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -580,7 +580,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   onChange={() => onChange({ ...config, sourceOption: 'doc_plus_standard' })}
                   className="text-blue-600"
                 />
-                <span className="text-slate-700">Kết hợp tài liệu tải lên + Kiến thức chuẩn GDPT 2018</span>
+                <span className="text-slate-700 font-medium">Kết hợp tài liệu tải lên + Kiến thức chuẩn GDPT 2018</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer">
@@ -591,9 +591,51 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   onChange={() => onChange({ ...config, sourceOption: 'teacher_prompt' })}
                   className="text-blue-600"
                 />
-                <span className="text-slate-700">Giáo viên tự nhập nội dung / chủ đề tự do</span>
+                <span className="text-slate-700 font-medium">Giáo viên tự nhập nội dung / chủ đề tự do</span>
               </label>
             </div>
+
+            {/* Dynamic visual feedback & custom prompt box */}
+            {config.sourceOption === 'doc_only' && (
+              <div className={`mt-2 p-2.5 rounded-lg text-xs border transition ${
+                (config.uploadedDocs?.length > 0 || config.readingPassage?.trim())
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}>
+                {(config.uploadedDocs?.length > 0 || config.readingPassage?.trim()) ? (
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold">✓</span> Đã có {config.uploadedDocs?.length || 0} file & văn bản ngữ liệu để AI quét và ra đề 100% bám sát tài liệu.
+                  </p>
+                ) : (
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <span className="text-amber-600 font-bold">⚠️</span> Bạn chọn chỉ dùng tài liệu nhưng chưa có file. Vui lòng Tải lên file (PDF/DOCX/TXT) ở trên hoặc Dán ngữ liệu ở Bước 3.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {config.sourceOption === 'doc_plus_standard' && (
+              <div className="mt-2 p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg text-xs text-blue-900">
+                <p className="font-medium">
+                  💡 AI sẽ ưu tiên trích xuất câu hỏi từ tài liệu đã tải lên / ngữ liệu đã dán, đồng thời bổ sung câu hỏi bám sát chuẩn GDPT 2018.
+                </p>
+              </div>
+            )}
+
+            {config.sourceOption === 'teacher_prompt' && (
+              <div className="mt-2 p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-1.5">
+                <label className="block text-[11px] font-bold text-amber-900">
+                  ✏️ Nội dung / Yêu cầu & Yêu cầu chỉ dẫn tự do của Giáo viên:
+                </label>
+                <textarea
+                  rows={3}
+                  value={config.teacherNotes || ''}
+                  onChange={(e) => onChange({ ...config, teacherNotes: e.target.value })}
+                  placeholder="Nhập yêu cầu tự do, đề bài mẫu, hoặc chỉ dẫn chi tiết để AI soạn đề theo đúng ý bạn (VD: Cho câu hỏi xoay quanh Định lý Pytago, có 2 câu bài toán thực tế...)"
+                  className="w-full rounded-md border border-amber-300 p-2 text-xs font-sans text-slate-800 focus:border-amber-500 focus:outline-hidden bg-white"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

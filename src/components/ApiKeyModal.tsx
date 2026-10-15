@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Key, CheckCircle2, AlertCircle, X, ShieldCheck, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
 import { useToast } from './Toast';
+import { translateErrorToVietnamese } from '../services/aiGenerator';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -20,47 +21,84 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
 
+  useEffect(() => {
+    setInputKey(apiKey);
+  }, [apiKey, isOpen]);
+
   if (!isOpen) return null;
 
   const handleTestConnection = async () => {
-    if (!inputKey.trim()) {
-      setTestResult({ success: false, msg: 'Vui lòng nhập API Key trước khi kiểm tra.' });
+    const keyToTest =
+      inputKey.trim() ||
+      (import.meta.env.VITE_GEMINI_API_KEY as string)?.trim() ||
+      (typeof process !== 'undefined' ? (process.env?.GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY) : '') ||
+      '';
+
+    if (!keyToTest) {
+      setTestResult({
+        success: false,
+        msg: 'Chưa có API Key để kiểm tra. Vui lòng dán Gemini API Key lấy từ Google AI Studio (aistudio.google.com) vào ô bên trên.',
+      });
       return;
     }
 
     setTesting(true);
     setTestResult(null);
 
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${inputKey.trim()}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Trả về chuỗi: OK' }] }],
-        }),
-      });
+    const MODEL_CANDIDATES = [
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.5-pro',
+      'gemini-1.5-pro',
+    ];
 
-      if (res.ok) {
-        setTestResult({
-          success: true,
-          msg: 'Kết nối thành công tới Gemini 2.5 Flash! Bạn đã sẵn sàng tạo đề thông minh 100%.',
+    let lastErrorMsg = '';
+    let successModel = '';
+
+    for (const modelName of MODEL_CANDIDATES) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToTest}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'Trả về: OK' }] }],
+          }),
         });
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        setTestResult({
-          success: false,
-          msg: `Kết nối thất bại (${res.status}): ${errData.error?.message || 'Key không hợp lệ hoặc hết quota.'}`,
-        });
+
+        if (res.ok) {
+          successModel = modelName;
+          break;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          const errText = errData.error?.message || `Lỗi HTTP ${res.status}`;
+          lastErrorMsg = errText;
+
+          // Chỉ dừng hẳn nếu sai API Key (400/403), còn lỗi 404/429/503 thì tự thử tiếp model dự phòng
+          if (res.status === 400 && errText.toLowerCase().includes('api key not valid')) {
+            break;
+          }
+          continue;
+        }
+      } catch (err: unknown) {
+        lastErrorMsg = err instanceof Error ? err.message : String(err);
       }
-    } catch (err: unknown) {
+    }
+
+    if (successModel) {
+      setTestResult({
+        success: true,
+        msg: `Kết nối thành công tới Gemini AI (Mô hình ${successModel})! Hệ thống đã sẵn sàng tạo đề thi thật 100%.`,
+      });
+    } else {
       setTestResult({
         success: false,
-        msg: `Lỗi kết nối mạng: ${err instanceof Error ? err.message : String(err)}`,
+        msg: `Kiểm tra thất bại: ${translateErrorToVietnamese(lastErrorMsg)}`,
       });
-    } finally {
-      setTesting(false);
     }
+
+    setTesting(false);
   };
 
   const handleSave = () => {
@@ -73,7 +111,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     setInputKey('');
     onSaveApiKey('');
     setTestResult(null);
-    toast.info('Đã xóa API Key, chuyển sang chế độ Smart Fallback Generator.');
+    toast.info('Đã xóa API Key. Hệ thống tự động sử dụng kết nối Gemini AI mặc định của Google AI Studio.');
   };
 
   return (
@@ -82,7 +120,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center space-x-2">
             <div className="rounded-lg bg-blue-100 p-2 text-blue-700">
-              <Key className="h-5 w-5" />
+              <Key className="h-5 w-5"/>
             </div>
             <div>
               <h3 className="font-bold text-slate-800">Cấu hình Gemini API Key</h3>
@@ -93,37 +131,37 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5"/>
           </button>
         </div>
 
         <div className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Google Gemini API Key
+              Google Gemini API Key (Không bắt buộc)
             </label>
             <input
               type="password"
               value={inputKey}
               onChange={(e) => setInputKey(e.target.value)}
-              placeholder="AIzaSy..."
+              placeholder="Để trống nếu muốn dùng kết nối mặc định AI Studio..."
               className="w-full rounded-lg border border-slate-300 p-2.5 text-sm font-mono focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-100"
             />
             <p className="mt-1 text-[11px] text-slate-500">
-              Key được lưu trữ an toàn trong trình duyệt của bạn (LocalStorage) và không bao giờ gửi ra ngoài.
+              Bạn có thể nhập Key cá nhân hoặc để trống để sử dụng kết nối mặc định của hệ thống.
             </p>
           </div>
 
           <div className="rounded-xl bg-blue-50/70 p-3.5 border border-blue-200/80 text-xs text-blue-900 space-y-1.5">
             <div className="flex items-center font-semibold text-blue-800 space-x-1.5">
-              <Sparkles className="h-4 w-4" />
-              <span>Chế độ tự động thông minh:</span>
+              <Sparkles className="h-4 w-4"/>
+              <span>Kết nối Gemini AI 2.5 Flash:</span>
             </div>
             <p>
-              • Nếu bạn đã nhập Key: Ứng dụng gọi trực tiếp <strong>Gemini 2.5 Flash</strong> để sinh đề thực tế 100% bám sát mọi bài học & tài liệu tải lên.
+              • Khi bạn nhập Key cá nhân: Hệ thống sử dụng Key của bạn để tạo đề thi.
             </p>
             <p>
-              • Nếu chưa nhập Key: Hệ thống tự động kích hoạt <strong>Smart Fallback Generator</strong> với cơ sở dữ liệu phong phú, vẫn tạo đầy đủ Ma trận, Bản đặc tả và đề chuẩn số lượng câu.
+              • Khi bấm "Xóa Key" hoặc để trống: Hệ thống tự động sử dụng kết nối mặc định từ Google AI Studio để tạo đề thật 100%.
             </p>
           </div>
 
@@ -136,9 +174,9 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5"/>
               ) : (
-                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5"/>
               )}
               <span>{testResult.msg}</span>
             </div>
