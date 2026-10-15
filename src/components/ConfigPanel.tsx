@@ -16,8 +16,9 @@ import {
   Wand2,
 } from 'lucide-react';
 import { ExamConfig, GradeLevel, CognitiveSystem } from '../types/exam';
-import { extractTextFromFile } from '../utils/fileParser';
+import { extractTextFromFile, fileToBase64 } from '../utils/fileParser';
 import { useToast } from './Toast';
+import { analyzeAndSuggestLessonContent } from '../services/lessonAnalyzer';
 
 interface ConfigPanelProps {
   config: ExamConfig;
@@ -25,6 +26,7 @@ interface ConfigPanelProps {
   onGenerate: () => void;
   onBuildMatrixOnly: () => void;
   isGenerating: boolean;
+  apiKey?: string;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -33,10 +35,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onGenerate,
   onBuildMatrixOnly,
   isGenerating,
+  apiKey,
 }) => {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [isAnalyzingLesson, setIsAnalyzingLesson] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Grade options based on level
@@ -44,6 +48,41 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     primary: ['1', '2', '3', '4', '5'],
     secondary: ['6', '7', '8', '9'],
     high: ['10', '11', '12'],
+  };
+
+  const handleAutoAnalyzeAndSuggestContent = async (overrideDocs?: typeof config.uploadedDocs) => {
+    const docs = overrideDocs !== undefined ? overrideDocs : config.uploadedDocs || [];
+    setIsAnalyzingLesson(true);
+    try {
+      const result = await analyzeAndSuggestLessonContent(docs, config, apiKey);
+
+      const updatedConfig: ExamConfig = {
+        ...config,
+        topicTitle: result.topicTitle || config.topicTitle,
+        chapter: result.chapter || config.chapter,
+        learningOutcomes: result.learningOutcomes || config.learningOutcomes,
+        readingPassage: result.readingPassage || config.readingPassage,
+      };
+
+      if (result.subject && result.subject !== config.subject) {
+        updatedConfig.subject = result.subject;
+      }
+      if (result.grade && result.grade !== config.grade) {
+        updatedConfig.grade = result.grade;
+      }
+
+      onChange(updatedConfig);
+      toast.success(
+        docs.length > 0
+          ? '🎉 AI đã tự động phân tích file đính kèm và điền Tên bài, Chương, Yêu cầu cần đạt!'
+          : '✨ AI đã tự động đề xuất Nội dung bài học & Yêu cầu cần đạt chuẩn GDPT 2018!'
+      );
+    } catch (err: unknown) {
+      console.error('Lesson analysis error', err);
+      toast.error(`Lỗi phân tích bài học: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsAnalyzingLesson(false);
+    }
   };
 
   const handleLevelChange = (newLevel: GradeLevel) => {
@@ -102,10 +141,22 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       const file = files[i];
       try {
         const text = await extractTextFromFile(file);
+        let base64Data: string | undefined;
+        let mimeType: string | undefined;
+        try {
+          const b64Res = await fileToBase64(file);
+          base64Data = b64Res.base64;
+          mimeType = b64Res.mimeType;
+        } catch {
+          // ignore base64 conversion error
+        }
+
         newDocs.push({
           name: file.name,
           content: text,
           size: file.size,
+          base64: base64Data,
+          mimeType: mimeType,
         });
         countSuccess++;
       } catch (err) {
@@ -123,6 +174,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     if (countSuccess > 0) {
       toast.success(`Đã trích xuất thành công ${countSuccess} tài liệu tham chiếu!`);
+      // Auto trigger AI analysis to fill lesson content & outcomes
+      handleAutoAnalyzeAndSuggestContent(newDocs);
     }
   };
 
@@ -438,14 +491,48 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
       {/* Step 4: Nội dung kiến thức & Yêu cầu cần đạt */}
       <div>
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-            3
-          </span>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Nội Dung Bài Học & Yêu Cầu Cần Đạt
-          </h2>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+              3
+            </span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Nội Dung Bài Học & Yêu Cầu Cần Đạt
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            disabled={isAnalyzingLesson}
+            onClick={() => handleAutoAnalyzeAndSuggestContent()}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+            title="Dùng Gemini AI phân tích file đính kèm hoặc tự động đề xuất nội dung bài học"
+          >
+            {isAnalyzingLesson ? (
+              <>
+                <Sparkles className="h-3.5 w-3.5 animate-spin text-yellow-300" />
+                <span>Đang phân tích AI...</span>
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-3.5 w-3.5 text-yellow-300" />
+                <span>
+                  {config.uploadedDocs?.length > 0 ? '✨ Tự động điền từ File' : '✨ AI Đề xuất Nội dung'}
+                </span>
+              </>
+            )}
+          </button>
         </div>
+
+        {/* AI Auto-fill Banner status */}
+        {isAnalyzingLesson && (
+          <div className="mb-3 p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-center space-x-2 animate-pulse">
+            <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
+            <span className="font-medium">
+              Gemini AI đang đọc tài liệu & tự động trích xuất Tên bài, Chương, Yêu cầu cần đạt...
+            </span>
+          </div>
+        )}
 
         <div className="space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
@@ -475,12 +562,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">
               Yêu cầu cần đạt / Mục tiêu đánh giá:
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={2}
               value={config.learningOutcomes}
               onChange={(e) => onChange({ ...config, learningOutcomes: e.target.value })}
               placeholder="VD: Nhận biết cực trị, tính được giới hạn, giải quyết bài toán tối ưu..."
-              className="w-full rounded-lg border border-slate-300 p-2 text-xs"
+              className="w-full rounded-lg border border-slate-300 p-2 text-xs leading-relaxed"
             />
           </div>
 
@@ -506,7 +593,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             4
           </span>
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Tài Liệu Tham Chiếu (Đọc PDF / DOCX / TXT)
+            Tài Liệu Tham Chiếu (PDF, ảnh scanned, DOCX, TXT)
           </h2>
         </div>
 
@@ -520,40 +607,60 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               type="file"
               ref={fileInputRef}
               multiple
-              accept=".pdf,.docx,.txt"
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
               onChange={handleFileUpload}
               className="hidden"
             />
             <Upload className="mx-auto h-6 w-6 text-blue-600 mb-1" />
             <p className="text-xs font-bold text-blue-900">
-              {uploading ? 'Đang trích xuất nội dung file...' : 'Tải lên SGK, Đề cương, Giáo án (PDF, DOCX, TXT)'}
+              {uploading ? 'Đang trích xuất nội dung file...' : 'Tải lên SGK, Đề cương, Ảnh chụp, PDF quét (PDF, PNG, JPG, DOCX, TXT)'}
             </p>
             <p className="text-[10px] text-slate-500 mt-0.5">
-              Hệ thống đọc trực tiếp trên trình duyệt, bảo mật 100%
+              Hệ thống đọc trực tiếp trên trình duyệt & tự động phân tích điền Yêu cầu cần đạt bằng AI
             </p>
           </div>
 
           {/* Uploaded Files List */}
           {config.uploadedDocs?.length > 0 && (
-            <div className="space-y-1.5">
-              {config.uploadedDocs.map((doc, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"
-                >
-                  <div className="flex items-center space-x-2 overflow-hidden">
-                    <FileText className="h-4 w-4 text-blue-600 shrink-0" />
-                    <span className="truncate font-medium text-slate-700">{doc.name}</span>
-                    <span className="text-[10px] text-slate-400">({Math.round(doc.size / 1024)} KB)</span>
-                  </div>
-                  <button
-                    onClick={() => removeDoc(idx)}
-                    className="text-slate-400 hover:text-rose-600 p-1"
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                {config.uploadedDocs.map((doc, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center space-x-2 overflow-hidden">
+                      <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+                      <span className="truncate font-medium text-slate-700">{doc.name}</span>
+                      <span className="text-[10px] text-slate-400">({Math.round(doc.size / 1024)} KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeDoc(idx)}
+                      className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Banner to trigger AI re-analysis */}
+              <div className="flex items-center justify-between bg-purple-50/90 border border-purple-200 rounded-xl p-2.5 text-xs">
+                <span className="text-purple-900 font-semibold text-[11px] flex items-center space-x-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                  <span>Đã có {config.uploadedDocs.length} file đính kèm</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={isAnalyzingLesson}
+                  onClick={() => handleAutoAnalyzeAndSuggestContent()}
+                  className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  <Wand2 className="h-3 w-3 text-yellow-300" />
+                  <span>Phân tích lại File với AI</span>
+                </button>
+              </div>
             </div>
           )}
 

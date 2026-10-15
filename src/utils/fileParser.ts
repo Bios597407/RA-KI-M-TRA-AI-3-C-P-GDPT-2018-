@@ -87,3 +87,27 @@ export async function extractTextFromFile(file: File): Promise<string> {
     reader.readAsText(file, 'utf-8');
   });
 }
+
+export async function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const commaIdx = result.indexOf(',');
+      const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
+      let mimeType = file.type;
+      if (!mimeType) {
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith('.pdf')) mimeType = 'application/pdf';
+        else if (lower.endsWith('.png')) mimeType = 'image/png';
+        else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (lower.endsWith('.webp')) mimeType = 'image/webp';
+        else mimeType = 'application/octet-stream';
+      }
+      resolve({ base64, mimeType });
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+

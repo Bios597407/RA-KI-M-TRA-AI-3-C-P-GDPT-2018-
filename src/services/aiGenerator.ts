@@ -24,20 +24,26 @@ export async function generateExamQuestions(
   onProgress?.(3, 'Đang lập bản đặc tả cấu hình đề thi GDPT 2018...');
   await delay(150);
 
-  onProgress?.(4, 'Đang gọi Gemini AI (gemini-3-flash-preview) để biên soạn đề thi thực tế...');
+  onProgress?.(4, 'Đang gọi Gemini AI (gemini-3.8-flash) để biên soạn đề thi thực tế...');
+
+  const cleanKey = (k?: string) => {
+    if (!k) return '';
+    const trimmed = k.trim();
+    if (trimmed === 'undefined' || trimmed === 'null' || trimmed === '""') return '';
+    return trimmed;
+  };
 
   const userKey =
-    apiKey?.trim() ||
-    localStorage.getItem('exam_ai_gemini_key_v2')?.trim() ||
-    localStorage.getItem('exam_ai_gemini_key')?.trim() ||
-    localStorage.getItem('gemini_api_key')?.trim();
+    cleanKey(apiKey) ||
+    cleanKey(localStorage.getItem('exam_ai_gemini_key_v2') || '') ||
+    cleanKey(localStorage.getItem('exam_ai_gemini_key') || '') ||
+    cleanKey(localStorage.getItem('gemini_api_key') || '');
 
   const envKey =
-    (import.meta.env.VITE_GEMINI_API_KEY as string)?.trim() ||
+    cleanKey(import.meta.env.VITE_GEMINI_API_KEY as string) ||
     (typeof process !== 'undefined'
-      ? process.env?.GEMINI_API_KEY || process.env?.VITE_GEMINI_API_KEY
-      : '') ||
-    '';
+      ? cleanKey(process.env?.GEMINI_API_KEY) || cleanKey(process.env?.VITE_GEMINI_API_KEY)
+      : '');
 
   const activeApiKey = userKey || envKey;
 
@@ -233,14 +239,32 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
   }
 ]`;
 
-  // Đặt gemini-3-flash-preview và gemini-flash-latest lên ĐẦU TIÊN để kết nối trúng ngay từ lần đầu, không gây lỗi 404
   const MODEL_CANDIDATES = [
-    'gemini-3-flash-preview',
-    'gemini-flash-latest',
+    'gemini-3.8-flash',
     'gemini-2.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-2.5-pro',
   ];
 
   let lastErrorMsg = '';
+
+  const requestParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+    { text: prompt },
+  ];
+
+  if (config.uploadedDocs && config.uploadedDocs.length > 0) {
+    for (const doc of config.uploadedDocs) {
+      if (doc.base64) {
+        requestParts.push({
+          inlineData: {
+            mimeType: doc.mimeType || 'application/pdf',
+            data: doc.base64,
+          },
+        });
+      }
+    }
+  }
 
   for (const modelName of MODEL_CANDIDATES) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -250,11 +274,11 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: requestParts }],
           generationConfig: {
             temperature: 0.7,
             responseMimeType: 'application/json',
-            maxOutputTokens: 65536,
+            maxOutputTokens: 8192,
           },
         }),
       });
@@ -463,7 +487,12 @@ function tryRepairJson(jsonString: string): unknown {
   if (!jsonString) return null;
   let str = jsonString.trim();
 
-  str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const codeBlockMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    str = codeBlockMatch[1].trim();
+  } else {
+    str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  }
 
   try {
     return JSON.parse(str);

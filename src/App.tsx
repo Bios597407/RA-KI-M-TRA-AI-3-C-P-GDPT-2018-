@@ -577,6 +577,7 @@ export default function App() {
                 onGenerate={handleGenerate}
                 onBuildMatrixOnly={handleBuildMatrixOnly}
                 isGenerating={isGenerating}
+                apiKey={apiKey}
               />
             </div>
           </div>
