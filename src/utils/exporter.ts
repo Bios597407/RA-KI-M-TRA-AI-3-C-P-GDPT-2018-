@@ -1,13 +1,25 @@
-import { QuestionItem, ExamConfig, ExamMatrix, ExamSpecificationRow, ShuffledExamCode } from '../types/exam';
+import {
+  QuestionItem,
+  ExamConfig,
+  ExamMatrix,
+  ExamSpecificationRow,
+  ShuffledExamCode,
+  StudyGuideData,
+} from '../types/exam';
 
 const WORD_HEADER_STYLE = `
   <style>
+    @page {
+      size: A4;
+      margin: 18mm 15mm 18mm 15mm;
+    }
     body {
-      font-family: 'Times New Roman', serif;
+      font-family: 'Times New Roman', 'DejaVu Serif', serif;
       font-size: 12pt;
       line-height: 1.35;
       color: #000;
-      margin: 20mm;
+      margin: 0;
+      padding: 0;
     }
     table {
       width: 100%;
@@ -18,7 +30,7 @@ const WORD_HEADER_STYLE = `
       border: 1px solid #000;
     }
     th, td {
-      padding: 5pt 7pt;
+      padding: 5pt 6pt;
       font-size: 11pt;
     }
     .header-table, .header-table th, .header-table td {
@@ -27,10 +39,11 @@ const WORD_HEADER_STYLE = `
     }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
+    .text-left { text-align: left; }
     .bold { font-weight: bold; }
     .italic { font-style: italic; }
     .uppercase { text-transform: uppercase; }
-    .page-break { page-break-before: always; }
+    .page-break { page-break-before: always; break-before: page; }
     .question-block { margin-bottom: 10pt; }
     .option-table, .option-table td {
       border: none !important;
@@ -40,7 +53,73 @@ const WORD_HEADER_STYLE = `
 `;
 
 /**
- * 1. Xuất ĐỀ THI RIÊNG BIỆT (Phát cho học sinh làm bài)
+ * Format LaTeX math formulas to readable Unicode text in Word documents
+ */
+export function formatLatexToWordUnicode(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\$\$(.*?)\$\$/gs, (_, math) => ` ${cleanMathString(math)} `)
+    .replace(/\$(.*?)\$/g, (_, math) => ` ${cleanMathString(math)} `)
+    .replace(/\n/g, '<br>');
+}
+
+function cleanMathString(math: string): string {
+  return math
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+    .replace(/\\sqrt\[(.*?)\]\{([^}]+)\}/g, '$1√($2)')
+    .replace(/\\lim_\{([^}]+)\}/g, 'lim ($1)')
+    .replace(/\\rightarrow|\\to/g, '→')
+    .replace(/\\pm/g, '±')
+    .replace(/\\mp/g, '∓')
+    .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\le|\\leq/g, '≤')
+    .replace(/\\ge|\\geq/g, '≥')
+    .replace(/\\ne|\\neq/g, '≠')
+    .replace(/\\approx/g, '≈')
+    .replace(/\\equiv/g, '≡')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\in/g, '∈')
+    .replace(/\\notin/g, '∉')
+    .replace(/\\subset/g, '⊂')
+    .replace(/\\supset/g, '⊃')
+    .replace(/\\cup/g, '∪')
+    .replace(/\\cap/g, '∩')
+    .replace(/\\emptyset/g, '∅')
+    .replace(/\\forall/g, '∀')
+    .replace(/\\exists/g, '∃')
+    .replace(/\\alpha/g, 'α')
+    .replace(/\\beta/g, 'β')
+    .replace(/\\gamma/g, 'γ')
+    .replace(/\\Delta/g, 'Δ')
+    .replace(/\\delta/g, 'δ')
+    .replace(/\\lambda/g, 'λ')
+    .replace(/\\mu/g, 'μ')
+    .replace(/\\pi/g, 'π')
+    .replace(/\\sigma/g, 'σ')
+    .replace(/\\theta/g, 'θ')
+    .replace(/\\omega/g, 'ω')
+    .replace(/\\Omega/g, 'Ω')
+    .replace(/\\int/g, '∫')
+    .replace(/\\sum/g, '∑')
+    .replace(/\\left\(|\\right\)/g, '')
+    .replace(/\\left\[|\\right\]/g, '')
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+    .replace(/\\mathit\{([^}]+)\}/g, '$1')
+    .replace(/\\mathrm\{([^}]+)\}/g, '$1')
+    .replace(/\\circ/g, '°')
+    .replace(/_([0-9a-zA-Z])/g, '_$1')
+    .replace(/\^2/g, '²')
+    .replace(/\^3/g, '³')
+    .replace(/\^([0-9])/g, '^$1')
+    .replace(/\\/g, '');
+}
+
+/**
+ * 1. Xuất ĐỀ THI RIÊNG BIỆT (.doc)
  */
 export function exportExamOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
@@ -67,11 +146,11 @@ export function exportExamOnlyWordDoc(config: ExamConfig, currentCode: ShuffledE
 </html>
   `;
 
-  downloadBlob(htmlContent, `De_Thi_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+  downloadBlob(htmlContent, `De_Thi_${subject.replace(/\s+/g, '_')}_Lop${config.grade}_Ma${currentCode.code}.doc`);
 }
 
 /**
- * 2. Xuất ĐÁP ÁN & HƯỚNG DẪN CHẤM RIÊNG BIỆT (Cho cán bộ chấm thi & lưu hồ sơ)
+ * 2. Xuất ĐÁP ÁN & HƯỚNG DẪN CHẤM RIÊNG BIỆT (.doc)
  */
 export function exportAnswerKeyOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
@@ -95,7 +174,7 @@ export function exportAnswerKeyOnlyWordDoc(config: ExamConfig, currentCode: Shuf
     ${title} – MÃ ĐỀ: ${currentCode.code}
   </div>
   <div class="text-center italic" style="margin-bottom: 15pt;">
-    Môn: ${subject} – ${gradeStr} (Thang điểm: ${config.totalScore || 10})
+    ${school} | Môn: ${subject} – ${gradeStr} (Thang điểm: ${config.totalScore || 10})
   </div>
 
   <div class="bold" style="margin-bottom: 5pt; font-size: 12pt;">I. BẢNG ĐÁP ÁN TRẮC NGHIỆM</div>
@@ -107,17 +186,18 @@ export function exportAnswerKeyOnlyWordDoc(config: ExamConfig, currentCode: Shuf
 </html>
   `;
 
-  downloadBlob(htmlContent, `Dap_An_HDCham_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+  downloadBlob(htmlContent, `Dap_An_HDCham_${subject.replace(/\s+/g, '_')}_Lop${config.grade}_Ma${currentCode.code}.doc`);
 }
 
 /**
- * 3. Xuất TRỌN BỘ HỒ SƠ ĐỀ KIỂM TRA (Đề thi + Đáp án + Ma trận + Bản đặc tả)
+ * 3. Xuất TRỌN BỘ HỒ SƠ ĐỀ KIỂM TRA (.doc)
  */
 export function exportToWordDoc(
   config: ExamConfig,
   currentCode: ShuffledExamCode,
   matrix: ExamMatrix,
-  specs: ExamSpecificationRow[]
+  specs: ExamSpecificationRow[],
+  studyGuide?: StudyGuideData
 ): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
   const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
@@ -133,7 +213,7 @@ export function exportToWordDoc(
   ${WORD_HEADER_STYLE}
 </head>
 <body>
-  <!-- TRANG 1: ĐỀ THI -->
+  <!-- MỤC 1: ĐỀ THI -->
   ${renderExamHeader(school, currentCode.code, title, subject, gradeStr, config)}
   ${renderExamQuestionsToWord(currentCode.questions)}
   <div class="text-center bold italic" style="margin-top: 20pt; margin-bottom: 20pt;">
@@ -141,7 +221,7 @@ export function exportToWordDoc(
     <span style="font-size: 10pt; font-weight: normal;">(Cán bộ coi thi không giải thích gì thêm)</span>
   </div>
 
-  <!-- TRANG 2: ĐÁP ÁN & HƯỚNG DẪN CHẤM -->
+  <!-- MỤC 2: ĐÁP ÁN & HƯỚNG DẪN CHẤM -->
   <div class="page-break"></div>
   <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 4pt;">
     ĐÁP ÁN VÀ HƯỚNG DẪN CHẤM – MÃ ĐỀ ${currentCode.code}
@@ -154,7 +234,7 @@ export function exportToWordDoc(
   <div class="bold" style="margin-top: 15pt; margin-bottom: 5pt;">II. HƯỚNG DẪN CHẤM CHI TIẾT</div>
   ${renderDetailedSolutionsToWord(currentCode.questions)}
 
-  <!-- TRANG 3: MA TRẬN & BẢN ĐẶC TẢ -->
+  <!-- MỤC 3: MA TRẬN & BẢN ĐẶC TẢ -->
   <div class="page-break"></div>
   <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
     MA TRẬN ĐỀ KIỂM TRA
@@ -165,15 +245,24 @@ export function exportToWordDoc(
     BẢN ĐẶC TẢ ĐỀ KIỂM TRA
   </div>
   ${renderSpecTable(specs)}
+
+  ${studyGuide ? `
+  <!-- MỤC 4: ĐỀ CƯƠNG ÔN TẬP BỔ TRỢ -->
+  <div class="page-break"></div>
+  <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
+    ĐỀ CƯƠNG ÔN TẬP VÀ CẨM NANG TRỌNG TÂM
+  </div>
+  ${renderStudyGuideContent(studyGuide)}
+  ` : ''}
 </body>
 </html>
   `;
 
-  downloadBlob(htmlContent, `Tron_Bo_De_Kiem_Tra_${subject}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+  downloadBlob(htmlContent, `Tron_Bo_Ho_So_${subject.replace(/\s+/g, '_')}_Lop${config.grade}_Ma${currentCode.code}.doc`);
 }
 
 /**
- * 4. Xuất MA TRẬN & BẢN ĐẶC TẢ RIÊNG BIỆT (Để nộp duyệt chuyên môn, Ban Giám hiệu theo chuẩn Công văn 7991/3280)
+ * 4. Xuất MA TRẬN & BẢN ĐẶC TẢ RIÊNG BIỆT (.doc)
  */
 export function exportMatrixAndSpecsOnlyWordDoc(
   config: ExamConfig,
@@ -250,9 +339,239 @@ export function exportMatrixAndSpecsOnlyWordDoc(
 </html>
   `;
 
-  downloadBlob(htmlContent, `Ma_Tran_Ban_Dac_Ta_${subject}_Lop${config.grade}.doc`);
+  downloadBlob(htmlContent, `Ma_Tran_Ban_Dac_Ta_${subject.replace(/\s+/g, '_')}_Lop${config.grade}.doc`);
 }
 
+/**
+ * 5. Xuất ĐỀ CƯƠNG ÔN TẬP RIÊNG BIỆT (.doc)
+ */
+export function exportStudyGuideWordDoc(config: ExamConfig, studyGuide: StudyGuideData): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA';
+  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const subject = config.customSubject || config.subject || 'Môn học';
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>ĐỀ CƯƠNG ÔN TẬP - ${title}</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      <td style="width: 45%; text-align: center; vertical-align: top;">
+        <span class="bold uppercase">${school}</span><br>
+        <span class="bold">TỔ CHUYÊN MÔN</span><br>
+        <span>----------------</span>
+      </td>
+      <td style="width: 55%; text-align: center; vertical-align: top;">
+        <span class="bold uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</span><br>
+        <span class="bold">Độc lập – Tự do – Hạnh phúc</span><br>
+        <span>-----------------------</span>
+      </td>
+    </tr>
+  </table>
+
+  <div class="text-center" style="margin-top: 10pt; margin-bottom: 15pt;">
+    <div class="bold uppercase" style="font-size: 14pt;">ĐỀ CƯƠNG ÔN TẬP & CẨM NANG KIẾN THỨC CỐT LÕI</div>
+    <div class="bold uppercase">${title}</div>
+    <div class="bold">MÔN: ${subject.toUpperCase()} – ${gradeStr.toUpperCase()}</div>
+    <div class="italic">Chương trình GDPT 2018 – Bộ sách: ${config.textbook}</div>
+    <div class="italic">Tài liệu ôn thi phát cho học sinh học kỳ</div>
+  </div>
+
+  ${renderStudyGuideContent(studyGuide)}
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `De_Cuong_On_Tap_${subject.replace(/\s+/g, '_')}_Lop${config.grade}.doc`);
+}
+
+/**
+ * Robust Printing Engine that handles iframe sandboxes cleanly
+ */
+export function printDocument(htmlContent: string, documentTitle: string = 'In_Tai_Lieu'): void {
+  // Try 1: Hidden iframe inside the current document
+  try {
+    const existingIframe = document.getElementById('ai-print-frame');
+    if (existingIframe) {
+      existingIframe.remove();
+    }
+    const iframe = document.createElement('iframe');
+    iframe.id = 'ai-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.zIndex = '-9999';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.warn('Iframe print blocked by browser sandbox, triggering fallback:', e);
+          fallbackPrint(htmlContent, documentTitle);
+        }
+      }, 400);
+      return;
+    }
+  } catch (err) {
+    console.warn('Iframe print failed, falling back:', err);
+  }
+
+  fallbackPrint(htmlContent, documentTitle);
+}
+
+function fallbackPrint(htmlContent: string, documentTitle: string) {
+  // Try opening in a new tab with auto-print
+  try {
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      return;
+    }
+  } catch (_) {}
+
+  // If window.open is blocked, trigger download as HTML file
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Ban_In_${documentTitle.replace(/\s+/g, '_')}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Universal HTML generator for print views
+ */
+export function wrapHtmlForPrint(title: string, bodyHtml: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11pt;
+      line-height: 1.35;
+      color: #000;
+      background: #fff;
+      margin: 0;
+      padding: 15mm;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12pt;
+    }
+    table, th, td {
+      border: 1px solid #000;
+    }
+    th, td {
+      padding: 5pt 6pt;
+      font-size: 10.5pt;
+    }
+    .header-table, .header-table th, .header-table td {
+      border: none !important;
+      padding: 2pt 0;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .bold { font-weight: bold; }
+    .italic { font-style: italic; }
+    .uppercase { text-transform: uppercase; }
+    .page-break { page-break-before: always; break-before: page; }
+    .question-block { margin-bottom: 9pt; }
+    .option-table, .option-table td {
+      border: none !important;
+      padding: 2pt 4pt;
+    }
+    .no-print-bar {
+      position: sticky;
+      top: 0;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      margin: -15mm -15mm 15mm -15mm;
+      z-index: 1000;
+    }
+    .no-print-bar button {
+      background: white;
+      color: #1e40af;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    @media print {
+      .no-print-bar {
+        display: none !important;
+      }
+      body {
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print-bar">
+    <div><strong>Bản in A4: ${title}</strong> (Nhấn "In trang" hoặc dùng phím Ctrl + P)</div>
+    <div>
+      <button onclick="window.print()">🖨️ In trang</button>
+      <button onclick="window.close()">Đóng</button>
+    </div>
+  </div>
+  ${bodyHtml}
+  <script>
+    window.addEventListener('load', function() {
+      // Auto trigger print after render
+      setTimeout(function() {
+        try { window.print(); } catch(e){}
+      }, 500);
+    });
+  </script>
+</body>
+</html>
+  `;
+}
 
 function downloadBlob(content: string, filename: string): void {
   const blob = new Blob(['\ufeff', content], {
@@ -416,6 +735,76 @@ function renderSpecTable(specs: ExamSpecificationRow[]): string {
   `;
 }
 
+function renderStudyGuideContent(studyGuide: StudyGuideData): string {
+  return `
+    <div class="bold" style="font-size: 12pt; margin-top: 10pt; margin-bottom: 6pt; color: #003366;">
+      1. Khái Niệm & Định Nghĩa Cốt Lõi
+    </div>
+    <table>
+      <thead>
+        <tr style="background-color: #f2f2f2;">
+          <th style="width: 30%;">Thuật ngữ / Khái niệm</th>
+          <th>Định nghĩa & Bản chất</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${studyGuide.coreConcepts
+          .map(
+            (c) => `
+          <tr>
+            <td style="font-weight: bold; color: #003366;">${c.term}</td>
+            <td>${formatLatexToWordUnicode(c.definition)}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+
+    ${studyGuide.keyFormulas && studyGuide.keyFormulas.length > 0 ? `
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #003366;">
+      2. Bảng Công Thức & Quy Tắc Vàng
+    </div>
+    <table>
+      <thead>
+        <tr style="background-color: #f2f2f2;">
+          <th style="width: 25%;">Tên công thức / Quy tắc</th>
+          <th style="width: 35%;">Biểu thức</th>
+          <th>Ghi chú vận dụng</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${studyGuide.keyFormulas
+          .map(
+            (f) => `
+          <tr>
+            <td style="font-weight: bold;">${f.name}</td>
+            <td style="font-weight: bold; color: #990000; text-align: center;">${formatLatexToWordUnicode(f.formula)}</td>
+            <td>${f.note}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #b45309;">
+      3. Các Bẫy Sai Kinh Điển Cần Tránh Khi Làm Bài
+    </div>
+    <ul style="margin-top: 4pt; margin-bottom: 12pt; line-height: 1.5;">
+      ${studyGuide.commonMistakes.map((m) => `<li>${formatLatexToWordUnicode(m)}</li>`).join('')}
+    </ul>
+
+    <div class="bold" style="font-size: 12pt; margin-top: 15pt; margin-bottom: 6pt; color: #047857;">
+      4. Chiến Thuật & Kỹ Năng Làm Bài Thi
+    </div>
+    <ul style="margin-top: 4pt; margin-bottom: 12pt; line-height: 1.5;">
+      ${studyGuide.reviewTips.map((t) => `<li>${formatLatexToWordUnicode(t)}</li>`).join('')}
+    </ul>
+  `;
+}
+
 function renderExamQuestionsToWord(questions: QuestionItem[]): string {
   let html = '';
   let currentPart = '';
@@ -448,18 +837,18 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
     }
 
     html += `<div class="question-block">`;
-    html += `<div><strong>Câu ${qNumber++} (${q.score || 0} điểm):</strong> ${q.question}</div>`;
+    html += `<div><strong>Câu ${qNumber++} (${q.score || 0} điểm):</strong> ${formatLatexToWordUnicode(q.question)}</div>`;
 
     if ((q.type === 'mcq_single' || q.part === 'part1') && q.options && q.options.length === 4) {
       html += `
         <table class="option-table" style="width: 100%; margin-top: 4pt;">
           <tr>
-            <td style="width: 50%;"><strong>A.</strong> ${q.options[0]}</td>
-            <td style="width: 50%;"><strong>B.</strong> ${q.options[1]}</td>
+            <td style="width: 50%;"><strong>A.</strong> ${formatLatexToWordUnicode(q.options[0])}</td>
+            <td style="width: 50%;"><strong>B.</strong> ${formatLatexToWordUnicode(q.options[1])}</td>
           </tr>
           <tr>
-            <td style="width: 50%;"><strong>C.</strong> ${q.options[2]}</td>
-            <td style="width: 50%;"><strong>D.</strong> ${q.options[3]}</td>
+            <td style="width: 50%;"><strong>C.</strong> ${formatLatexToWordUnicode(q.options[2])}</td>
+            <td style="width: 50%;"><strong>D.</strong> ${formatLatexToWordUnicode(q.options[3])}</td>
           </tr>
         </table>
       `;
@@ -468,7 +857,7 @@ function renderExamQuestionsToWord(questions: QuestionItem[]): string {
     if ((q.type === 'true_false_group' || q.part === 'part2') && q.subItems) {
       html += `<div style="margin-left: 15pt; margin-top: 4pt;">`;
       q.subItems.forEach((sub) => {
-        html += `<div><strong>${sub.label})</strong> ${sub.statement}</div>`;
+        html += `<div><strong>${sub.label})</strong> ${formatLatexToWordUnicode(sub.statement)}</div>`;
       });
       html += `</div>`;
     }
@@ -484,22 +873,22 @@ function renderDetailedSolutionsToWord(questions: QuestionItem[]): string {
   questions.forEach((q, idx) => {
     html += `
       <div style="margin-bottom: 12pt; padding-bottom: 8pt; border-bottom: 1px dashed #ccc;">
-        <div><strong>Câu ${idx + 1} (${q.score || 0} điểm) [${q.level}]:</strong> ${q.question}</div>
+        <div><strong>Câu ${idx + 1} (${q.score || 0} điểm) [${q.level}]:</strong> ${formatLatexToWordUnicode(q.question)}</div>
         <div style="color: #006600; font-weight: bold; margin-top: 3pt;">
           Đáp án đúng: ${typeof q.correctAnswer === 'string' ? q.correctAnswer : JSON.stringify(q.correctAnswer)}
         </div>
         ${q.subItems ? `
           <ul style="margin: 3pt 0 3pt 15pt;">
-            ${q.subItems.map((s) => `<li>Ý ${s.label}: <strong>${s.isCorrect ? 'ĐÚNG' : 'SAI'}</strong> ${s.explanation ? `(${s.explanation})` : ''}</li>`).join('')}
+            ${q.subItems.map((s) => `<li>Ý ${s.label}: <strong>${s.isCorrect ? 'ĐÚNG' : 'SAI'}</strong> ${s.explanation ? `(${formatLatexToWordUnicode(s.explanation)})` : ''}</li>`).join('')}
           </ul>
         ` : ''}
-        <div style="margin-top: 3pt;"><strong>Hướng dẫn giải chi tiết:</strong> ${q.explanation || 'Áp dụng định lý và tính toán theo chuẩn kiến thức.'}</div>
+        <div style="margin-top: 3pt;"><strong>Hướng dẫn giải chi tiết:</strong> ${formatLatexToWordUnicode(q.explanation || 'Áp dụng định lý và tính toán theo chuẩn kiến thức.')}</div>
         ${q.rubric && q.rubric.length > 0 ? `
           <div style="margin-top: 4pt;">
             <strong>Biểu điểm thành phần:</strong>
             <table style="width: 100%; margin-top: 3pt;">
               <tr style="background-color: #f2f2f2;"><th>Bước</th><th>Nội dung yêu cầu</th><th>Điểm</th></tr>
-              ${q.rubric.map((r) => `<tr><td style="text-align: center;">${r.step}</td><td>${r.detail}</td><td style="text-align: center; font-weight: bold;">${r.point}đ</td></tr>`).join('')}
+              ${q.rubric.map((r) => `<tr><td style="text-align: center;">${r.step}</td><td>${formatLatexToWordUnicode(r.detail)}</td><td style="text-align: center; font-weight: bold;">${r.point}đ</td></tr>`).join('')}
             </table>
           </div>
         ` : ''}

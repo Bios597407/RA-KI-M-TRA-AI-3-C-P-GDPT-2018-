@@ -52,6 +52,8 @@ interface WorkspaceProps {
   onExportAnswerOnly: () => void;
   onExportFullWord: () => void;
   onExportMatrixSpecsWord?: () => void;
+  onExportStudyGuideWord?: () => void;
+  onOpenPrintPreview?: (docType?: 'exam' | 'answers' | 'matrix' | 'study_guide' | 'full') => void;
   onOpenMatrixModal?: () => void;
   onPrintA4: () => void;
   onCopyContent: () => void;
@@ -84,6 +86,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onExportAnswerOnly,
   onExportFullWord,
   onExportMatrixSpecsWord,
+  onExportStudyGuideWord,
+  onOpenPrintPreview,
   onOpenMatrixModal,
   onPrintA4,
   onCopyContent,
@@ -259,6 +263,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     <span>📊</span>
                     <span>Xuất riêng Ma trận & Bản đặc tả (.doc)</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      onExportStudyGuideWord?.();
+                      setShowWordMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center space-x-2"
+                  >
+                    <span>💡</span>
+                    <span>Xuất riêng Đề cương ôn tập (.doc)</span>
+                  </button>
                   <div className="border-t my-1"></div>
                   <button
                     onClick={() => {
@@ -268,18 +282,32 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     className="w-full text-left px-3.5 py-2 text-xs font-bold text-blue-800 hover:bg-blue-50 flex items-center space-x-2"
                   >
                     <span>📦</span>
-                    <span>Xuất Trọn bộ Hồ sơ (Đề+ĐA+Ma trận)</span>
+                    <span>Xuất Trọn bộ Hồ sơ (Đề+ĐA+Ma trận+Đề cương)</span>
                   </button>
                 </div>
               )}
             </div>
 
             <button
-              onClick={onPrintA4}
-              className="flex items-center space-x-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs"
+              onClick={() => {
+                const docType =
+                  activeTab === 'answers'
+                    ? 'answers'
+                    : activeTab === 'matrix' || activeTab === 'spec'
+                    ? 'matrix'
+                    : activeTab === 'study_guide'
+                    ? 'study_guide'
+                    : 'exam';
+                if (onOpenPrintPreview) {
+                  onOpenPrintPreview(docType);
+                } else {
+                  onPrintA4();
+                }
+              }}
+              className="flex items-center space-x-1.5 rounded-lg border border-blue-600 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-800 hover:bg-blue-100 transition shadow-xs cursor-pointer"
             >
-              <Printer className="h-3.5 w-3.5 text-slate-600" />
-              <span>In A4 / PDF</span>
+              <Printer className="h-3.5 w-3.5 text-blue-700" />
+              <span>Xem trước & In ấn</span>
             </button>
 
             <button
@@ -347,6 +375,37 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       {/* Tab 1: ĐỀ KIỂM TRA CHUẨN MỰC A4 */}
       {activeTab === 'exam' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm print-sheet">
+          {/* Quick Action Bar for Tab 1 */}
+          <div className="no-print mb-6 p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center space-x-2">
+              <FileText className="h-4 w-4 text-blue-700" />
+              <span className="text-xs font-bold text-blue-900">Đề Kiểm Tra (Mã đề {currentExam.code})</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={onExportExamOnly}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                <span>Xuất Word Đề (.doc)</span>
+              </button>
+              <button
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('exam') : onPrintA4())}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Đề Thi A4</span>
+              </button>
+              <button
+                onClick={onExportFullWord}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                <Layers className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Xuất Trọn Bộ (.doc)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Exam Header */}
           <div className="border-b-2 border-slate-800 pb-4 mb-6">
             <div className="flex justify-between items-start text-xs sm:text-sm font-exam leading-tight">
@@ -433,12 +492,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <h3 className="font-bold text-slate-800 text-base">Bảng Đáp Án Nhanh – Mã Đề {currentExam.code}</h3>
               <p className="text-xs text-slate-500">Dành cho cán bộ chấm thi và đối chiếu kết quả</p>
             </div>
-            <button
-              onClick={onPrintA4}
-              className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"
-            >
-              In bảng đáp án
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onExportAnswerOnly}
+                className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
+              >
+                <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                <span>Xuất Word Đáp Án (.doc)</span>
+              </button>
+              <button
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('answers') : onPrintA4())}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Bảng Đáp Án</span>
+              </button>
+            </div>
           </div>
 
           {/* Quick Answers Grid */}
@@ -525,9 +594,27 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       {/* Tab 3: HƯỚNG DẪN CHẤM */}
       {activeTab === 'rubric' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="border-b pb-3">
-            <h3 className="font-bold text-slate-800 text-base">Hướng Dẫn Chấm Và Biểu Điểm Chi Tiết</h3>
-            <p className="text-xs text-slate-500">Quy tắc quy đổi điểm và biểu điểm step-by-step cho phần Tự luận</p>
+          <div className="border-b pb-3 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 text-base">Hướng Dẫn Chấm Và Biểu Điểm Chi Tiết</h3>
+              <p className="text-xs text-slate-500">Quy tắc quy đổi điểm và biểu điểm step-by-step cho phần Tự luận</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onExportAnswerOnly}
+                className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
+              >
+                <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                <span>Xuất Word HD Chấm (.doc)</span>
+              </button>
+              <button
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('answers') : onPrintA4())}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Hướng Dẫn Chấm</span>
+              </button>
+            </div>
           </div>
 
           {/* Stepped scoring explanation for Part II */}
@@ -625,8 +712,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 </button>
               )}
               <button
-                onClick={onPrintA4}
-                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
               >
                 <Printer className="h-3.5 w-3.5" />
                 <span>In Ma trận</span>
@@ -751,8 +838,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 </button>
               )}
               <button
-                onClick={onPrintA4}
-                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
               >
                 <Printer className="h-3.5 w-3.5" />
                 <span>In Bản đặc tả</span>
@@ -805,13 +892,25 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 Tài liệu bổ trợ phát cho học sinh trước kỳ kiểm tra để ôn tập trọng tâm và tránh các bẫy sai kinh điển
               </p>
             </div>
-            <button
-              onClick={onPrintA4}
-              className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              <span>In Đề Cương</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {onExportStudyGuideWord && (
+                <button
+                  onClick={onExportStudyGuideWord}
+                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
+                  title="Xuất file Word Đề cương ôn tập bổ trợ"
+                >
+                  <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Xuất Word (.doc)</span>
+                </button>
+              )}
+              <button
+                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('study_guide') : onPrintA4())}
+                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>In Đề Cương</span>
+              </button>
+            </div>
           </div>
 
           {/* 1. Core Concepts */}

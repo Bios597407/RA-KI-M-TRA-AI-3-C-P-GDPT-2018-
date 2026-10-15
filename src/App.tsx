@@ -13,6 +13,7 @@ import AzotaExportModal from './components/AzotaExportModal';
 import ExamImportModal from './components/ExamImportModal';
 import MatrixSpecModal from './components/MatrixSpecModal';
 import ConfirmModal from './components/ConfirmModal';
+import PrintPreviewModal from './components/PrintPreviewModal';
 import { useToast } from './components/Toast';
 
 import {
@@ -27,6 +28,7 @@ import {
 
 import { generateExamQuestions, applyScoringRules } from './services/aiGenerator';
 import { buildExamMatrix, buildExamSpecification } from './utils/matrixSpecBuilder';
+import { buildStudyGuide } from './utils/studyGuideBuilder';
 import { runExamQA } from './utils/autoQA';
 import { generateShuffledCodes } from './utils/examShuffler';
 import {
@@ -34,6 +36,7 @@ import {
   exportExamOnlyWordDoc,
   exportAnswerKeyOnlyWordDoc,
   exportMatrixAndSpecsOnlyWordDoc,
+  exportStudyGuideWordDoc,
 } from './utils/exporter';
 import { downloadStandaloneSingleFileHtml } from './utils/singleFileBundle';
 
@@ -138,6 +141,8 @@ export default function App() {
   const [showAzotaModal, setShowAzotaModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showMatrixModal, setShowMatrixModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printDocType, setPrintDocType] = useState<'exam' | 'answers' | 'matrix' | 'study_guide' | 'full'>('exam');
   const [workspaceTab, setWorkspaceTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(null);
 
@@ -505,8 +510,21 @@ export default function App() {
     toast.success('Đang tải xuống Bảng đáp án & HD chấm riêng (.doc)...');
   };
 
+  const handleExportStudyGuideWord = () => {
+    const studyGuide = buildStudyGuide(config, questions);
+    exportStudyGuideWordDoc(config, studyGuide);
+    toast.success('Đang tải xuống Đề cương ôn tập & Cẩm nang trọng tâm (.doc)...');
+  };
+
+  const handleOpenPrintPreview = (
+    docType: 'exam' | 'answers' | 'matrix' | 'study_guide' | 'full' = 'exam'
+  ) => {
+    setPrintDocType(docType);
+    setShowPrintModal(true);
+  };
+
   const handlePrintA4 = () => {
-    window.print();
+    handleOpenPrintPreview('exam');
   };
 
   const handleDownloadStandalone = () => {
@@ -593,6 +611,8 @@ export default function App() {
               onExportAnswerOnly={handleExportAnswerOnly}
               onExportFullWord={handleExportFullWord}
               onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
+              onExportStudyGuideWord={handleExportStudyGuideWord}
+              onOpenPrintPreview={handleOpenPrintPreview}
               onPrintA4={handlePrintA4}
               onCopyContent={handleCopyContent}
               onRegenerateAll={handleGenerate}
@@ -698,6 +718,17 @@ export default function App() {
         isDestructive={confirmState.isDestructive}
         onConfirm={confirmState.onConfirm}
         onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      <PrintPreviewModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        config={config}
+        currentExam={getActiveExam()}
+        matrix={matrix}
+        specs={specs}
+        studyGuide={useMemo(() => buildStudyGuide(config, questions), [config, questions])}
+        initialDoc={printDocType}
       />
     </div>
   );
