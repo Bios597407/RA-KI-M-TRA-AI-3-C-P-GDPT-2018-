@@ -1,4 +1,5 @@
 import { QuestionItem, ExamConfig } from '../types/exam';
+import { fetchGeminiWithFallback, extractTextFromGeminiResponse, DEFAULT_MODEL } from '../utils/geminiModels';
 
 export interface GenerationProgressCallback {
   (step: number, message: string): void;
@@ -24,7 +25,7 @@ export async function generateExamQuestions(
   onProgress?.(3, 'Đang lập bản đặc tả cấu hình đề thi GDPT 2018...');
   await delay(150);
 
-  onProgress?.(4, 'Đang gọi Gemini AI (gemini-3-flash-preview) để biên soạn đề thi thực tế...');
+  onProgress?.(4, `Đang gọi Gemini AI (${DEFAULT_MODEL}) để biên soạn đề thi thực tế...`);
 
   const cleanKey = (k?: string) => {
     if (!k) return '';
@@ -173,84 +174,17 @@ ${isEquivalent ? 'CHÚ Ý: Đây là chế độ TẠO ĐỀ TƯƠNG ĐƯƠNG (�
 ${noDocumentInstruction}
 
 CẤU TRÚC BẮT BUỘC (Sinh chính xác số câu, KHÔNG THỪA KHÔNG THIẾU):
-- Phần I (Trắc nghiệm nhiều lựa chọn A, B, C, D): Đúng ${p1} câu. (type: "mcq_single", part: "part1")
-- Phần II (Trắc nghiệm Đúng/Sai định dạng mới 2025: Mỗi câu gồm 4 ý a, b, c, d): Đúng ${p2} câu. (type: "true_false_group", part: "part2")
-- Phần III (Trắc nghiệm trả lời ngắn): Đúng ${p3} câu. (type: "short_answer", part: "part3")
-- Phần IV (Tự luận): Đúng ${p4} câu. (type: "essay", part: "part4")
+- Phần I (Trắc nghiệm nhiều lựa chọn A, B, C, D): Đúng ${p1} câu.
+- Phần II (Trắc nghiệm Đúng/Sai định dạng mới 2025: Mỗi câu gồm 4 ý a, b, c, d): Đúng ${p2} câu.
+- Phần III (Trắc nghiệm trả lời ngắn): Đúng ${p3} câu.
+- Phần IV (Tự luận): Đúng ${p4} câu.
 
 HỆ THỐNG MỨC ĐỘ NĂNG LỰC: ${cognitiveList}.
 NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
 1. Môn tính toán / KHTN: Viết công thức bằng LaTeX giữa $...$. Chú ý escape dấu gạch chéo ngược trong JSON thành 2 dấu (ví dụ: "\\\\frac{1}{2}").
-2. Môn Tiếng Anh: Dùng thẻ <u>...</u> gạch chân âm tiết khi hỏi phát âm / trọng âm.
-3. Mỗi câu hỏi trong đề phải hoàn toàn khác biệt, đào sâu vào các đơn vị kiến thức cụ thể của môn học.
-4. Trả về DUY NHẤT một mảng JSON các câu hỏi tuân theo cấu trúc sau:
-[
-  {
-    "id": "q1",
-    "part": "part1",
-    "type": "mcq_single",
-    "level": "Biết",
-    "topic": "${config.topicTitle || subject}",
-    "question": "Nội dung câu hỏi chuyên môn cụ thể...",
-    "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
-    "correctAnswer": "A",
-    "explanation": "Lời giải thích ngắn gọn, rõ ràng...",
-    "distractorAnalysis": {
-      "B": "Phân tích ngắn gọn lỗi sai khi chọn B",
-      "C": "Phân tích ngắn gọn lỗi sai khi chọn C",
-      "D": "Phân tích ngắn gọn lỗi sai khi chọn D"
-    }
-  },
-  {
-    "id": "q2",
-    "part": "part2",
-    "type": "true_false_group",
-    "level": "Hiểu",
-    "topic": "${config.topicTitle || subject}",
-    "question": "Cho bối cảnh / dữ kiện chi tiết bài toán...",
-    "subItems": [
-      {"id": "a", "label": "a", "statement": "Mệnh đề a chi tiết", "isCorrect": true, "explanation": "Giải thích ý a"},
-      {"id": "b", "label": "b", "statement": "Mệnh đề b chi tiết", "isCorrect": false, "explanation": "Giải thích ý b"},
-      {"id": "c", "label": "c", "statement": "Mệnh đề c chi tiết", "isCorrect": true, "explanation": "Giải thích ý c"},
-      {"id": "d", "label": "d", "statement": "Mệnh đề d chi tiết", "isCorrect": false, "explanation": "Giải thích ý d"}
-    ],
-    "correctAnswer": "a:Đ | b:S | c:Đ | d:S",
-    "explanation": "Phân tích tổng quan..."
-  },
-  {
-    "id": "q3",
-    "part": "part3",
-    "type": "short_answer",
-    "level": "Vận dụng",
-    "topic": "${config.topicTitle || subject}",
-    "question": "Nội dung câu hỏi yêu cầu điền đáp số ngắn...",
-    "correctAnswer": "12.5",
-    "explanation": "Các bước tính toán..."
-  },
-  {
-    "id": "q4",
-    "part": "part4",
-    "type": "essay",
-    "level": "Vận dụng cao",
-    "topic": "${config.topicTitle || subject}",
-    "question": "Đề bài tự luận chi tiết...",
-    "correctAnswer": "Hướng dẫn chấm chi tiết",
-    "explanation": "Bài giải hoàn chỉnh...",
-    "rubric": [
-      {"step": "Bước 1", "point": 0.5, "detail": "Nêu điều kiện và công thức áp dụng"},
-      {"step": "Bước 2", "point": 1.0, "detail": "Biến đổi và tính toán chính xác"}
-    ]
-  }
-]`;
-
-  const MODEL_CANDIDATES = [
-    'gemini-3-flash-preview',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite',
-  ];
-
-  let lastErrorMsg = '';
+2. Mỗi câu hỏi trong đề phải hoàn toàn khác biệt.
+3. Trả về DUY NHẤT một mảng JSON các câu hỏi.
+`;
 
   const requestParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
     { text: prompt },
@@ -269,75 +203,31 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
     }
   }
 
-  for (const modelName of MODEL_CANDIDATES) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: requestParts }],
-          generationConfig: {
-            temperature: 0.7,
-            responseMimeType: 'application/json',
-            maxOutputTokens: 8192,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Lỗi Gemini API (${response.status}): ${response.statusText}`;
-        try {
-          const errJson = JSON.parse(errorText);
-          if (errJson.error?.message) {
-            errorMessage = errJson.error.message;
-          }
-        } catch {
-          errorMessage = `Lỗi Gemini API (${response.status}): ${errorText.slice(0, 300)}`;
-        }
-
-        console.warn(`Model "${modelName}" gặp lỗi HTTP (${response.status}): ${errorMessage}`);
-        lastErrorMsg = `[${modelName}]: ${errorMessage}`;
-        continue;
-      }
-
-      const data = await response.json();
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      const nonThoughtParts = parts.filter(
-        (p: { text?: string; thought?: boolean }) => typeof p.text === 'string' && !p.thought
-      );
-      const rawText =
-        nonThoughtParts.length > 0
-          ? nonThoughtParts.map((p: { text: string }) => p.text).join('\n')
-          : parts.map((p: { text?: string }) => p.text || '').join('\n');
-
-      if (!rawText) {
-        lastErrorMsg = `[${modelName}]: Không có nội dung text phản hồi`;
-        continue;
-      }
-
-      const parsed = tryRepairJson(rawText);
-      const questionsList = extractQuestionArray(parsed);
-
-      if (questionsList && questionsList.length > 0) {
-        return questionsList.map((item, idx) => ({
-          ...item,
-          id: item.id || `q_${Date.now()}_${idx}`,
-          score: item.score || 0.25,
-        }));
-      }
-
-      lastErrorMsg = `[${modelName}]: Không bóc tách được mảng câu hỏi từ chuỗi phản hồi`;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`Lỗi khi gọi model "${modelName}": ${msg}`);
-      lastErrorMsg = msg;
+  const { data } = await fetchGeminiWithFallback(
+    { contents: [{ parts: requestParts }] },
+    apiKey,
+    {
+      temperature: 0.7,
+      responseMimeType: 'application/json',
+      maxOutputTokens: 8192,
     }
+  );
+
+  const rawText = extractTextFromGeminiResponse(data);
+  if (!rawText) throw new Error('AI không phản hồi nội dung đề thi.');
+
+  const parsed = tryRepairJson(rawText);
+  const questionsList = extractQuestionArray(parsed);
+
+  if (questionsList && questionsList.length > 0) {
+    return questionsList.map((item, idx) => ({
+      ...item,
+      id: item.id || `q_${Date.now()}_${idx}`,
+      score: item.score || 0.25,
+    }));
   }
 
-  throw new Error(`Mô hình AI phản hồi dữ liệu chưa đúng cấu trúc. Chi tiết: ${lastErrorMsg}`);
+  throw new Error('Không bóc tách được mảng câu hỏi từ phản hồi AI.');
 }
 
 function sanitizeJsonStringLiterals(str: string): string {

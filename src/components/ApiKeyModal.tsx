@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Key, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
 import { useToast } from './Toast';
 import { translateErrorToVietnamese } from '../services/aiGenerator';
+import { FALLBACK_MODELS, DEFAULT_MODEL } from '../utils/geminiModels';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -45,12 +46,8 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     setTesting(true);
     setTestResult(null);
 
-    const MODEL_CANDIDATES = [
-      'gemini-3-flash-preview',
-      'gemini-3.8-flash',
-      'gemini-2.5-flash',
-      'gemini-3.1-flash-lite',
-    ];
+    const MODEL_CANDIDATES = Array.from(new Set([DEFAULT_MODEL, ...FALLBACK_MODELS]));
+
 
     let lastErrorMsg = '';
     let successModel = '';
@@ -154,7 +151,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <div className="rounded-xl bg-blue-50/70 p-3.5 border border-blue-200/80 text-xs text-blue-900 space-y-1.5">
             <div className="flex items-center font-semibold text-blue-800 space-x-1.5">
               <Sparkles className="h-4 w-4"/>
-              <span>Kết nối Gemini AI 3-Flash-Preview:</span>
+              <span>Kết nối Gemini AI ({DEFAULT_MODEL}):</span>
             </div>
             <p>
               • Khi bạn nhập Key cá nhân: Hệ thống sử dụng Key của bạn để tạo đề thi.

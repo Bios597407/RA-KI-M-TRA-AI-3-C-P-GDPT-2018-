@@ -1,4 +1,5 @@
 import { ExamConfig, QuestionItem, StudyGuideData, StudyGuideTrapItem } from '../types/exam';
+import { fetchGeminiWithFallback, extractTextFromGeminiResponse } from './geminiModels';
 
 /**
  * Builds a comprehensive Study Guide & Pitfall Avoidance Handbook
@@ -335,73 +336,43 @@ YÊU CẦU:
 Trả về duy nhất MỘT JSON Object hợp lệ (không kèm văn bản giải thích outside JSON).
 `;
 
-  const MODEL_CANDIDATES = [
-    'gemini-3-flash-preview',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite',
-  ];
-
-  let lastErr = '';
-
-  for (const modelName of MODEL_CANDIDATES) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeApiKey}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.4,
-            responseMimeType: 'application/json',
-            maxOutputTokens: 8192,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        lastErr = `[${modelName}] Lỗi HTTP ${response.status}`;
-        continue;
+  try {
+    const { data } = await fetchGeminiWithFallback(
+      { contents: [{ parts: [{ text: prompt }] }] },
+      activeApiKey,
+      {
+        temperature: 0.4,
+        responseMimeType: 'application/json',
+        maxOutputTokens: 8192,
       }
+    );
 
-      const data = await response.json();
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      const nonThoughtParts = parts.filter(
-        (p: { text?: string; thought?: boolean }) => typeof p.text === 'string' && !p.thought
-      );
-      const rawText =
-        nonThoughtParts.length > 0
-          ? nonThoughtParts.map((p: { text: string }) => p.text).join('\n')
-          : parts.map((p: { text?: string }) => p.text || '').join('\n');
+    const rawText = extractTextFromGeminiResponse(data);
+    if (!rawText) return buildStudyGuide(config, questions);
 
-      if (!rawText) continue;
-
-      let cleaned = rawText.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
-      const parsed = JSON.parse(cleaned);
-
-      if (parsed && (parsed.coreConcepts || parsed.trapList || parsed.keyFormulas)) {
-        return {
-          topicTitle: parsed.topicTitle || topic,
-          coreConcepts: parsed.coreConcepts || [],
-          keyFormulas: parsed.keyFormulas || [],
-          commonMistakes: parsed.commonMistakes || [],
-          trapList: parsed.trapList || [],
-          timeStrategy: parsed.timeStrategy || [],
-          readinessChecklist: parsed.readinessChecklist || [],
-          reviewTips: parsed.reviewTips || [],
-        };
-      }
-    } catch (err: unknown) {
-      lastErr = err instanceof Error ? err.message : String(err);
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
+
+    const parsed = JSON.parse(cleaned);
+
+    if (parsed && (parsed.coreConcepts || parsed.trapList || parsed.keyFormulas)) {
+      return {
+        topicTitle: parsed.topicTitle || topic,
+        coreConcepts: parsed.coreConcepts || [],
+        keyFormulas: parsed.keyFormulas || [],
+        commonMistakes: parsed.commonMistakes || [],
+        trapList: parsed.trapList || [],
+        timeStrategy: parsed.timeStrategy || [],
+        readinessChecklist: parsed.readinessChecklist || [],
+        reviewTips: parsed.reviewTips || [],
+      };
+    }
+  } catch (err: unknown) {
+    console.error('Study guide generation error:', err);
   }
 
   // Fallback if AI call fails

@@ -1,4 +1,5 @@
 import { ExamConfig, GradeLevel } from '../types/exam';
+import { fetchGeminiWithFallback, extractTextFromGeminiResponse } from '../utils/geminiModels';
 
 export interface SuggestedLessonData {
   gradeLevel?: GradeLevel;
@@ -106,85 +107,54 @@ Trả về duy nhất MỘT JSON Object hợp lệ (không kèm bất kỳ văn 
     }
   }
 
-  const MODEL_CANDIDATES = [
-    'gemini-3-flash-preview',
-    'gemini-3.8-flash',
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite',
-  ];
-
-  let lastError = '';
-
-  for (const modelName of MODEL_CANDIDATES) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeApiKey}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
-            maxOutputTokens: 4096,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        lastError = `[${modelName}] HTTP ${response.status}: ${errorText.slice(0, 200)}`;
-        continue;
+  try {
+    const { data } = await fetchGeminiWithFallback(
+      { contents: [{ parts }] },
+      activeApiKey,
+      {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+        maxOutputTokens: 4096,
       }
+    );
 
-      const data = await response.json();
-      const responseParts = data?.candidates?.[0]?.content?.parts || [];
-      const nonThoughtParts = responseParts.filter(
-        (p: { text?: string; thought?: boolean }) => typeof p.text === 'string' && !p.thought
-      );
-      const rawText =
-        nonThoughtParts.length > 0
-          ? nonThoughtParts.map((p: { text: string }) => p.text).join('\n')
-          : responseParts.map((p: { text?: string }) => p.text || '').join('\n');
+    const rawText = extractTextFromGeminiResponse(data);
+    if (!rawText) throw new Error('AI không phản hồi nội dung.');
 
-      if (!rawText) continue;
-
-      let cleaned = rawText.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
-      const parsed = JSON.parse(cleaned);
-
-      if (parsed && (parsed.topicTitle || parsed.learningOutcomes || parsed.chapter || parsed.subject)) {
-        let detectedGradeLevel: GradeLevel | undefined = undefined;
-        if (parsed.gradeLevel === 'primary' || parsed.gradeLevel === 'secondary' || parsed.gradeLevel === 'high') {
-          detectedGradeLevel = parsed.gradeLevel;
-        } else if (parsed.grade) {
-          const numGrade = parseInt(parsed.grade, 10);
-          if (numGrade >= 1 && numGrade <= 5) detectedGradeLevel = 'primary';
-          else if (numGrade >= 6 && numGrade <= 9) detectedGradeLevel = 'secondary';
-          else if (numGrade >= 10 && numGrade <= 12) detectedGradeLevel = 'high';
-        }
-
-        return {
-          gradeLevel: detectedGradeLevel,
-          grade: parsed.grade ? String(parsed.grade) : undefined,
-          subject: parsed.subject || undefined,
-          textbook: parsed.textbook || undefined,
-          topicTitle: parsed.topicTitle || '',
-          chapter: parsed.chapter || '',
-          learningOutcomes: parsed.learningOutcomes || '',
-          readingPassage: parsed.readingPassage || '',
-        };
-      }
-    } catch (err: unknown) {
-      lastError = err instanceof Error ? err.message : String(err);
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
-  }
 
-  throw new Error(`Không thể tự động phân tích tài liệu: ${lastError}`);
+    const parsed = JSON.parse(cleaned);
+
+    if (parsed && (parsed.topicTitle || parsed.learningOutcomes || parsed.chapter || parsed.subject)) {
+      let detectedGradeLevel: GradeLevel | undefined = undefined;
+      if (parsed.gradeLevel === 'primary' || parsed.gradeLevel === 'secondary' || parsed.gradeLevel === 'high') {
+        detectedGradeLevel = parsed.gradeLevel;
+      } else if (parsed.grade) {
+        const numGrade = parseInt(parsed.grade, 10);
+        if (numGrade >= 1 && numGrade <= 5) detectedGradeLevel = 'primary';
+        else if (numGrade >= 6 && numGrade <= 9) detectedGradeLevel = 'secondary';
+        else if (numGrade >= 10 && numGrade <= 12) detectedGradeLevel = 'high';
+      }
+
+      return {
+        gradeLevel: detectedGradeLevel,
+        grade: parsed.grade ? String(parsed.grade) : undefined,
+        subject: parsed.subject || undefined,
+        textbook: parsed.textbook || undefined,
+        topicTitle: parsed.topicTitle || '',
+        chapter: parsed.chapter || '',
+        learningOutcomes: parsed.learningOutcomes || '',
+        readingPassage: parsed.readingPassage || '',
+      };
+    }
+    
+    throw new Error('Cấu trúc JSON phản hồi không hợp lệ.');
+  } catch (err: any) {
+    throw new Error(`Không thể tự động phân tích tài liệu: ${err.message || String(err)}`);
+  }
 }

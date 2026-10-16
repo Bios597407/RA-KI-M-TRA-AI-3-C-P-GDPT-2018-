@@ -31,6 +31,7 @@ import { buildExamMatrix, buildExamSpecification } from './utils/matrixSpecBuild
 import { buildStudyGuide } from './utils/studyGuideBuilder';
 import { runExamQA } from './utils/autoQA';
 import { generateShuffledCodes } from './utils/examShuffler';
+import { initializeAndClearModelCache } from './utils/geminiModels';
 import {
   exportToWordDoc,
   exportExamOnlyWordDoc,
@@ -102,6 +103,11 @@ const DEFAULT_CONFIG: ExamConfig = {
 };
 
 export default function App() {
+  // Global Model Cache Cleaning
+  useEffect(() => {
+    initializeAndClearModelCache();
+  }, []);
+
   // Local storage states
   const [config, setConfig] = useState<ExamConfig>(() => {
     try {
