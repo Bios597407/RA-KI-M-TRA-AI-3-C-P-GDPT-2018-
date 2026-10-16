@@ -459,7 +459,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         {showHeaderForm && (
           <div className="space-y-3 pt-1 border-t border-indigo-200/60">
             {/* Row 1: Sở/Phòng GD&ĐT & Tên Trường */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                   Sở / Phòng GD&ĐT chủ quản:
@@ -488,7 +488,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
 
             {/* Row 2: Môn Thi & Kỳ Thi */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                   Môn thi chính thức:
@@ -517,26 +517,28 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                   Kỳ thi / Tên Đề kiểm tra:
                 </label>
-                <select
-                  value={config.examTitle}
-                  onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-950 focus:border-indigo-500 focus:outline-hidden mb-1"
-                >
-                  <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 1">ĐỀ KIỂM TRA GIỮA HỌC KÌ 1</option>
-                  <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 1">ĐỀ KIỂM TRA CUỐI HỌC KÌ 1</option>
-                  <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 2">ĐỀ KIỂM TRA GIỮA HỌC KÌ 2</option>
-                  <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 2">ĐỀ KIỂM TRA CUỐI HỌC KÌ 2</option>
-                  <option value="ĐỀ KIỂM TRA 15 PHÚT">ĐỀ KIỂM TRA 15 PHÚT</option>
-                  <option value="ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)">ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)</option>
-                  <option value="ĐỀ THI THỬ TỐT NGHIỆP THPT">ĐỀ THI THỬ TỐT NGHIỆP THPT</option>
-                </select>
-                <input
-                  type="text"
-                  value={config.examTitle}
-                  onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
-                  placeholder="Hoặc gõ tên kỳ thi tùy chỉnh..."
-                  className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-[11px]"
-                />
+                <div className="flex gap-1.5">
+                  <select
+                    value={config.examTitle}
+                    onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                    className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-950 focus:border-indigo-500 focus:outline-hidden"
+                  >
+                    <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 1">ĐỀ KIỂM TRA GIỮA HỌC KÌ 1</option>
+                    <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 1">ĐỀ KIỂM TRA CUỐI HỌC KÌ 1</option>
+                    <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 2">ĐỀ KIỂM TRA GIỮA HỌC KÌ 2</option>
+                    <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 2">ĐỀ KIỂM TRA CUỐI HỌC KÌ 2</option>
+                    <option value="ĐỀ KIỂM TRA 15 PHÚT">ĐỀ KIỂM TRA 15 PHÚT</option>
+                    <option value="ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)">ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)</option>
+                    <option value="ĐỀ THI THỬ TỐT NGHIỆP THPT">ĐỀ THI THỬ TỐT NGHIỆP THPT</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={config.examTitle}
+                    onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                    placeholder="Tên tùy chỉnh..."
+                    className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-[11px]"
+                  />
+                </div>
               </div>
             </div>
 
