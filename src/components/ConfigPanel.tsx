@@ -407,9 +407,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Column 1: Hồ sơ Đề thi & Header */}
-        <div className="space-y-6">
+      <div className="space-y-6">
+
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -664,7 +663,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 1: Chọn Cấp học */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center space-x-2 mb-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
             1
@@ -697,7 +697,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 2 & 3: Lớp, Môn học & Bộ sách */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center space-x-2 mb-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
             2
@@ -787,11 +788,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         </div>
       </div>
-    </div>
 
-    {/* Column 2: Nội dung & Tài liệu & Mức độ */}
-      <div className="space-y-6">
-      <div>
+      {/* Step 4: Nội dung kiến thức & Yêu cầu cần đạt */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -888,7 +888,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 5: Tài liệu tham chiếu & Upload File thực tế */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -1082,7 +1083,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 6: Loại đề & Thời gian làm bài */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center space-x-2 mb-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
             5
@@ -1139,7 +1141,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 7: Cấu trúc số lượng câu hỏi */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -1254,7 +1257,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Step 8: Thiết lập Mức độ nhận thức */}
-      <div>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -1337,10 +1341,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           )}
         </div>
       </div>
-    </div>
 
-    {/* Column 3: Giao diện & Cài đặt nâng cao */}
-    <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
         <div className="flex items-center space-x-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
           <Sparkles className="h-4 w-4 text-purple-600" />
@@ -1506,7 +1507,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <span>📊 XEM MA TRẬN & BẢN ĐẶC TẢ TRƯỚC</span>
         </button>
       </div>
-    </div>
     </div>
   </div>
 );
