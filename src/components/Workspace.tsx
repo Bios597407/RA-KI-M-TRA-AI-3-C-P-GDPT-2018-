@@ -152,8 +152,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Action Toolbar */}
-      <div className="no-print rounded-2xl border border-slate-200 bg-white p-3 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
+      <div className="no-print rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Main Action Group */}
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -344,16 +344,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       </div>
 
-      {/* 5 Tab Navigation */}
-      <div className="no-print border-b border-slate-200 bg-white rounded-t-2xl px-4 pt-3">
-        <div className="flex space-x-1 overflow-x-auto">
+      {/* 6 Tab Navigation */}
+      <div className="no-print border-b border-slate-200 bg-white rounded-t-2xl px-5 pt-4">
+        <div className="flex space-x-1.5 overflow-x-auto scrollbar-hide pb-0.5">
           {[
-            { id: 'exam', label: '1. Đề Kiểm Tra', icon: FileText, count: questions.length },
-            { id: 'answers', label: '2. Bảng Đáp Án', icon: CheckCircle },
-            { id: 'rubric', label: '3. Hướng Dẫn Chấm', icon: HelpCircle },
-            { id: 'matrix', label: '4. Ma Trận Đề', icon: Grid },
-            { id: 'spec', label: '5. Bản Đặc Tả', icon: ListTree },
-            { id: 'study_guide', label: '6. Đề Cương Ôn Tập', icon: BookOpen },
+            { id: 'exam', label: 'ĐỀ KIỂM TRA', icon: FileText, count: questions.length },
+            { id: 'answers', label: 'BẢNG ĐÁP ÁN', icon: CheckCircle },
+            { id: 'rubric', label: 'HƯỚNG DẪN CHẤM', icon: HelpCircle },
+            { id: 'matrix', label: 'MA TRẬN ĐỀ', icon: Grid },
+            { id: 'spec', label: 'BẢN ĐẶC TẢ', icon: ListTree },
+            { id: 'study_guide', label: 'ĐỀ CƯƠNG ÔN TẬP', icon: BookOpen },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -361,17 +361,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 border-b-2 px-4 py-2.5 text-xs font-bold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 border-b-2 px-5 py-3 text-[11px] font-black transition whitespace-nowrap tracking-wide uppercase ${
                   isActive
-                    ? 'border-blue-600 text-blue-700 bg-blue-50/40 rounded-t-lg'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                    ? 'border-blue-700 text-blue-800 bg-blue-50/60 rounded-t-xl'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 hover:bg-slate-50 rounded-t-xl'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
-                  <span className="rounded-full bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-600">
-                    {tab.count} câu
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {tab.count}
                   </span>
                 )}
               </button>

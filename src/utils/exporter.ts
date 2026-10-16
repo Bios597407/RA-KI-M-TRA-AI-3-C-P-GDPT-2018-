@@ -462,7 +462,10 @@ function fallbackPrint(htmlContent: string, documentTitle: string) {
 /**
  * Universal HTML generator for print views
  */
-export function wrapHtmlForPrint(title: string, bodyHtml: string): string {
+export function wrapHtmlForPrint(title: string, bodyHtml: string, config?: ExamConfig): string {
+  const fontSize = config?.layoutFontSize === 'small' ? '10pt' : config?.layoutFontSize === 'large' ? '12pt' : '11pt';
+  const lineHeight = config?.layoutLineHeight === 'compact' ? '1.2' : config?.layoutLineHeight === 'relaxed' ? '1.8' : '1.35';
+
   return `
 <!DOCTYPE html>
 <html lang="vi">
@@ -481,8 +484,8 @@ export function wrapHtmlForPrint(title: string, bodyHtml: string): string {
     }
     body {
       font-family: 'Times New Roman', Times, serif;
-      font-size: 11pt;
-      line-height: 1.35;
+      font-size: ${fontSize};
+      line-height: ${lineHeight};
       color: #000;
       background: #fff;
       margin: 0;

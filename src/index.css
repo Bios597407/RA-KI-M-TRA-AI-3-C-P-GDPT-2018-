@@ -2,12 +2,12 @@
 
 @layer base {
   body {
-    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 }
 
 .font-exam {
-  font-family: 'Tinos', 'Times New Roman', Times, serif;
+  font-family: 'Lora', 'Tinos', 'Times New Roman', Times, serif;
 }
 
 @media print {

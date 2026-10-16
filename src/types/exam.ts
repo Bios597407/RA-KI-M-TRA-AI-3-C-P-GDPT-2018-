@@ -154,6 +154,10 @@ export interface ExamConfig {
   officialExamType?: string;// VD: "Đề chính thức" | "Đề dự bị"
   pageCountText?: string;   // VD: "2" trong "(Đề có _2_ trang)"
   durationNote?: string;    // VD: "(không kể thời gian phát đề)"
+  
+  // UI & Layout Preferences
+  layoutLineHeight?: 'compact' | 'standard' | 'relaxed';
+  layoutFontSize?: 'small' | 'medium' | 'large';
 }
 
 export interface ShuffledExamCode {

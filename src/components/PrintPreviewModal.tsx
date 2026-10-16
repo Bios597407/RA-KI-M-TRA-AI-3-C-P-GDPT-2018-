@@ -44,6 +44,7 @@ interface PrintPreviewModalProps {
   specs: ExamSpecificationRow[];
   studyGuide: StudyGuideData;
   initialDocType?: PrintDocType;
+  onConfigChange?: (updated: ExamConfig) => void;
 }
 
 export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
@@ -55,10 +56,10 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   specs,
   studyGuide,
   initialDocType = 'exam',
+  onConfigChange,
 }) => {
   const toast = useToast();
   const [docType, setDocType] = useState<PrintDocType>(initialDocType);
-  const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal');
 
   // Sync if initialDocType changes on reopen
   React.useEffect(() => {
@@ -124,7 +125,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         : 'Trọn bộ'
     }`;
 
-    const wrappedHtml = wrapHtmlForPrint(docTitle, printArea.innerHTML);
+    const wrappedHtml = wrapHtmlForPrint(docTitle, printArea.innerHTML, config);
     printDocument(wrappedHtml, docTitle);
     toast.info('Đang kết nối lệnh in A4... Thầy cô cũng có thể bấm "Xuất Word (.doc)" để mở và in trực tiếp từ Word!');
   };
@@ -135,7 +136,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     if (!printArea) return;
 
     const docTitle = `${title} - ${docType}`;
-    const wrappedHtml = wrapHtmlForPrint(docTitle, printArea.innerHTML);
+    const wrappedHtml = wrapHtmlForPrint(docTitle, printArea.innerHTML, config);
     const blob = new Blob([wrappedHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
@@ -228,33 +229,71 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             })}
           </div>
 
-          <div className="hidden md:flex items-center space-x-2 text-xs text-slate-500">
-            <span>Cỡ chữ:</span>
-            <button
-              onClick={() => setFontSize('normal')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                fontSize === 'normal' ? 'bg-slate-300 text-slate-900' : 'text-slate-500 hover:bg-slate-200'
-              }`}
-            >
-              Chuẩn (12pt)
-            </button>
-            <button
-              onClick={() => setFontSize('large')}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                fontSize === 'large' ? 'bg-slate-300 text-slate-900' : 'text-slate-500 hover:bg-slate-200'
-              }`}
-            >
-              Lớn (13pt)
-            </button>
-          </div>
+          {onConfigChange && (
+            <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-500 border-l border-slate-200 pl-3">
+              <span>Cỡ chữ:</span>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutFontSize: 'small' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutFontSize === 'small' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                10pt
+              </button>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutFontSize: 'medium' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutFontSize === 'medium' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                11pt
+              </button>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutFontSize: 'large' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutFontSize === 'large' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                12pt
+              </button>
+              
+              <span className="ml-2">Dòng:</span>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutLineHeight: 'compact' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutLineHeight === 'compact' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                Hẹp
+              </button>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutLineHeight: 'standard' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutLineHeight === 'standard' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                Vừa
+              </button>
+              <button
+                onClick={() => onConfigChange({ ...config, layoutLineHeight: 'relaxed' })}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  config.layoutLineHeight === 'relaxed' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}
+              >
+                Rộng
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Document Paper Preview Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-200">
           <div
             id="printable-modal-content"
-            className={`w-full max-w-[210mm] min-h-[297mm] bg-white p-[15mm] sm:p-[20mm] shadow-lg rounded-sm border border-slate-300 text-black leading-relaxed font-exam ${
-              fontSize === 'large' ? 'text-[13pt]' : 'text-[12pt]'
+            className={`w-full max-w-[210mm] min-h-[297mm] bg-white p-[15mm] sm:p-[20mm] shadow-lg rounded-sm border border-slate-300 text-black font-exam ${
+              config.layoutFontSize === 'small' ? 'text-[10pt]' : config.layoutFontSize === 'large' ? 'text-[12pt]' : 'text-[11pt]'
+            } ${
+              config.layoutLineHeight === 'compact' ? 'leading-[1.2]' : config.layoutLineHeight === 'relaxed' ? 'leading-[1.8]' : 'leading-[1.5]'
             }`}
           >
             {/* View 1: ĐỀ THI */}

@@ -23,7 +23,7 @@ export const OfficialExamHeader: React.FC<OfficialExamHeaderProps> = ({ config, 
   const durationNote = config.durationNote || '(không kể thời gian phát đề)';
 
   return (
-    <div className="font-serif text-black leading-snug select-text pb-2 mb-4">
+    <div className="font-exam text-black leading-snug select-text pb-2 mb-4">
       {/* 2-Column Header Table */}
       <div className="grid grid-cols-12 gap-2 text-center items-start">
         {/* Left Column */}
@@ -52,7 +52,7 @@ export const OfficialExamHeader: React.FC<OfficialExamHeaderProps> = ({ config, 
       </div>
 
       {/* Underlined Student Info Bar & Mã đề */}
-      <div className="mt-3 border-b-2 border-black pb-2 text-xs sm:text-sm font-serif flex flex-wrap items-baseline justify-between gap-y-1">
+      <div className="mt-3 border-b-2 border-black pb-2 text-xs sm:text-sm font-exam flex flex-wrap items-baseline justify-between gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 overflow-hidden">
           <span>
             <strong>Họ và tên:</strong> ................................................................

@@ -361,14 +361,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-6 lg:shadow-md transition-shadow">
       {/* 1-Click Presets Bar */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 space-y-2">
-        <div className="flex items-center space-x-1.5 text-blue-900 font-bold text-xs uppercase tracking-wide">
+      <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+        <div className="flex items-center space-x-2 text-blue-900 font-bold text-xs uppercase tracking-wider">
           <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
           <span>Nạp nhanh Cấu trúc Mẫu Chuẩn Bộ GD&ĐT (1-Click Preset):</span>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => applyPreset('thpt_2025')}
@@ -1334,6 +1334,66 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
+      {/* Giao diện & In ấn */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex items-center space-x-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
+          <Sparkles className="h-4 w-4 text-purple-600" />
+          <span>Tùy chỉnh Giao diện & In ấn</span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Chiều cao chữ (Dòng):</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'compact', label: 'Hẹp', sub: '1.2' },
+                { id: 'standard', label: 'Vừa', sub: '1.5' },
+                { id: 'relaxed', label: 'Rộng', sub: '1.8' }
+              ].map((lh) => (
+                <button
+                  key={lh.id}
+                  type="button"
+                  onClick={() => onChange({ ...config, layoutLineHeight: lh.id as any })}
+                  className={`py-1.5 px-1 rounded-lg border flex flex-col items-center transition-all ${
+                    config.layoutLineHeight === lh.id 
+                      ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-xs' 
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold">{lh.label}</span>
+                  <span className="text-[9px] opacity-60">{lh.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Cỡ chữ văn bản (In):</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'small', label: 'Nhỏ', sub: '10pt' },
+                { id: 'medium', label: 'Vừa', sub: '11pt' },
+                { id: 'large', label: 'Lớn', sub: '12pt' }
+              ].map((fs) => (
+                <button
+                  key={fs.id}
+                  type="button"
+                  onClick={() => onChange({ ...config, layoutFontSize: fs.id as any })}
+                  className={`py-1.5 px-1 rounded-lg border flex flex-col items-center transition-all ${
+                    config.layoutFontSize === fs.id 
+                      ? 'bg-indigo-50 border-indigo-600 text-indigo-700 shadow-xs' 
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold">{fs.label}</span>
+                  <span className="text-[9px] opacity-60">{fs.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Advanced Toggle */}
       <div className="border-t pt-2">
         <button
@@ -1419,24 +1479,24 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-2 pt-2">
+      <div className="space-y-3 pt-4 border-t border-slate-100">
         <button
           type="button"
           onClick={handleGenerateClick}
           disabled={isGenerating}
-          className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 hover:from-blue-800 hover:to-indigo-700 disabled:opacity-50 text-white font-extrabold rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-sm sm:text-base cursor-pointer active:scale-99"
+          className="w-full py-4 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 hover:from-blue-800 hover:to-indigo-700 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center space-x-3 text-base sm:text-lg cursor-pointer active:scale-98"
         >
-          <Sparkles className="h-5 w-5 animate-pulse" />
+          <Sparkles className="h-6 w-6 animate-pulse" />
           <span>{isGenerating ? 'ĐANG TẠO ĐỀ KIỂM TRA...' : '✨ TẠO ĐỀ KIỂM TRA CHUẨN'}</span>
         </button>
 
         <button
           type="button"
           onClick={onBuildMatrixOnly}
-          className="w-full py-3 px-3.5 rounded-xl border-2 border-blue-200 bg-blue-50/70 hover:bg-blue-100 hover:border-blue-400 text-blue-900 text-xs sm:text-sm font-extrabold transition flex items-center justify-center space-x-2 shadow-xs cursor-pointer active:scale-98"
+          className="w-full py-3.5 px-4 rounded-2xl border-2 border-blue-200 bg-blue-50/50 hover:bg-blue-100 hover:border-blue-400 text-blue-900 text-sm font-black transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98"
           title="Xem trước khung Ma trận 2 chiều và Bản đặc tả kỹ thuật theo cấu hình hiện tại trước khi tạo câu hỏi"
         >
-          <FileCheck2 className="h-4.5 w-4.5 text-blue-700 shrink-0" />
+          <FileCheck2 className="h-5 w-5 text-blue-700 shrink-0" />
           <span>📊 XEM MA TRẬN & BẢN ĐẶC TẢ TRƯỚC</span>
         </button>
       </div>

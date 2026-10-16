@@ -96,6 +96,8 @@ const DEFAULT_CONFIG: ExamConfig = {
   officialExamType: 'Đề chính thức',
   pageCountText: '2',
   durationNote: '(không kể thời gian phát đề)',
+  layoutLineHeight: 'standard',
+  layoutFontSize: 'medium',
 };
 
 export default function App() {
@@ -763,6 +765,7 @@ export default function App() {
         specs={specs}
         studyGuide={useMemo(() => buildStudyGuide(config, questions), [config, questions])}
         initialDocType={printDocType}
+        onConfigChange={setConfig}
       />
     </div>
   );
