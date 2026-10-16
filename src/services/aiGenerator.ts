@@ -1,5 +1,7 @@
 import { QuestionItem, ExamConfig } from '../types/exam';
-import { fetchGeminiWithFallback, extractTextFromGeminiResponse, DEFAULT_MODEL } from '../utils/geminiModels';
+import { fetchGeminiWithFallback, extractTextFromGeminiResponse, DEFAULT_MODEL, safeJsonParse } from '../utils/geminiModels';
+import { normalizeExamQuestions } from '../utils/dataNormalizer';
+import { getCachedFileAsBase64 } from '../utils/memoryManager';
 
 export interface GenerationProgressCallback {
   (step: number, message: string): void;
@@ -192,13 +194,20 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
 
   if (config.uploadedDocs && config.uploadedDocs.length > 0) {
     for (const doc of config.uploadedDocs) {
-      if (doc.base64) {
-        requestParts.push({
-          inlineData: {
-            mimeType: doc.mimeType || 'application/pdf',
-            data: doc.base64,
-          },
-        });
+      if (doc.id) {
+        try {
+          const b64Res = await getCachedFileAsBase64(doc.id);
+          if (b64Res) {
+            requestParts.push({
+              inlineData: {
+                mimeType: b64Res.mimeType,
+                data: b64Res.base64,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn(`Could not get base64 for ${doc.name}`, e);
+        }
       }
     }
   }
@@ -216,197 +225,15 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
   const rawText = extractTextFromGeminiResponse(data);
   if (!rawText) throw new Error('AI không phản hồi nội dung đề thi.');
 
-  const parsed = tryRepairJson(rawText);
+  const parsed = safeJsonParse(rawText);
   const questionsList = extractQuestionArray(parsed);
 
   if (questionsList && questionsList.length > 0) {
-    return questionsList.map((item, idx) => ({
-      ...item,
-      id: item.id || `q_${Date.now()}_${idx}`,
-      score: item.score || 0.25,
-    }));
+    // CRITICAL: Normalize data before returning to prevent UI crashes
+    return normalizeExamQuestions(questionsList);
   }
 
   throw new Error('Không bóc tách được mảng câu hỏi từ phản hồi AI.');
-}
-
-function sanitizeJsonStringLiterals(str: string): string {
-  let result = '';
-  let inString = false;
-  let i = 0;
-
-  while (i < str.length) {
-    const char = str[i];
-
-    if (!inString) {
-      if (char === '"') {
-        inString = true;
-      }
-      result += char;
-      i++;
-      continue;
-    }
-
-    if (char === '"') {
-      inString = false;
-      result += char;
-      i++;
-      continue;
-    }
-
-    if (char === '\n') {
-      result += '\\n';
-      i++;
-      continue;
-    }
-    if (char === '\r') {
-      result += '\\r';
-      i++;
-      continue;
-    }
-    if (char === '\t') {
-      result += '\\t';
-      i++;
-      continue;
-    }
-
-    if (char === '\\') {
-      const nextChar = str[i + 1] || '';
-      const nextNextChar = str[i + 2] || '';
-
-      if (nextChar === '"' || nextChar === '\\' || nextChar === '/') {
-        result += char + nextChar;
-        i += 2;
-        continue;
-      }
-
-      if (nextChar === 'u' && /^[0-9a-fA-F]{4}$/.test(str.slice(i + 2, i + 6))) {
-        result += str.slice(i, i + 6);
-        i += 6;
-        continue;
-      }
-
-      if (['f', 't', 'r', 'b', 'n'].includes(nextChar) && /[a-zA-Z]/.test(nextNextChar)) {
-        result += '\\\\';
-        i++;
-        continue;
-      }
-
-      if (['n', 'r', 't', 'b', 'f'].includes(nextChar)) {
-        result += char + nextChar;
-        i += 2;
-        continue;
-      }
-
-      result += '\\\\';
-      i++;
-      continue;
-    }
-
-    result += char;
-    i++;
-  }
-
-  return result;
-}
-
-function salvageBalancedObjects(str: string): QuestionItem[] {
-  const results: QuestionItem[] = [];
-  const startArr = str.indexOf('[');
-  const scanStart = startArr !== -1 ? startArr + 1 : 0;
-
-  let inString = false;
-  let escaped = false;
-  let depth = 0;
-  let objStart = -1;
-
-  for (let i = scanStart; i < str.length; i++) {
-    const ch = str[i];
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (ch === '\\') {
-        escaped = true;
-      } else if (ch === '"') {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (ch === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (ch === '{') {
-      if (depth === 0) {
-        objStart = i;
-      }
-      depth++;
-    } else if (ch === '}') {
-      if (depth > 0) {
-        depth--;
-        if (depth === 0 && objStart !== -1) {
-          const rawObj = str.slice(objStart, i + 1);
-          objStart = -1;
-
-          try {
-            const parsed = JSON.parse(rawObj);
-            if (parsed && typeof parsed === 'object' && (parsed.question || parsed.part)) {
-              results.push(parsed as QuestionItem);
-              continue;
-            }
-          } catch {
-            try {
-              const cleanedObj = sanitizeJsonStringLiterals(rawObj).replace(/,\s*([\]\}])/g, '$1');
-              const parsed = JSON.parse(cleanedObj);
-              if (parsed && typeof parsed === 'object' && (parsed.question || parsed.part)) {
-                results.push(parsed as QuestionItem);
-              }
-            } catch {
-              // Ignore broken trailing fragment
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return results;
-}
-
-function tryRepairJson(jsonString: string): unknown {
-  if (!jsonString) return null;
-  let str = jsonString.trim();
-
-  const codeBlockMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    str = codeBlockMatch[1].trim();
-  } else {
-    str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-  }
-
-  try {
-    return JSON.parse(str);
-  } catch {}
-
-  const sanitized = sanitizeJsonStringLiterals(str).replace(/,\s*([\]\}])/g, '$1');
-  try {
-    return JSON.parse(sanitized);
-  } catch {}
-
-  const salvagedFromRaw = salvageBalancedObjects(str);
-  if (salvagedFromRaw.length > 0) {
-    return salvagedFromRaw;
-  }
-
-  const salvagedFromSanitized = salvageBalancedObjects(sanitized);
-  if (salvagedFromSanitized.length > 0) {
-    return salvagedFromSanitized;
-  }
-
-  return null;
 }
 
 function extractQuestionArray(parsed: unknown): QuestionItem[] | null {

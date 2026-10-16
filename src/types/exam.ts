@@ -141,7 +141,7 @@ export interface ExamConfig {
   readingPassage: string;
 
   sourceOption: 'doc_only' | 'doc_plus_standard' | 'teacher_prompt';
-  uploadedDocs: Array<{ name: string; content: string; size: number; base64?: string; mimeType?: string }>;
+  uploadedDocs: Array<{ id: string; name: string; content: string; size: number; mimeType?: string }>;
 
   keepFixedQuestions: boolean;
   teacherFixedQuestions: QuestionItem[];

@@ -224,7 +224,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             {shuffledCodes.length >= 1 && (
               <div className="flex items-center space-x-1 rounded-lg border border-indigo-200 bg-indigo-50/70 p-1 shadow-2xs">
                 <span className="text-[10px] font-extrabold uppercase text-indigo-900 px-1">Mã đề:</span>
-                {shuffledCodes.map((sc) => (
+                {(Array.isArray(shuffledCodes) ? shuffledCodes : []).map((sc) => (
                   <button
                     key={sc.code}
                     onClick={() => onSelectCode(sc.code)}
@@ -347,14 +347,21 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       {/* 6 Tab Navigation */}
       <div className="no-print border-b border-slate-200 bg-white rounded-t-2xl px-5 pt-4">
         <div className="flex space-x-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-          {[
+          {(Array.isArray([
             { id: 'exam', label: 'ĐỀ KIỂM TRA', icon: FileText, count: questions.length },
             { id: 'answers', label: 'BẢNG ĐÁP ÁN', icon: CheckCircle },
             { id: 'rubric', label: 'HƯỚNG DẪN CHẤM', icon: HelpCircle },
             { id: 'matrix', label: 'MA TRẬN ĐỀ', icon: Grid },
             { id: 'spec', label: 'BẢN ĐẶC TẢ', icon: ListTree },
             { id: 'study_guide', label: 'ĐỀ CƯƠNG ÔN TẬP', icon: BookOpen },
-          ].map((tab) => {
+          ]) ? [
+            { id: 'exam', label: 'ĐỀ KIỂM TRA', icon: FileText, count: questions.length },
+            { id: 'answers', label: 'BẢNG ĐÁP ÁN', icon: CheckCircle },
+            { id: 'rubric', label: 'HƯỚNG DẪN CHẤM', icon: HelpCircle },
+            { id: 'matrix', label: 'MA TRẬN ĐỀ', icon: Grid },
+            { id: 'spec', label: 'BẢN ĐẶC TẢ', icon: ListTree },
+            { id: 'study_guide', label: 'ĐỀ CƯƠNG ÔN TẬP', icon: BookOpen },
+          ] : []).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -500,14 +507,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {currentExam.questions.map((q, idx) => (
+                {(Array.isArray(currentExam.questions) ? currentExam.questions : []).map((q, idx) => (
                   <tr key={q.id || idx} className="hover:bg-slate-50">
                     <td className="p-2.5 border border-slate-300 text-center font-bold">{idx + 1}</td>
                     <td className="p-2.5 border border-slate-300 font-semibold text-slate-600">
                       {q.part === 'part1' ? 'Phần I (TN 4 LC)' : q.part === 'part2' ? 'Phần II (Đ/S)' : q.part === 'part3' ? 'Phần III (Ngắn)' : 'Phần IV (Tự luận)'}
                     </td>
                     <td className="p-2.5 border border-slate-300 text-center">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold">{q.level}</span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold">{String(q.level)}</span>
                     </td>
                     <td className="p-2.5 border border-slate-300 text-center font-bold text-blue-700">{q.score}đ</td>
                     <td className="p-2.5 border border-slate-300 font-bold text-emerald-800">
@@ -515,9 +522,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                         <span>{String(q.correctAnswer)}</span>
                       ) : q.type === 'true_false_group' || q.part === 'part2' ? (
                         <div className="flex flex-wrap gap-2 text-xs font-mono">
-                          {q.subItems?.map((s) => (
+                          {(Array.isArray(q.subItems) ? q.subItems : []).map((s) => (
                             <span key={s.id} className={s.isCorrect ? 'text-emerald-700' : 'text-rose-700'}>
-                              {s.label}: <strong>{s.isCorrect ? 'ĐÚNG' : 'SAI'}</strong>
+                              {String(s.label)}: <strong>{s.isCorrect ? 'ĐÚNG' : 'SAI'}</strong>
                             </span>
                           ))}
                         </div>
@@ -534,18 +541,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {/* Detailed Explanations */}
           <div className="pt-4 border-t space-y-4">
             <h4 className="font-bold text-slate-800 text-sm">Lời Giải Và Phân Tích Chi Tiết Từng Câu</h4>
-            {currentExam.questions.map((q, idx) => (
+            {(Array.isArray(currentExam.questions) ? currentExam.questions : []).map((q, idx) => (
               <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span>Câu {idx + 1} ({q.score} điểm) – [{q.level}]</span>
+                  <span>Câu {idx + 1} ({q.score} điểm) – [{String(q.level)}]</span>
                   <span className="text-emerald-700">Đáp án: {String(q.correctAnswer)}</span>
                 </div>
                 <div className="text-xs text-slate-600 font-exam">
-                  <MathRenderer text={q.question} />
+                  <MathRenderer text={String(q.question)} />
                 </div>
                 <div className="rounded-lg bg-white p-3 border border-slate-200 text-xs text-slate-800 space-y-1">
                   <strong className="text-blue-800 block">Hướng dẫn giải:</strong>
-                  <MathRenderer text={q.explanation || 'Áp dụng định lý và tính toán theo chuẩn kiến thức.'} />
+                  <MathRenderer text={String(q.explanation || 'Áp dụng định lý và tính toán theo chuẩn kiến thức.')} />
                 </div>
                 {q.distractorAnalysis && Object.keys(q.distractorAnalysis).length > 0 && (
                   <div className="rounded-lg bg-amber-50/80 p-3 border border-amber-200 text-xs space-y-1.5">
@@ -553,10 +560,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                       <span>🧠 Phân tích bẫy tư duy học sinh hay chọn nhầm:</span>
                     </strong>
                     <div className="space-y-1 text-slate-700">
-                      {Object.entries(q.distractorAnalysis).map(([opt, reason]) => (
+                      {(Array.isArray(Object.entries(q.distractorAnalysis)) ? Object.entries(q.distractorAnalysis) : []).map(([opt, reason]) => (
                         <div key={opt} className="flex items-start space-x-1.5">
-                          <span className="font-bold text-amber-800 shrink-0">Phương án {opt}:</span>
-                          <span>{reason}</span>
+                          <span className="font-bold text-amber-800 shrink-0">Phương án {String(opt)}:</span>
+                          <span>{String(reason)}</span>
                         </div>
                       ))}
                     </div>
@@ -614,16 +621,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {/* Essay Rubrics */}
           <div className="space-y-4">
             <h4 className="font-bold text-slate-800 text-sm">Biểu Điểm Tự Luận Từng Bước (Step-by-step)</h4>
-            {currentExam.questions
+            {(Array.isArray(currentExam.questions) ? currentExam.questions : [])
               .filter((q) => q.type === 'essay' || q.part === 'part4')
               .map((q, idx) => (
                 <div key={q.id || idx} className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span>Câu Tự luận ({q.score} điểm) – [{q.level}]</span>
-                    <span className="text-blue-700">{q.topic}</span>
+                    <span>Câu Tự luận ({q.score} điểm) – [{String(q.level)}]</span>
+                    <span className="text-blue-700">{String(q.topic)}</span>
                   </div>
                   <div className="text-xs text-slate-700 italic font-exam">
-                    <MathRenderer text={q.question} />
+                    <MathRenderer text={String(q.question)} />
                   </div>
 
                   <table className="w-full text-xs border border-slate-300">
@@ -636,17 +643,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     </thead>
                     <tbody>
                       {q.rubric && q.rubric.length > 0 ? (
-                        q.rubric.map((r, rIdx) => (
+                        (Array.isArray(q.rubric) ? q.rubric : []).map((r, rIdx) => (
                           <tr key={rIdx} className="hover:bg-slate-50">
-                            <td className="p-2 border border-slate-300 text-center font-bold text-slate-700">{r.step}</td>
-                            <td className="p-2 border border-slate-300">{r.detail}</td>
+                            <td className="p-2 border border-slate-300 text-center font-bold text-slate-700">{String(r.step)}</td>
+                            <td className="p-2 border border-slate-300">{String(r.detail)}</td>
                             <td className="p-2 border border-slate-300 text-center font-bold text-blue-700">{r.point}đ</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td className="p-2 border border-slate-300 text-center font-bold">1</td>
-                          <td className="p-2 border border-slate-300">{q.explanation || 'Trình bày đầy đủ lời giải logic.'}</td>
+                          <td className="p-2 border border-slate-300">{String(q.explanation || 'Trình bày đầy đủ lời giải logic.')}</td>
                           <td className="p-2 border border-slate-300 text-center font-bold text-blue-700">{q.score}đ</td>
                         </tr>
                       )}
@@ -706,9 +713,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   <th rowSpan={2} className="p-2.5 border border-slate-300 text-left min-w-[200px]">
                     Chủ đề / Đơn vị kiến thức
                   </th>
-                  {matrix.levels.map((lvl) => (
+                  {(Array.isArray(matrix.levels) ? matrix.levels : []).map((lvl) => (
                     <th key={lvl} colSpan={2} className="p-2 border border-slate-300">
-                      {lvl}
+                      {String(lvl)}
                     </th>
                   ))}
                   <th colSpan={2} className="p-2 border border-slate-300 bg-blue-50 text-blue-900">
@@ -716,7 +723,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   </th>
                 </tr>
                 <tr className="bg-slate-50 text-[11px]">
-                  {matrix.levels.map((lvl) => (
+                  {(Array.isArray(matrix.levels) ? matrix.levels : []).map((lvl) => (
                     <React.Fragment key={`${lvl}-sub`}>
                       <th className="p-1.5 border border-slate-300 w-14">Số câu</th>
                       <th className="p-1.5 border border-slate-300 w-14">Điểm</th>
@@ -727,11 +734,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {matrix.rows.map((row, idx) => (
+                {(Array.isArray(matrix.rows) ? matrix.rows : []).map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/80">
                     <td className="p-2 border border-slate-300 font-bold">{idx + 1}</td>
-                    <td className="p-2 border border-slate-300 text-left font-medium text-slate-800">{row.topic}</td>
-                    {matrix.levels.map((lvl) => {
+                    <td className="p-2 border border-slate-300 text-left font-medium text-slate-800">{String(row.topic)}</td>
+                    {(Array.isArray(matrix.levels) ? matrix.levels : []).map((lvl) => {
                       const count =
                         (row.part1[lvl] || 0) +
                         (row.part2[lvl] || 0) +
@@ -762,7 +769,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   <td colSpan={2} className="p-2.5 border border-slate-300 uppercase tracking-wider text-center">
                     Tổng Toàn Đề
                   </td>
-                  {matrix.levels.map((lvl) => {
+                  {(Array.isArray(matrix.levels) ? matrix.levels : []).map((lvl) => {
                     const data = matrix.totalByLevel[lvl] || { count: 0, score: 0 };
                     return (
                       <React.Fragment key={`tot-${lvl}`}>
@@ -838,14 +845,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {specs.map((spec) => (
+                {(Array.isArray(specs) ? specs : []).map((spec) => (
                   <tr key={spec.id} className="hover:bg-slate-50">
                     <td className="p-2.5 border border-slate-300 text-center font-bold text-slate-700">{spec.stt}</td>
-                    <td className="p-2.5 border border-slate-300 font-semibold text-slate-800">{spec.topic}</td>
-                    <td className="p-2.5 border border-slate-300 text-slate-700 leading-relaxed">{spec.competency}</td>
-                    <td className="p-2.5 border border-slate-300 font-medium text-slate-600">{spec.questionType}</td>
+                    <td className="p-2.5 border border-slate-300 font-semibold text-slate-800">{String(spec.topic)}</td>
+                    <td className="p-2.5 border border-slate-300 text-slate-700 leading-relaxed">{String(spec.competency)}</td>
+                    <td className="p-2.5 border border-slate-300 font-medium text-slate-600">{String(spec.questionType)}</td>
                     <td className="p-2.5 border border-slate-300 text-center">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold">{spec.level}</span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold">{String(spec.level)}</span>
                     </td>
                     <td className="p-2.5 border border-slate-300 text-center font-bold">{spec.questionCount}</td>
                     <td className="p-2.5 border border-slate-300 text-center font-bold text-blue-700">{spec.score}đ</td>
@@ -917,7 +924,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <span>💡 Khái Niệm & Từ Khóa Cốt Lõi (Core Concepts)</span>
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {studyGuide.coreConcepts.map((item, idx) => (
+              {(Array.isArray(studyGuide.coreConcepts) ? studyGuide.coreConcepts : []).map((item, idx) => (
                 <div key={idx} className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 space-y-1">
                   <div className="font-bold text-xs text-blue-900 flex items-center space-x-1.5">
                     <span className="h-2 w-2 rounded-full bg-blue-600"></span>
@@ -950,7 +957,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {studyGuide.keyFormulas.map((f, idx) => (
+                    {(Array.isArray(studyGuide.keyFormulas) ? studyGuide.keyFormulas : []).map((f, idx) => (
                       <tr key={idx} className="hover:bg-slate-50">
                         <td className="p-2.5 border-r border-slate-200 font-bold text-slate-800">{f.name}</td>
                         <td className="p-2.5 border-r border-slate-200 font-exam text-center font-bold text-indigo-900 bg-indigo-50/30">
@@ -981,7 +988,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                {studyGuide.trapList.map((trap, idx) => (
+                {(Array.isArray(studyGuide.trapList) ? studyGuide.trapList : []).map((trap, idx) => (
                   <div key={idx} className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 space-y-2 relative overflow-hidden">
                     <div className="flex items-start justify-between">
                       <span className="font-bold text-xs text-rose-900 flex items-center space-x-1.5">
@@ -1022,7 +1029,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 <span>⚠️ Lỗi Tác Phong & Sai Lầm Thường Gặp Khi Tô Phiếu</span>
               </h4>
               <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 space-y-2">
-                {studyGuide.commonMistakes.map((mistake, idx) => (
+                {(Array.isArray(studyGuide.commonMistakes) ? studyGuide.commonMistakes : []).map((mistake, idx) => (
                   <div key={idx} className="flex items-start space-x-2 text-xs text-amber-950">
                     <span className="font-bold text-amber-700 shrink-0">•</span>
                     <span><MathRenderer text={mistake} /></span>
@@ -1042,7 +1049,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 <span>⏰ Phân Bổ Thời Gian & Chiến Thuật Từng Dạng Đề GDPT 2018</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {studyGuide.timeStrategy.map((ts, idx) => (
+                {(Array.isArray(studyGuide.timeStrategy) ? studyGuide.timeStrategy : []).map((ts, idx) => (
                   <div key={idx} className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1">
                     <div className="font-bold text-xs text-emerald-900">{ts.partTitle}</div>
                     <div className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded w-fit">
@@ -1065,7 +1072,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 <span>✅ Checklist Tự Kiểm Tra Kiến Thức Trước Giờ G</span>
               </h4>
               <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/60 space-y-2">
-                {studyGuide.readinessChecklist.map((chk, idx) => (
+                {(Array.isArray(studyGuide.readinessChecklist) ? studyGuide.readinessChecklist : []).map((chk, idx) => (
                   <label key={idx} className="flex items-center space-x-2.5 text-xs text-indigo-950 cursor-pointer">
                     <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4" defaultChecked />
                     <span><MathRenderer text={chk} /></span>
@@ -1084,7 +1091,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <span>🎯 Lời Dặn Của Giáo Viên & Bí Quyết Bứt Phá Điểm Số</span>
             </h4>
             <div className="p-4 rounded-xl border border-teal-200 bg-teal-50/60 space-y-2">
-              {studyGuide.reviewTips.map((tip, idx) => (
+              {(Array.isArray(studyGuide.reviewTips) ? studyGuide.reviewTips : []).map((tip, idx) => (
                 <div key={idx} className="flex items-start space-x-2 text-xs text-teal-950">
                   <span className="font-bold text-teal-700 shrink-0">✔</span>
                   <span><MathRenderer text={tip} /></span>

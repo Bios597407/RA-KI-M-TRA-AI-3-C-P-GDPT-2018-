@@ -16,9 +16,11 @@ import {
   Wand2,
 } from 'lucide-react';
 import { ExamConfig, GradeLevel, CognitiveSystem } from '../types/exam';
-import { extractTextFromFile, fileToBase64 } from '../utils/fileParser';
+import { extractTextFromFile } from '../utils/fileParser';
 import { useToast } from './Toast';
 import { analyzeAndSuggestLessonContent } from '../services/lessonAnalyzer';
+import { cacheFileObject, releaseCachedFile } from '../utils/memoryManager';
+import { safeString } from '../utils/dataNormalizer';
 
 interface ConfigPanelProps {
   config: ExamConfig;
@@ -43,6 +45,19 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const [isAnalyzingLesson, setIsAnalyzingLesson] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showHeaderForm, setShowHeaderForm] = useState(true);
+
+  const handleGenerateClick = async () => {
+    if (isGenerating) return;
+    try {
+      if (!isPercentValid) {
+        handleAutoBalanceCognitive();
+      }
+      onGenerate();
+    } catch (err) {
+      console.error('Action error', err);
+      toast.error('Có lỗi xảy ra khi thực hiện tác vụ này.');
+    }
+  };
 
   // Grade options based on level
   const gradesByLevel: Record<GradeLevel, string[]> = {
@@ -176,23 +191,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
+        // Requirement 4: Extract text browser-side and only store that in state
         const text = await extractTextFromFile(file);
-        let base64Data: string | undefined;
-        let mimeType: string | undefined;
-        try {
-          const b64Res = await fileToBase64(file);
-          base64Data = b64Res.base64;
-          mimeType = b64Res.mimeType;
-        } catch {
-          // ignore base64 conversion error
-        }
+        
+        // Store the actual file object in memory cache (not in config state/localStorage)
+        const fileId = cacheFileObject(file);
 
         newDocs.push({
+          id: fileId,
           name: file.name,
           content: text,
           size: file.size,
-          base64: base64Data,
-          mimeType: mimeType,
+          mimeType: file.type || 'application/octet-stream',
         });
         countSuccess++;
       } catch (err) {
@@ -210,20 +220,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     if (countSuccess > 0) {
       toast.success(`Đã trích xuất thành công ${countSuccess} tài liệu tham chiếu!`);
-      // Auto trigger AI analysis to fill lesson content & outcomes
+      // Requirement 5: Async protection
       handleAutoAnalyzeAndSuggestContent(newDocs);
     }
   };
 
   const removeDoc = (idx: number) => {
-    const docName = config.uploadedDocs[idx]?.name || 'Tài liệu';
-    const newDocs = config.uploadedDocs.filter((_, i) => i !== idx);
+    const doc = config.uploadedDocs[idx];
+    const docName = doc?.name || 'Tài liệu';
+    if (doc?.id) releaseCachedFile(doc.id);
+    const newDocs = (Array.isArray(config.uploadedDocs) ? config.uploadedDocs : []).filter((_, i) => i !== idx);
     onChange({ ...config, uploadedDocs: newDocs });
     toast.info(`Đã gỡ bỏ: ${docName}`);
   };
 
   const clearAllDocs = () => {
     if (confirm('Bạn có chắc chắn muốn xóa tất cả các file tài liệu đã tải lên?')) {
+      if (Array.isArray(config.uploadedDocs)) {
+        config.uploadedDocs.forEach(d => releaseCachedFile(d.id));
+      }
       onChange({ ...config, uploadedDocs: [] });
       toast.info('Đã xóa tất cả tài liệu đính kèm.');
     }
@@ -350,15 +365,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     }
   };
 
-  const handleGenerateClick = () => {
-    if (isGenerating) return;
-
-    if (!isPercentValid) {
-      // Auto balance and notify
-      handleAutoBalanceCognitive();
-    }
-    onGenerate();
-  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-6 lg:shadow-md transition-shadow">
@@ -407,7 +413,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Column 1: Cơ bản */}
+        <div className="space-y-6">
 
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
@@ -789,6 +797,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
+        </div>
+
+        {/* Column 2: Nội dung & Tài liệu */}
+        <div className="space-y-6">
       {/* Step 4: Nội dung kiến thức & Yêu cầu cần đạt */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
 
@@ -1140,6 +1152,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
+        </div>
+
+        {/* Column 3: Cấu trúc & Khởi tạo */}
+        <div className="space-y-6">
       {/* Step 7: Cấu trúc số lượng câu hỏi */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
 
@@ -1509,6 +1525,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
     </div>
   </div>
+</div>
 );
 };
 

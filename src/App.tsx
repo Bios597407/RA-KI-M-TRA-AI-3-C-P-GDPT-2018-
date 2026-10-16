@@ -15,6 +15,7 @@ import MatrixSpecModal from './components/MatrixSpecModal';
 import ConfirmModal from './components/ConfirmModal';
 import PrintPreviewModal from './components/PrintPreviewModal';
 import { useToast } from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import {
   ExamConfig,
@@ -599,7 +600,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 transition-all duration-300" data-ui-scale={config.appUiScale || 'standard'}>
+    <ErrorBoundary>
+      <div className="min-h-screen flex flex-col bg-slate-50 transition-all duration-300" data-ui-scale={config.appUiScale || 'standard'}>
       {/* Header */}
       <Header
         onOpenApiKey={() => setShowApiKeyModal(true)}
@@ -777,6 +779,7 @@ export default function App() {
         initialDocType={printDocType}
         onConfigChange={setConfig}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

@@ -1,5 +1,7 @@
 import { ExamConfig, GradeLevel } from '../types/exam';
-import { fetchGeminiWithFallback, extractTextFromGeminiResponse } from '../utils/geminiModels';
+import { fetchGeminiWithFallback, extractTextFromGeminiResponse, tryRepairJson } from '../utils/geminiModels';
+import { safeString } from '../utils/dataNormalizer';
+import { getCachedFileAsBase64 } from '../utils/memoryManager';
 
 export interface SuggestedLessonData {
   gradeLevel?: GradeLevel;
@@ -45,115 +47,140 @@ export async function analyzeAndSuggestLessonContent(
   }
 
   const hasDocs = docs && docs.length > 0;
-  const combinedDocsText = hasDocs
-    ? docs
-        .map((d, i) => `--- TÀI LIỆU ${i + 1}: ${d.name} (Size: ${Math.round(d.size/1024)}KB) ---\n${d.content.slice(0, 30000)}`)
-        .join('\n\n')
-    : '';
+  
+  let promptText = '';
+  if (hasDocs) {
+    const combinedDocsText = docs
+      .map((d, i) => `--- TÀI LIỆU ${i + 1}: ${d.name} ---\n${d.content.slice(0, 20000)}`)
+      .join('\n\n');
 
-  const promptText = `
-Bạn là Siêu Trí Tuệ Nhân Tạo & Chuyên gia Cao cấp về Chương trình Giáo dục GDPT 2018 của Bộ Giáo dục và Đào tạo Việt Nam.
+    promptText = `
+Bạn là chuyên gia Khảo thí Giáo dục GDPT 2018.
+NHIỆM VỤ: Phân tích ĐỘC LẬP từng tài liệu sau đây (${docs.length} file).
 
-QUY TẮC BẮT BUỘC & NGHIÊM NGẶT (STRICT MULTI-FILE GROUNDING):
-1. Bạn BẮT BUỘC phải đọc, phân tích và tổng hợp thông tin từ TOÀN BỘ TẤT CẢ CÁC TỆP đính kèm (${docs.length} file).
-2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT, KHÔNG SUY DIỄN NGOÀI TÀI LIỆU. Mọi thông tin về Tên bài/Chủ đề, Chương/Phạm vi, Yêu cầu cần đạt và Ngữ liệu PHẢI PHẢN ÁNH CHÍNH XÁC VÀ ĐẦY ĐỦ CÁC TỆP TÀI LIỆU MÀ GIÁO VIÊN ĐÃ TẢI LÊN.
-
-NHIỆM VỤ CỤ THỂ:
-1. gradeLevel: Cấp học ("primary", "secondary", "high").
-2. grade: Khối lớp ("1" đến "12").
-3. subject: Môn học chuẩn theo GDPT 2018.
-4. textbook: Bộ sách giáo khoa phù hợp hoặc mặc định.
-5. topicTitle: Tên bài học / Chủ đề tổng hợp từ các file đính kèm.
-6. chapter: Chương hoặc mạch kiến thức từ tài liệu.
-7. learningOutcomes: Yêu cầu cần đạt / Mục tiêu chi tiết dựa trọn vẹn trên các file đã tải.
-8. readingPassage: Tóm tắt ngữ liệu, công thức, nội dung cốt lõi từ các tệp đính kèm.
-
-DỮ LIỆU ĐẦU VÀO TỪ GIÁO VIÊN:
-${
-  hasDocs
-    ? `DƯỚI ĐÂY LÀ NỘI DUNG CỦA ${docs.length} TỆP TÀI LIỆU:\n${combinedDocsText}`
-    : `Môn học hiện tại: ${config.subject || 'Toán học'}, Lớp: ${config.grade || '12'}, Bộ sách: ${config.textbook || 'Kết nối tri thức với cuộc sống'}`
-}
+DỮ LIỆU ĐẦU VÀO:
+${combinedDocsText}
 
 YÊU CẦU ĐẦU RA:
-Trả về duy nhất MỘT JSON Object hợp lệ (không kèm bất kỳ văn bản giải thích nào ngoài JSON):
+Trả về một mảng JSON các đối tượng (mỗi đối tượng cho 1 file), KHÔNG được bỏ sót file nào:
+[
+  {
+    "fileName": "Tên file chính xác",
+    "gradeLevel": "primary" | "secondary" | "high",
+    "grade": "1-12",
+    "subject": "Môn học",
+    "textbook": "Bộ sách",
+    "topicTitle": "Tên bài/Chủ đề",
+    "chapter": "Chương/Phạm vi",
+    "learningOutcomes": "Yêu cầu cần đạt",
+    "readingPassage": "Tóm tắt nội dung/Ngữ liệu"
+  },
+  ...
+]
+`;
+  } else {
+    promptText = `
+Bạn là chuyên gia GDPT 2018. Hãy đề xuất nội dung bài học dựa trên thiết lập hiện tại.
+Thiết lập: Môn ${config.subject}, Lớp ${config.grade}, Sách ${config.textbook}.
+
+YÊU CẦU ĐẦU RA:
+Trả về duy nhất MỘT JSON Object:
 {
-  "gradeLevel": "high",
-  "grade": "12",
-  "subject": "Toán học",
-  "textbook": "Kết nối tri thức với cuộc sống",
   "topicTitle": "...",
   "chapter": "...",
   "learningOutcomes": "...",
   "readingPassage": "..."
 }
 `;
+  }
 
-  // Build request parts: text prompt + inlineData for attached base64 files
-  const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+  const requestParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
     { text: promptText },
   ];
 
   if (hasDocs) {
     for (const doc of docs) {
-      if (doc.base64 && doc.mimeType) {
-        parts.push({
-          inlineData: {
-            mimeType: doc.mimeType,
-            data: doc.base64,
-          },
-        });
+      if (doc.id) {
+        try {
+          const b64Res = await getCachedFileAsBase64(doc.id);
+          if (b64Res) {
+            requestParts.push({
+              inlineData: {
+                mimeType: b64Res.mimeType,
+                data: b64Res.base64,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn(`Could not get base64 for ${doc.name}`, e);
+        }
       }
     }
   }
 
   try {
     const { data } = await fetchGeminiWithFallback(
-      { contents: [{ parts }] },
+      { contents: [{ parts: requestParts }] },
       activeApiKey,
       {
         temperature: 0.2,
         responseMimeType: 'application/json',
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       }
     );
 
     const rawText = extractTextFromGeminiResponse(data);
     if (!rawText) throw new Error('AI không phản hồi nội dung.');
 
-    let cleaned = rawText.trim();
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
+    const parsed = tryRepairJson(rawText);
 
-    const parsed = JSON.parse(cleaned);
+    if (hasDocs) {
+      const results = Array.isArray(parsed) ? parsed : [parsed];
+      
+      // Concatenate fields with file names
+      const topicTitles: string[] = [];
+      const chapters: string[] = [];
+      const outcomes: string[] = [];
+      const passages: string[] = [];
+      
+      let finalGradeLevel: GradeLevel | undefined;
+      let finalGrade: string | undefined;
+      let finalSubject: string | undefined;
+      let finalBook: string | undefined;
 
-    if (parsed && (parsed.topicTitle || parsed.learningOutcomes || parsed.chapter || parsed.subject)) {
-      let detectedGradeLevel: GradeLevel | undefined = undefined;
-      if (parsed.gradeLevel === 'primary' || parsed.gradeLevel === 'secondary' || parsed.gradeLevel === 'high') {
-        detectedGradeLevel = parsed.gradeLevel;
-      } else if (parsed.grade) {
-        const numGrade = parseInt(parsed.grade, 10);
-        if (numGrade >= 1 && numGrade <= 5) detectedGradeLevel = 'primary';
-        else if (numGrade >= 6 && numGrade <= 9) detectedGradeLevel = 'secondary';
-        else if (numGrade >= 10 && numGrade <= 12) detectedGradeLevel = 'high';
-      }
+      results.forEach((res: any, idx: number) => {
+        const name = res.fileName || docs[idx]?.name || `File ${idx + 1}`;
+        if (res.topicTitle) topicTitles.push(`[${name}]: ${safeString(res.topicTitle)}`);
+        if (res.chapter) chapters.push(`[${name}]: ${safeString(res.chapter)}`);
+        if (res.learningOutcomes) outcomes.push(`[${name}]: ${safeString(res.learningOutcomes)}`);
+        if (res.readingPassage) passages.push(`[${name}]: ${safeString(res.readingPassage)}`);
+        
+        // Take grade/subject info from the last file or any valid one
+        if (res.gradeLevel) finalGradeLevel = res.gradeLevel;
+        if (res.grade) finalGrade = String(res.grade);
+        if (res.subject) finalSubject = res.subject;
+        if (res.textbook) finalBook = res.textbook;
+      });
 
       return {
-        gradeLevel: detectedGradeLevel,
-        grade: parsed.grade ? String(parsed.grade) : undefined,
-        subject: parsed.subject || undefined,
-        textbook: parsed.textbook || undefined,
-        topicTitle: parsed.topicTitle || '',
-        chapter: parsed.chapter || '',
-        learningOutcomes: parsed.learningOutcomes || '',
-        readingPassage: parsed.readingPassage || '',
+        gradeLevel: finalGradeLevel,
+        grade: finalGrade,
+        subject: finalSubject,
+        textbook: finalBook,
+        topicTitle: topicTitles.join('\n'),
+        chapter: chapters.join('\n'),
+        learningOutcomes: outcomes.join('\n'),
+        readingPassage: passages.join('\n'),
+      };
+    } else {
+      // No docs, single object mode
+      return {
+        topicTitle: safeString(parsed.topicTitle),
+        chapter: safeString(parsed.chapter),
+        learningOutcomes: safeString(parsed.learningOutcomes),
+        readingPassage: safeString(parsed.readingPassage),
       };
     }
-    
-    throw new Error('Cấu trúc JSON phản hồi không hợp lệ.');
   } catch (err: any) {
     throw new Error(`Không thể tự động phân tích tài liệu: ${err.message || String(err)}`);
   }

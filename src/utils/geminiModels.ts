@@ -154,3 +154,131 @@ export function extractTextFromGeminiResponse(data: any): string {
     ? nonThoughtParts.map((p: { text: string }) => p.text).join('\n')
     : parts.map((p: { text?: string }) => p.text || '').join('\n');
 }
+
+/**
+ * Safe JSON Parser with automatic cleaning and error recovery.
+ * Guaranteed to not crash the application.
+ */
+export function safeJsonParse(rawText: string): any {
+  if (!rawText || typeof rawText !== 'string') return null;
+  
+  let cleaned = rawText.trim();
+
+  // 1. Remove Markdown blocks
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    cleaned = codeBlockMatch[1].trim();
+  } else {
+    // Basic cleanup of leading/trailing markdown characters
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  }
+
+  // 2. Standard JSON Parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    // 3. Fallback: Repair common AI formatting errors (trailing commas, quotes, etc.)
+    try {
+      const sanitized = sanitizeJsonStringLiterals(cleaned).replace(/,\s*([\]\}])/g, '$1');
+      return JSON.parse(sanitized);
+    } catch (err2) {
+      // 4. Emergency: Salvage balanced objects from truncated response
+      console.warn('[AI System] JSON fundamental parsing error. Attempting to salvage partial objects...');
+      const salvaged = salvageBalancedObjects(cleaned);
+      if (salvaged && salvaged.length > 0) {
+        return salvaged;
+      }
+      
+      console.error('[AI System] JSON parsing failed completely.', err2);
+      return null;
+    }
+  }
+}
+
+/** Legacy alias for compatibility */
+export const tryRepairJson = safeJsonParse;
+
+function sanitizeJsonStringLiterals(str: string): string {
+  let result = '';
+  let inString = false;
+  let i = 0;
+
+  while (i < str.length) {
+    const char = str[i];
+    if (!inString) {
+      if (char === '"') inString = true;
+      result += char;
+      i++;
+      continue;
+    }
+    if (char === '"') {
+      inString = false;
+      result += char;
+      i++;
+      continue;
+    }
+    if (char === '\n') {
+      result += '\\n';
+      i++;
+      continue;
+    }
+    if (char === '\\') {
+      const nextChar = str[i + 1] || '';
+      if (['"', '\\', '/', 'b', 'f', 'n', 'r', 't'].includes(nextChar)) {
+        result += char + nextChar;
+        i += 2;
+        continue;
+      }
+      result += '\\\\';
+      i++;
+      continue;
+    }
+    result += char;
+    i++;
+  }
+  return result;
+}
+
+function salvageBalancedObjects(str: string): any[] {
+  const results: any[] = [];
+  let inString = false;
+  let escaped = false;
+  let depth = 0;
+  let objStart = -1;
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === '{') {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === '}') {
+      if (depth > 0) {
+        depth--;
+        if (depth === 0 && objStart !== -1) {
+          const rawObj = str.slice(objStart, i + 1);
+          try {
+            results.push(JSON.parse(rawObj));
+          } catch {
+            try {
+              results.push(JSON.parse(sanitizeJsonStringLiterals(rawObj).replace(/,\s*([\]\}])/g, '$1')));
+            } catch { /* ignore broken snippet */ }
+          }
+          objStart = -1;
+        }
+      }
+    }
+  }
+  return results;
+}
+
