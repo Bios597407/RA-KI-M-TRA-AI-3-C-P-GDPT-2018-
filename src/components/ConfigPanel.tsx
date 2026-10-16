@@ -543,7 +543,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
 
             {/* Row 3: Năm học, Thời gian & Số trang */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                   Năm học:
@@ -555,45 +555,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   placeholder="VD: 2026 - 2027"
                   className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
                 />
-                <div className="flex gap-1 mt-1">
-                  {['2026 - 2027', '2027 - 2028', '2028 - 2029'].map((yr) => (
-                    <button
-                      key={yr}
-                      type="button"
-                      onClick={() => onChange({ ...config, academicYear: yr })}
-                      className="px-1.5 py-0.5 bg-white border border-slate-200 text-[10px] rounded hover:bg-indigo-50 text-slate-700 cursor-pointer"
-                    >
-                      {yr}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian làm bài:</label>
-                <div className="flex items-center space-x-1">
-                  <input
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={config.durationMinutes}
-                    onChange={(e) => onChange({ ...config, durationMinutes: Number(e.target.value) || 45 })}
-                    className="w-16 rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 text-center"
-                  />
-                  <span className="text-xs font-semibold text-slate-600">phút</span>
-                </div>
-                <div className="flex gap-1 mt-1">
-                  {[15, 45, 60, 90].map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => onChange({ ...config, durationMinutes: t })}
-                      className="px-1.5 py-0.5 bg-white border border-slate-200 text-[10px] rounded hover:bg-indigo-50 text-slate-700 font-bold cursor-pointer"
-                    >
-                      {t}'
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian (phút):</label>
+                <input
+                  type="number"
+                  min="5"
+                  max="180"
+                  value={config.durationMinutes}
+                  onChange={(e) => onChange({ ...config, durationMinutes: Number(e.target.value) || 45 })}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 text-center"
+                />
               </div>
 
               <div>
