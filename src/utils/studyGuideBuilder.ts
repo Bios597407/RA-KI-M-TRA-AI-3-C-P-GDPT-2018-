@@ -336,11 +336,10 @@ Trả về duy nhất MỘT JSON Object hợp lệ (không kèm văn bản giả
 `;
 
   const MODEL_CANDIDATES = [
+    'gemini-3-flash-preview',
     'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.1-pro-preview',
   ];
 
   let lastErr = '';

@@ -123,7 +123,7 @@ function cleanMathString(math: string): string {
  */
 export function exportExamOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
 
@@ -154,7 +154,7 @@ export function exportExamOnlyWordDoc(config: ExamConfig, currentCode: ShuffledE
  */
 export function exportAnswerKeyOnlyWordDoc(config: ExamConfig, currentCode: ShuffledExamCode): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
 
@@ -200,7 +200,7 @@ export function exportToWordDoc(
   studyGuide?: StudyGuideData
 ): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
 
@@ -270,7 +270,7 @@ export function exportMatrixAndSpecsOnlyWordDoc(
   specs: ExamSpecificationRow[]
 ): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
 
@@ -347,7 +347,7 @@ export function exportMatrixAndSpecsOnlyWordDoc(
  */
 export function exportStudyGuideWordDoc(config: ExamConfig, studyGuide: StudyGuideData): void {
   const title = config.examTitle || 'ĐỀ KIỂM TRA';
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
 

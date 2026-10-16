@@ -46,11 +46,10 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
     setTestResult(null);
 
     const MODEL_CANDIDATES = [
+      'gemini-3-flash-preview',
       'gemini-3.8-flash',
       'gemini-2.5-flash',
       'gemini-3.1-flash-lite',
-      'gemini-flash-latest',
-      'gemini-3.1-pro-preview',
     ];
 
     let lastErrorMsg = '';
@@ -155,7 +154,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
           <div className="rounded-xl bg-blue-50/70 p-3.5 border border-blue-200/80 text-xs text-blue-900 space-y-1.5">
             <div className="flex items-center font-semibold text-blue-800 space-x-1.5">
               <Sparkles className="h-4 w-4"/>
-              <span>Kết nối Gemini AI 2.5 Flash:</span>
+              <span>Kết nối Gemini AI 3-Flash-Preview:</span>
             </div>
             <p>
               • Khi bạn nhập Key cá nhân: Hệ thống sử dụng Key của bạn để tạo đề thi.

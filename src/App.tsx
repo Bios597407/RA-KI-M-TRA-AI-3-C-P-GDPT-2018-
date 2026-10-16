@@ -103,7 +103,17 @@ export default function App() {
   const [config, setConfig] = useState<ExamConfig>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
-      return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      const loadedConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      
+      // Request: 3.Nội Dung Bài Học & Yêu Cầu Cần Đạt : nội dung trước phải xoá trắng khi tải lại App
+      return {
+        ...loadedConfig,
+        topicTitle: '',
+        chapter: '',
+        learningOutcomes: '',
+        readingPassage: '',
+        uploadedDocs: [], // Also clear uploaded docs to be safe
+      };
     } catch {
       return DEFAULT_CONFIG;
     }

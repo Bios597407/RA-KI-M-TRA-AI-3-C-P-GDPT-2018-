@@ -141,7 +141,7 @@ export function downloadStandaloneSingleFileHtml(): void {
           <div class="flex justify-between items-start text-xs sm:text-sm font-bold uppercase">
             <div class="text-center">
               <div>SỞ GIÁO DỤC VÀ ĐÀO TẠO</div>
-              <div>TRƯỜNG THPT / THCS CHUYÊN</div>
+              <div></div>
               <div class="font-normal text-xs mt-1">Mã đề: 101</div>
             </div>
             <div class="text-center">

@@ -24,7 +24,7 @@ export async function generateExamQuestions(
   onProgress?.(3, 'Đang lập bản đặc tả cấu hình đề thi GDPT 2018...');
   await delay(150);
 
-  onProgress?.(4, 'Đang gọi Gemini AI (gemini-3.8-flash) để biên soạn đề thi thực tế...');
+  onProgress?.(4, 'Đang gọi Gemini AI (gemini-3-flash-preview) để biên soạn đề thi thực tế...');
 
   const cleanKey = (k?: string) => {
     if (!k) return '';
@@ -142,7 +142,7 @@ async function callGeminiAPI(
     referenceContext +=
       `\n\n=== TÀI LIỆU VĂN BẢN ĐÃ TẢI LÊN ===\n` +
       config.uploadedDocs
-        .map((d) => `--- File: ${d.name} ---\n${d.content.slice(0, 15000)}`)
+        .map((d) => `--- File: ${d.name} ---\n${d.content.slice(0, 50000)}`)
         .join('\n\n');
   }
   if (config.readingPassage && config.readingPassage.trim()) {
@@ -244,11 +244,10 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
 ]`;
 
   const MODEL_CANDIDATES = [
+    'gemini-3-flash-preview',
     'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.1-pro-preview',
   ];
 
   let lastErrorMsg = '';

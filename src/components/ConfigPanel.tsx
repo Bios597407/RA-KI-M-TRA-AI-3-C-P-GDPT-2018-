@@ -93,13 +93,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         textbook: result.textbook || config.textbook,
         cognitiveSystem: targetCognitiveSystem,
         cognitiveDist: targetCognitiveDist,
-        topicTitle: result.topicTitle || config.topicTitle,
-        chapter: result.chapter || config.chapter,
-        learningOutcomes: result.learningOutcomes || config.learningOutcomes,
-        readingPassage: result.readingPassage || config.readingPassage,
+        topicTitle: '',
+        chapter: '',
+        learningOutcomes: '',
+        readingPassage: '',
+      };
+      
+      const finalizedConfig: ExamConfig = {
+        ...updatedConfig,
+        topicTitle: result.topicTitle || '',
+        chapter: result.chapter || '',
+        learningOutcomes: result.learningOutcomes || '',
+        readingPassage: result.readingPassage || '',
       };
 
-      onChange(updatedConfig);
+      onChange(finalizedConfig);
       toast.success(
         docs.length > 0
           ? `🎉 AI đã suy luận 100% thông tin File: Cấp ${targetGradeLevel === 'high' ? 'THPT' : targetGradeLevel === 'secondary' ? 'THCS' : 'Tiểu học'}, Lớp ${targetGrade}, Môn ${updatedConfig.subject}, Sách "${updatedConfig.textbook}", Tên bài & Yêu cầu cần đạt!`
@@ -212,6 +220,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     const newDocs = config.uploadedDocs.filter((_, i) => i !== idx);
     onChange({ ...config, uploadedDocs: newDocs });
     toast.info(`Đã gỡ bỏ: ${docName}`);
+  };
+
+  const clearAllDocs = () => {
+    if (confirm('Bạn có chắc chắn muốn xóa tất cả các file tài liệu đã tải lên?')) {
+      onChange({ ...config, uploadedDocs: [] });
+      toast.info('Đã xóa tất cả tài liệu đính kèm.');
+    }
   };
 
   // Section Counts calculation
@@ -870,20 +885,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
       {/* Step 5: Tài liệu tham chiếu & Upload File thực tế */}
       <div>
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-            4
-          </span>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Tài Liệu Tham Chiếu (PDF, ảnh scanned, DOCX, TXT)
-          </h2>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+              4
+            </span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Tài Liệu Tham Chiếu (Hỗ trợ Tải HÀNG LOẠT File PDF, DOCX, TXT, PNG, JPG, scanned...)
+            </h2>
+          </div>
+          {config.uploadedDocs?.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold">
+              Đã đính kèm {config.uploadedDocs.length} file
+            </span>
+          )}
         </div>
 
         <div className="space-y-3">
           {/* Upload Area */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 rounded-xl p-4 text-center cursor-pointer transition"
+            className="border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/60 rounded-xl p-4 text-center cursor-pointer transition"
           >
             <input
               type="file"
@@ -895,31 +917,57 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             />
             <Upload className="mx-auto h-6 w-6 text-blue-600 mb-1" />
             <p className="text-xs font-bold text-blue-900">
-              {uploading ? 'Đang trích xuất nội dung file...' : 'Tải lên SGK, Đề cương, Ảnh chụp, PDF quét (PDF, PNG, JPG, DOCX, TXT)'}
+              {uploading ? 'Đang trích xuất dữ liệu đa tệp...' : 'Tải lên SGK, Đề cương, Ảnh chụp, PDF quét (Thêm không giới hạn file)'}
             </p>
             <p className="text-[10px] text-slate-500 mt-0.5">
-              Hệ thống đọc trực tiếp trên trình duyệt & tự động phân tích điền Yêu cầu cần đạt bằng AI
+              💡 Bạn có thể chọn cùng lúc NHIỀU TẬP TIN (PDF, DOCX, TXT, PNG, JPG) hoặc nhấp chọn để tải thêm file khác. Gemini 3 Flash Preview sẽ đọc và tổng hợp 100% tất cả các file cùng lúc!
             </p>
           </div>
 
           {/* Uploaded Files List */}
           {config.uploadedDocs?.length > 0 && (
             <div className="space-y-2">
-              <div className="space-y-1.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-semibold text-slate-600">
+                  Danh sách {config.uploadedDocs.length} tài liệu đã tải lên:
+                </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1 cursor-pointer"
+                  >
+                    <span>➕ Thêm file đính kèm</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAllDocs}
+                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {config.uploadedDocs.map((doc, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"
+                    className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs hover:border-blue-300 transition"
                   >
                     <div className="flex items-center space-x-2 overflow-hidden">
+                      <span className="text-[10px] font-bold text-slate-400 w-4">#{idx + 1}</span>
                       <FileText className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span className="truncate font-medium text-slate-700">{doc.name}</span>
-                      <span className="text-[10px] text-slate-400">({Math.round(doc.size / 1024)} KB)</span>
+                      <span className="truncate font-medium text-slate-700 max-w-[200px]" title={doc.name}>
+                        {doc.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 shrink-0">({Math.round(doc.size / 1024)} KB)</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeDoc(idx)}
-                      className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                      title="Xóa file này"
+                      className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -931,7 +979,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               <div className="flex items-center justify-between bg-purple-50/90 border border-purple-200 rounded-xl p-2.5 text-xs">
                 <span className="text-purple-900 font-semibold text-[11px] flex items-center space-x-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-purple-600 shrink-0" />
-                  <span>Đã có {config.uploadedDocs.length} file đính kèm</span>
+                  <span>Tổng hợp toàn bộ {config.uploadedDocs.length} tệp đính kèm với AI</span>
                 </span>
                 <button
                   type="button"
@@ -940,7 +988,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
                 >
                   <Wand2 className="h-3 w-3 text-yellow-300" />
-                  <span>Phân tích lại File với AI</span>
+                  <span>Phân tích N file với AI</span>
                 </button>
               </div>
             </div>

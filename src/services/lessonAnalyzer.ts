@@ -46,34 +46,31 @@ export async function analyzeAndSuggestLessonContent(
   const hasDocs = docs && docs.length > 0;
   const combinedDocsText = hasDocs
     ? docs
-        .map((d, i) => `--- TÀI LIỆU ${i + 1}: ${d.name} ---\n${d.content.slice(0, 20000)}`)
+        .map((d, i) => `--- TÀI LIỆU ${i + 1}: ${d.name} (Size: ${Math.round(d.size/1024)}KB) ---\n${d.content.slice(0, 30000)}`)
         .join('\n\n')
     : '';
 
   const promptText = `
 Bạn là Siêu Trí Tuệ Nhân Tạo & Chuyên gia Cao cấp về Chương trình Giáo dục GDPT 2018 của Bộ Giáo dục và Đào tạo Việt Nam.
 
-NHIỆM VỤ QUAN TRỌNG NHẤT:
-Hãy sử dụng tri thức sâu rộng của mô hình ngôn ngữ lớn (LLM) và khả năng suy luận thị giác/ngôn ngữ để TỰ ĐỘNG SUY LUẬN 100% CÁC TRƯỜNG THÔNG TIN ĐẦU VÀO cho hệ thống biên soạn đề kiểm tra.
+QUY TẮC BẮT BUỘC & NGHIÊM NGẶT (STRICT MULTI-FILE GROUNDING):
+1. Bạn BẮT BUỘC phải đọc, phân tích và tổng hợp thông tin từ TOÀN BỘ TẤT CẢ CÁC TỆP đính kèm (${docs.length} file).
+2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT, KHÔNG SUY DIỄN NGOÀI TÀI LIỆU. Mọi thông tin về Tên bài/Chủ đề, Chương/Phạm vi, Yêu cầu cần đạt và Ngữ liệu PHẢI PHẢN ÁNH CHÍNH XÁC VÀ ĐẦY ĐỦ CÁC TỆP TÀI LIỆU MÀ GIÁO VIÊN ĐÃ TẢI LÊN.
 
-Dù tài liệu chỉ có từ khóa ngắn, tên tệp (ví dụ: "BAI 1.pdf"), hình ảnh hay công thức, bạn BẮT BUỘC phải đối chiếu với chương trình SGK GDPT 2018 để SUY LUẬN VÀ XÁC ĐỊNH CHÍNH XÁC 100%:
-
-1. gradeLevel: Cấp học. Chọn chính xác 1 trong 3 giá trị:
-   - "primary" (Tiểu học: lớp 1, 2, 3, 4, 5)
-   - "secondary" (THCS: lớp 6, 7, 8, 9)
-   - "high" (THPT: lớp 10, 11, 12)
-2. grade: Khối lớp cụ thể. Chỉ trả về chuỗi số từ "1" đến "12" (VD: "12", "11", "10", "9", "8", "7", "6"...).
-3. subject: Tên môn học chính xác theo chuẩn bộ GD&ĐT (VD: "Toán học", "Ngữ văn", "Vật lý", "Hóa học", "Sinh học", "Lịch sử & Địa lý", "Lịch sử", "Địa lý", "Tiếng Anh", "Tin học", "Giáo dục kinh tế & Pháp luật", "Công nghệ", "Khoa học tự nhiên", "Tiếng Việt", "Toán", "Tự nhiên & Xã hội"...).
-4. textbook: Bộ sách giáo khoa phù hợp nhất nhận diện được hoặc mặc định theo GDPT 2018 (Chọn 1 trong 4 giá trị: "Kết nối tri thức với cuộc sống", "Chân trời sáng tạo", "Cánh Diều", "Chung chương trình GDPT 2018").
-5. topicTitle: Tên bài học / Chủ đề cụ thể chuẩn chương trình (VD: "Khảo sát và vẽ đồ thị hàm số", "Sóng dừng", "Tính chất hóa học của Este"...).
-6. chapter: Tên chương hoặc Mạch kiến thức lớn (VD: "Chương I: Ứng dụng đạo hàm để khảo sát hàm số", "Chương II: Sóng cơ"...).
-7. learningOutcomes: Yêu cầu cần đạt / Mục tiêu đánh giá chi tiết theo GDPT 2018 (Nhận biết..., Thông hiểu..., Vận dụng... gạch đầu dòng chuyên nghiệp).
-8. readingPassage: Tóm tắt ngắn gọn các kiến thức cốt lõi, công thức, định lý hoặc đoạn văn bản ngữ liệu quan trọng nhất của bài học này.
+NHIỆM VỤ CỤ THỂ:
+1. gradeLevel: Cấp học ("primary", "secondary", "high").
+2. grade: Khối lớp ("1" đến "12").
+3. subject: Môn học chuẩn theo GDPT 2018.
+4. textbook: Bộ sách giáo khoa phù hợp hoặc mặc định.
+5. topicTitle: Tên bài học / Chủ đề tổng hợp từ các file đính kèm.
+6. chapter: Chương hoặc mạch kiến thức từ tài liệu.
+7. learningOutcomes: Yêu cầu cần đạt / Mục tiêu chi tiết dựa trọn vẹn trên các file đã tải.
+8. readingPassage: Tóm tắt ngữ liệu, công thức, nội dung cốt lõi từ các tệp đính kèm.
 
 DỮ LIỆU ĐẦU VÀO TỪ GIÁO VIÊN:
 ${
   hasDocs
-    ? `Danh sách tệp đính kèm:\n${docs.map((d, i) => `[File ${i + 1}]: ${d.name}\n${d.content.slice(0, 10000)}`).join('\n\n')}`
+    ? `DƯỚI ĐÂY LÀ NỘI DUNG CỦA ${docs.length} TỆP TÀI LIỆU:\n${combinedDocsText}`
     : `Môn học hiện tại: ${config.subject || 'Toán học'}, Lớp: ${config.grade || '12'}, Bộ sách: ${config.textbook || 'Kết nối tri thức với cuộc sống'}`
 }
 
@@ -98,10 +95,10 @@ Trả về duy nhất MỘT JSON Object hợp lệ (không kèm bất kỳ văn 
 
   if (hasDocs) {
     for (const doc of docs) {
-      if (doc.base64) {
+      if (doc.base64 && doc.mimeType) {
         parts.push({
           inlineData: {
-            mimeType: doc.mimeType || 'application/pdf',
+            mimeType: doc.mimeType,
             data: doc.base64,
           },
         });
@@ -110,11 +107,10 @@ Trả về duy nhất MỘT JSON Object hợp lệ (không kèm bất kỳ văn 
   }
 
   const MODEL_CANDIDATES = [
+    'gemini-3-flash-preview',
     'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.1-pro-preview',
   ];
 
   let lastError = '';

@@ -71,7 +71,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   const subject = config.customSubject || config.subject || 'Môn học';
   const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade} Tiểu học` : `Lớp ${config.grade}`;
-  const school = config.schoolName || 'TRƯỜNG THPT / THCS CHUYÊN';
+  const school = config.schoolName || '';
   const title = config.examTitle || 'ĐỀ KIỂM TRA ĐỊNH KỲ';
 
   // Handle Export Word for current view
