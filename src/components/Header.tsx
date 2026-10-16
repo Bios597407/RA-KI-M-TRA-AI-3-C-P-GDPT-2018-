@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, Key, Download, Database, RotateCcw, History } from 'lucide-react';
+import { Sparkles, Key, Download, Database, RotateCcw, History, Settings, ChevronDown } from 'lucide-react';
+import { ExamConfig } from '../types/exam';
 
 interface HeaderProps {
   onOpenApiKey: () => void;
@@ -10,6 +11,8 @@ interface HeaderProps {
   savedBankCount: number;
   historyCount: number;
   hasApiKey: boolean;
+  config: ExamConfig;
+  onConfigChange: (updated: ExamConfig) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +24,10 @@ export const Header: React.FC<HeaderProps> = ({
   savedBankCount,
   historyCount,
   hasApiKey,
+  config,
+  onConfigChange,
 }) => {
+  const [showSettings, setShowSettings] = React.useState(false);
   return (
     <header className="no-print sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-lg shadow-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -97,6 +103,55 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Download className="h-5 w-5" />
           </button>
+
+          {/* Settings / Global UI Scale */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`flex h-10 px-3 items-center justify-center space-x-1.5 rounded-xl border transition-all shadow-sm ${
+                showSettings ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              title="Cài đặt hiển thị & Kích thước hệ thống"
+            >
+              <Settings className={`h-4 w-4 ${showSettings ? 'rotate-90' : ''} transition-transform duration-300`} />
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-tight">Cài đặt</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+
+            {showSettings && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowSettings(false)}></div>
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <h3 className="text-[11px] font-black uppercase text-slate-500 mb-3 tracking-widest">Kích cỡ hệ thống</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { id: 'compact', label: 'Cỡ chữ nhỏ', desc: '14px - Dòng 1.35' },
+                      { id: 'standard', label: 'Cỡ chữ tiêu chuẩn', desc: '16px - Dòng 1.5' },
+                      { id: 'relaxed', label: 'Cỡ chữ lớn', desc: '18px - Dòng 1.65' }
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          onConfigChange({ ...config, appUiScale: s.id as any });
+                          setShowSettings(false);
+                        }}
+                        className={`w-full text-left p-3 rounded-xl border-2 transition-all group ${
+                          config.appUiScale === s.id 
+                            ? 'border-blue-600 bg-blue-50/50' 
+                            : 'border-transparent bg-slate-50 hover:bg-white hover:border-slate-200'
+                        }`}
+                      >
+                        <div className={`text-xs font-black uppercase ${config.appUiScale === s.id ? 'text-blue-700' : 'text-slate-700'}`}>
+                          {s.label}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium mt-0.5">{s.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Reset */}
           <button

@@ -98,6 +98,7 @@ const DEFAULT_CONFIG: ExamConfig = {
   durationNote: '(không kể thời gian phát đề)',
   layoutLineHeight: 'standard',
   layoutFontSize: 'medium',
+  appUiScale: 'standard',
 };
 
 export default function App() {
@@ -145,6 +146,11 @@ export default function App() {
 
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [activeCode, setActiveCode] = useState<string>('101');
+
+  // Global UI Scaling Effect
+  useEffect(() => {
+    document.documentElement.setAttribute('data-ui-scale', config.appUiScale || 'standard');
+  }, [config.appUiScale]);
 
   // Generation progress state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -587,7 +593,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50 transition-all duration-300" data-ui-scale={config.appUiScale || 'standard'}>
       {/* Header */}
       <Header
         onOpenApiKey={() => setShowApiKeyModal(true)}
@@ -598,27 +604,26 @@ export default function App() {
         savedBankCount={bank.length}
         historyCount={history.length}
         hasApiKey={!!apiKey}
+        config={config}
+        onConfigChange={setConfig}
       />
 
-      {/* Main Dual-Column Layout */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Cột Trái: Bảng thiết lập đầu vào & cấu trúc (5/12) */}
-          <div className="lg:col-span-5 no-print">
-            <div className="sticky top-20">
-              <ConfigPanel
-                config={config}
-                onChange={setConfig}
-                onGenerate={handleGenerate}
-                onBuildMatrixOnly={handleBuildMatrixOnly}
-                isGenerating={isGenerating}
-                apiKey={apiKey}
-              />
-            </div>
-          </div>
+      {/* Main Top-Bottom Layout */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 py-6 space-y-6">
+        {/* Top: Configuration Panel (Horizontal/Horizontal Grouping) */}
+        <div className="no-print w-full">
+          <ConfigPanel
+            config={config}
+            onChange={setConfig}
+            onGenerate={handleGenerate}
+            onBuildMatrixOnly={handleBuildMatrixOnly}
+            isGenerating={isGenerating}
+            apiKey={apiKey}
+          />
+        </div>
 
-          {/* Cột Phải: Không gian làm việc 5 Tab & Trình diễn đề (7/12) */}
-          <div id="workspace-section" className="lg:col-span-7 space-y-4">
+        {/* Bottom: Workspace Section (Full Width) */}
+        <div id="workspace-section" className="w-full space-y-6">
             {/* Realtime 7-Step Stepper during Generation */}
             {isGenerating && (
               <GenerationStepper currentStep={progressStep} message={progressMsg} />
@@ -660,7 +665,6 @@ export default function App() {
               apiKey={apiKey}
             />
           </div>
-        </div>
       </main>
 
       {/* Modals */}

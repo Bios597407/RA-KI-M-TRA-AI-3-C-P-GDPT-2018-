@@ -407,7 +407,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      {/* Form Tiêu Đề Đề Thi & Quản Lý Mã Đề Động */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Column 1: Hồ sơ Đề thi & Header */}
+        <div className="space-y-6">
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -785,8 +787,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Step 4: Nội dung kiến thức & Yêu cầu cần đạt */}
+    {/* Column 2: Nội dung & Tài liệu & Mức độ */}
+      <div className="space-y-6">
       <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
@@ -1333,8 +1337,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           )}
         </div>
       </div>
+    </div>
 
-      {/* Giao diện & In ấn */}
+    {/* Column 3: Giao diện & Cài đặt nâng cao */}
+    <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
         <div className="flex items-center space-x-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
           <Sparkles className="h-4 w-4 text-purple-600" />
@@ -1501,7 +1507,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </button>
       </div>
     </div>
-  );
+    </div>
+  </div>
+);
 };
 
 export default ConfigPanel;

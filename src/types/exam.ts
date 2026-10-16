@@ -158,6 +158,7 @@ export interface ExamConfig {
   // UI & Layout Preferences
   layoutLineHeight?: 'compact' | 'standard' | 'relaxed';
   layoutFontSize?: 'small' | 'medium' | 'large';
+  appUiScale?: 'compact' | 'standard' | 'relaxed';
 }
 
 export interface ShuffledExamCode {
