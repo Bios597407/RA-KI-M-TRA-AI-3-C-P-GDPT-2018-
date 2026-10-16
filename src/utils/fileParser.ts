@@ -1,12 +1,10 @@
+import mammoth from 'mammoth';
+
 /**
  * Utility to extract text from files in browser (TXT, DOCX via mammoth, PDF via pdf.js)
  */
-
 declare global {
   interface Window {
-    mammoth?: {
-      extractRawText: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string; messages: unknown[] }>;
-    };
     pdfjsLib?: {
       GlobalWorkerOptions: { workerSrc: string };
       getDocument: (src: { data: Uint8Array }) => {
@@ -30,28 +28,28 @@ export async function extractTextFromFile(file: File): Promise<string> {
       const reader = new FileReader();
       reader.onload = (e) => resolve((e.target?.result as string) || '');
       reader.onerror = () => reject(new Error('Không thể đọc file văn bản.'));
-      reader.readAsText(file, 'utf-8');
+      // Requirement: FileReader.readAsText(file, 'UTF-8')
+      reader.readAsText(file, 'UTF-8');
     });
   }
 
   // 2. Word documents (.docx)
   if (fileName.endsWith('.docx')) {
-    if (window.mammoth) {
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await window.mammoth.extractRawText({ arrayBuffer });
-        return result.value;
-      } catch (err) {
-        console.warn('Mammoth extraction failed, fallback to binary string scan', err);
-      }
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      // Requirement: mammoth.extractRawText({ arrayBuffer })
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      return result.value;
+    } catch (err) {
+      console.error('Mammoth extraction failed:', err);
+      return `[Lỗi đọc file Word ${file.name}]`;
     }
   }
 
-  // 3. PDF documents (.pdf)
+  // 3. PDF documents (.pdf) - client side text extraction attempt
   if (fileName.endsWith('.pdf')) {
     if (window.pdfjsLib) {
       try {
-        // Set worker
         window.pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -66,25 +64,30 @@ export async function extractTextFromFile(file: File): Promise<string> {
             .map((item) => ('str' in item ? item.str : ''))
             .filter(Boolean)
             .join(' ');
-          pageTexts.push(`--- Trang ${pageNum} ---\n${pageString}`);
+          pageTexts.push(`[Trang ${pageNum}]: ${pageString}`);
         }
 
         return pageTexts.join('\n\n');
       } catch (err) {
-        console.warn('PDF.js extraction error', err);
+        console.warn('PDF.js text extraction failed, will rely on AI image/pdf processing if available.', err);
       }
     }
   }
 
-  // Fallback: Try reading as text
+  // Fallback: Just return a placeholder if we can't extract text (e.g. images)
+  // These will be handled by sending base64 to Gemini in the analyze step.
+  if (file.type.startsWith('image/') || fileName.endsWith('.pdf')) {
+    return `[Tài liệu đính kèm: ${file.name} - ${Math.round(file.size / 1024)} KB. Vui lòng sử dụng tính năng "Phân tích tài liệu với AI" để trích xuất nội dung]`;
+  }
+
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = (e.target?.result as string) || '';
       resolve(content.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ''));
     };
-    reader.onerror = () => resolve(`[Đã nhận file ${file.name} - ${Math.round(file.size / 1024)} KB]`);
-    reader.readAsText(file, 'utf-8');
+    reader.onerror = () => resolve(`[Đã nhận file ${file.name}]`);
+    reader.readAsText(file, 'UTF-8');
   });
 }
 

@@ -49,6 +49,12 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const handleGenerateClick = async () => {
     if (isGenerating) return;
     try {
+      // Requirement 2: Auto-check files if not analyzed
+      if (config.uploadedDocs && config.uploadedDocs.length > 0 && !config.topicTitle) {
+        toast.info('Đang phân tích tài liệu trước khi tạo đề...');
+        await handleAutoAnalyzeAndSuggestContent();
+      }
+
       if (!isPercentValid) {
         handleAutoBalanceCognitive();
       }
@@ -66,11 +72,23 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     high: ['10', '11', '12'],
   };
 
+  const [analysisProgress, setAnalysisProgress] = useState('');
+
   const handleAutoAnalyzeAndSuggestContent = async (overrideDocs?: typeof config.uploadedDocs) => {
     const docs = overrideDocs !== undefined ? overrideDocs : config.uploadedDocs || [];
     setIsAnalyzingLesson(true);
+    setAnalysisProgress('Đang khởi tạo quy trình phân tích đa tệp...');
+
     try {
-      const result = await analyzeAndSuggestLessonContent(docs, config, apiKey);
+      // Pass progress callback for sequential processing feedback
+      const result = await analyzeAndSuggestLessonContent(
+        docs, 
+        config, 
+        apiKey, 
+        (msg) => setAnalysisProgress(msg)
+      );
+      
+      console.log('AI Inference Result:', result);
 
       let targetGradeLevel: GradeLevel = result.gradeLevel || config.gradeLevel;
       let targetGrade = result.grade || config.grade;
@@ -100,32 +118,34 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         }
       }
 
-      const updatedConfig: ExamConfig = {
+      const finalizedConfig: ExamConfig = {
         ...config,
+        uploadedDocs: docs, // Explicitly preserve the latest docs passed to the analyzer
         gradeLevel: targetGradeLevel,
         grade: targetGrade,
         subject: result.subject || config.subject,
         textbook: result.textbook || config.textbook,
         cognitiveSystem: targetCognitiveSystem,
         cognitiveDist: targetCognitiveDist,
-        topicTitle: '',
-        chapter: '',
-        learningOutcomes: '',
-        readingPassage: '',
-      };
-      
-      const finalizedConfig: ExamConfig = {
-        ...updatedConfig,
-        topicTitle: result.topicTitle || '',
-        chapter: result.chapter || '',
-        learningOutcomes: result.learningOutcomes || '',
-        readingPassage: result.readingPassage || '',
+        // Requirement 4: Merge instead of overwrite
+        topicTitle: config.topicTitle 
+          ? `${config.topicTitle}\n${result.topicTitle}`.trim()
+          : result.topicTitle || '',
+        chapter: config.chapter 
+          ? `${config.chapter}\n${result.chapter}`.trim()
+          : result.chapter || '',
+        learningOutcomes: config.learningOutcomes 
+          ? `${config.learningOutcomes}\n${result.learningOutcomes}`.trim()
+          : result.learningOutcomes || '',
+        readingPassage: config.readingPassage 
+          ? `${config.readingPassage}\n\n${result.readingPassage}`.trim()
+          : result.readingPassage || '',
       };
 
       onChange(finalizedConfig);
       toast.success(
         docs.length > 0
-          ? `🎉 AI đã suy luận 100% thông tin File: Cấp ${targetGradeLevel === 'high' ? 'THPT' : targetGradeLevel === 'secondary' ? 'THCS' : 'Tiểu học'}, Lớp ${targetGrade}, Môn ${updatedConfig.subject}, Sách "${updatedConfig.textbook}", Tên bài & Yêu cầu cần đạt!`
+          ? `🎉 Phân tích thành công ${docs.length} tài liệu! Nội dung đã được tổng hợp vào mục Ngữ liệu bài học.`
           : '✨ AI đã tự động đề xuất Nội dung bài học & Yêu cầu cần đạt chuẩn GDPT 2018!'
       );
     } catch (err: unknown) {
@@ -133,6 +153,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       toast.error(`Lỗi suy luận tài liệu: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsAnalyzingLesson(false);
+      setAnalysisProgress('');
     }
   };
 
@@ -1004,10 +1025,15 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   onClick={() => handleAutoAnalyzeAndSuggestContent()}
                   className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
                 >
-                  <Wand2 className="h-3 w-3 text-yellow-300" />
-                  <span>Phân tích N file với AI</span>
+                  <Wand2 className={`h-3 w-3 ${isAnalyzingLesson ? 'animate-spin text-yellow-200' : 'text-yellow-300'}`} />
+                  <span>{isAnalyzingLesson ? 'Đang phân tích...' : 'Phân tích N file với AI'}</span>
                 </button>
               </div>
+              {analysisProgress && (
+                <div className="mt-2 text-[10px] font-bold text-purple-700 animate-pulse bg-purple-50 p-1.5 rounded-md border border-purple-100">
+                  ⏳ {analysisProgress}
+                </div>
+              )}
             </div>
           )}
 

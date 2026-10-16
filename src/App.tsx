@@ -48,6 +48,17 @@ const STORAGE_KEY_BANK = 'exam_ai_bank_v2';
 const STORAGE_KEY_HISTORY = 'exam_ai_history_v2';
 const STORAGE_KEY_API_KEY = 'exam_ai_gemini_key_v2';
 
+function getSystemAcademicYear(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
+  if (month >= 9) {
+    return `${year} - ${year + 1}`;
+  } else {
+    return `${year - 1} - ${year}`;
+  }
+}
+
 const DEFAULT_CONFIG: ExamConfig = {
   schoolName: 'TRƯỜNG THPT VÕ TRƯỜNG TOẢN',
   examTitle: 'ĐỀ KIỂM TRA ĐỊNH KỲ GIỮA HỌC KỲ I',
@@ -94,7 +105,7 @@ const DEFAULT_CONFIG: ExamConfig = {
   customTestCodesList: ['111', '222', '333', '444'],
 
   departmentName: 'SỞ GIÁO DỤC & ĐÀO TẠO TPHCM',
-  academicYear: '2025 - 2026',
+  academicYear: getSystemAcademicYear(),
   officialExamType: 'Đề chính thức',
   pageCountText: '2',
   durationNote: '(không kể thời gian phát đề)',
@@ -113,7 +124,14 @@ export default function App() {
   const [config, setConfig] = useState<ExamConfig>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
-      const loadedConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      const systemYear = getSystemAcademicYear();
+      
+      let loadedConfig = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      
+      // Force update if stale
+      if (loadedConfig.academicYear !== systemYear) {
+        loadedConfig.academicYear = systemYear;
+      }
       
       // Request: 3.Nội Dung Bài Học & Yêu Cầu Cần Đạt : nội dung trước phải xoá trắng khi tải lại App
       return {

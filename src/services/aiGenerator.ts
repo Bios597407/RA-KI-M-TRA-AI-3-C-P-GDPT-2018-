@@ -1,6 +1,6 @@
 import { QuestionItem, ExamConfig } from '../types/exam';
 import { fetchGeminiWithFallback, extractTextFromGeminiResponse, DEFAULT_MODEL, safeJsonParse } from '../utils/geminiModels';
-import { normalizeExamQuestions } from '../utils/dataNormalizer';
+import { normalizeExamQuestions, safeString } from '../utils/dataNormalizer';
 import { getCachedFileAsBase64 } from '../utils/memoryManager';
 
 export interface GenerationProgressCallback {
@@ -141,84 +141,120 @@ async function callGeminiAPI(
       : 'Biết, Hiểu, Vận dụng, Vận dụng cao';
 
   let referenceContext = '';
+  const requestParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+  // Requirement 1 & 2: Read verbatim and include all files in ONE request
   if (config.uploadedDocs && config.uploadedDocs.length > 0) {
-    referenceContext +=
-      `\n\n=== TÀI LIỆU VĂN BẢN ĐÃ TẢI LÊN ===\n` +
-      config.uploadedDocs
-        .map((d) => `--- File: ${d.name} ---\n${d.content.slice(0, 50000)}`)
-        .join('\n\n');
+    referenceContext += `\n\n=== DANH SÁCH TÀI LIỆU THAM CHIẾU NGUYÊN VĂN (${config.uploadedDocs.length} file) ===\n`;
+    
+    let fileCounter = 1;
+    for (const doc of config.uploadedDocs) {
+      const label = `=== TÀI LIỆU SỐ ${fileCounter}: ${doc.name} ===`;
+      referenceContext += `\n${label}\n`;
+      
+      // For text-based docs (DOCX, TXT), use the pre-extracted content
+      if (doc.content && !doc.name.toLowerCase().endsWith('.pdf') && !doc.mimeType?.startsWith('image/')) {
+        referenceContext += `${doc.content}\n`;
+      } else {
+        referenceContext += `(Xem dữ liệu binary/image đính kèm cho file này)\n`;
+        // Requirement 1: Only read Base64 during request time to save memory
+        if (doc.id) {
+          try {
+            const b64Res = await getCachedFileAsBase64(doc.id);
+            if (b64Res) {
+              requestParts.push({
+                inlineData: {
+                  mimeType: b64Res.mimeType,
+                  data: b64Res.base64,
+                },
+              });
+            }
+          } catch (e) {
+            console.warn(`Could not get base64 for ${doc.name}`, e);
+          }
+        }
+      }
+      fileCounter++;
+    }
   }
+
   if (config.readingPassage && config.readingPassage.trim()) {
-    referenceContext += `\n\n=== NGỮ LIỆU / ĐOẠN TRÍCH VĂN BẢN DO GIÁO VIÊN NHẬP ===\n${config.readingPassage}`;
+    referenceContext += `\n\n=== NGỮ LIỆU / TỔNG HỢP KIẾN THỨC CỐT LÕI ===\n${config.readingPassage}`;
   }
   if (config.teacherNotes && config.teacherNotes.trim()) {
     referenceContext += `\n\n=== CHỈ DẪN / YÊU CẦU NỘI DUNG TỰ DO CỦA GIÁO VIÊN ===\n${config.teacherNotes}`;
   }
 
-  const noDocumentInstruction = !referenceContext.trim()
-    ? `BẮT BUỘC: Giáo viên KHÔNG tải tài liệu đính kèm. Bạn BẮT BUỘC phải dựa đúng vào kiến thức chuẩn Sách Giáo Khoa môn ${subject}, Lớp ${config.grade}, Bộ sách "${config.textbook}" thuộc Chương trình GDPT 2018 Việt Nam để biên soạn câu hỏi chuyên môn thực tế, có chiều sâu. Tuyệt đối KHÔNG ra câu hỏi chung chung hay giả lập!`
-    : `BẮT BUỘC: 100% tất cả các câu hỏi (Phần I, II, III, IV), câu lệnh, phương án A/B/C/D, nhận định a/b/c/d, đáp án và lời giải PHẢI DỰA HOÀN TOÀN TRỰC TIẾP TRÊN TÀI LIỆU VÀ NGỮ LIỆU ĐÃ CUNG CẤP BÊN DƯỚI.`;
+  // Requirement 3: Distribution algorithm directives
+  const distributionInstruction = config.uploadedDocs && config.uploadedDocs.length > 1
+    ? `
+QUY TẮC PHÂN BỔ ĐA TÀI LIỆU (MỆNH LỆNH BẮT BUỘC):
+1. Bạn đang có ${config.uploadedDocs.length} tài liệu. BẮT BUỘC phải trích xuất và phân bổ số lượng câu hỏi ĐỀU NHAU từ TẤT CẢ các file này.
+2. Ví dụ có ${config.uploadedDocs.length} file thì mỗi file phải chiếm khoảng ${Math.floor(100/config.uploadedDocs.length)}% số lượng câu hỏi trong đề. Tuyệt đối KHÔNG bỏ sót file nào.
+3. ƯU TIÊN TUYỆT ĐỐI: Nếu trong các tài liệu đã có sẵn câu hỏi trắc nghiệm/tự luận, hãy TRÍCH XUẤT NGUYÊN VĂN 100% nội dung câu hỏi, phương án và đáp án từ đó rồi trộn xen kẽ vào đề thi.
+4. CHUYÊN MÔN: Ưu tiên bám sát chuyên môn của TÀI LIỆU TẢI LÊN ngay cả khi khác với môn học "${subject}" đang chọn.
+` : '';
 
-  const prompt = `Bạn là chuyên gia Khảo thí Giáo dục Việt Nam hàng đầu, am hiểu tường tận Chương trình GDPT 2018.
+  const noDocumentInstruction = !referenceContext.trim()
+    ? `BẮT BUỘC: Giáo viên KHÔNG tải tài liệu đính kèm. Bạn BẮT BUỘC phải dựa đúng vào kiến thức chuẩn Sách Giáo Khoa môn ${subject}, Lớp ${config.grade}, Bộ sách "${config.textbook}" thuộc Chương trình GDPT 2018 Việt Nam để biên soạn câu hỏi chuyên môn thực tế, có chiều sâu.`
+    : `BẮT BUỘC: 100% nội dung đề thi PHẢI DỰA TRỰC TIẾP TRÊN TÀI LIỆU VÀ NGỮ LIỆU ĐÃ CUNG CẤP. ${config.sourceOption === 'doc_only' ? 'NGHIÊM CẤM bịa đặt bất kỳ khái niệm hay số liệu nào nằm ngoài văn bản đã cung cấp.' : ''} ${distributionInstruction}`;
+
+  // Requirement 4: Master Exam Only
+  const prompt = `Bạn là chuyên gia Khảo thí Giáo dục Việt Nam hàng đầu.
 ${referenceContext}
 
-Nhiệm vụ: Hãy biên soạn một ĐỀ KIỂM TRA CHUYÊN MÔN THỰC THỤ CHUẨN MỰC cho:
-- Cấp học: ${config.gradeLevel === 'primary' ? 'Tiểu học' : config.gradeLevel === 'secondary' ? 'THCS' : 'THPT'}
-- Lớp: ${config.grade}
-- Môn học: ${subject}
-- Bộ sách giáo khoa: ${config.textbook}
-- Thời gian làm bài: ${config.durationMinutes} phút
-- Chủ đề / Tên bài: ${config.topicTitle || 'Kiến thức trọng tâm'}
-- Phạm vi chương: ${config.chapter || 'Phân phối chương trình'}
-- Yêu cầu cần đạt: ${config.learningOutcomes || 'Chuẩn kiến thức kỹ năng GDPT 2018'}
-${isEquivalent ? 'CHÚ Ý: Đây là chế độ TẠO ĐỀ TƯƠNG ĐƯƠNG (Đề B). Giữ nguyên cấu trúc nhưng đổi toàn bộ số liệu và ngữ cảnh bài toán.' : ''}
+Nhiệm vụ: Hãy biên soạn DUY NHẤT MỘT (01) BỘ ĐỀ KIỂM TRA GỐC (Master Exam) chuẩn mực theo cấu trúc GDPT 2018 cho:
+- Cấp học: ${config.gradeLevel === 'primary' ? 'Tiểu học' : config.gradeLevel === 'secondary' ? 'THCS' : 'THPT'} | Lớp: ${config.grade} | Môn học: ${subject}
+- Bộ sách: ${config.textbook} | Thời gian: ${config.durationMinutes} phút
+${isEquivalent ? 'CHÚ Ý: Đây là chế độ TẠO ĐỀ TƯƠNG ĐƯƠNG (Đề B). Giữ nguyên cấu trúc nhưng đổi toàn bộ số liệu và ngữ cảnh.' : ''}
 
 ${noDocumentInstruction}
 
-CẤU TRÚC BẮT BUỘC (Sinh chính xác số câu, KHÔNG THỪA KHÔNG THIẾU):
-- Phần I (Trắc nghiệm nhiều lựa chọn A, B, C, D): Đúng ${p1} câu.
-- Phần II (Trắc nghiệm Đúng/Sai định dạng mới 2025: Mỗi câu gồm 4 ý a, b, c, d): Đúng ${p2} câu.
-- Phần III (Trắc nghiệm trả lời ngắn): Đúng ${p3} câu.
-- Phần IV (Tự luận): Đúng ${p4} câu.
+QUY TẮC CẤU TRÚC VÀ MA TRẬN (BẮT BUỘC):
+1. PHÂN BỔ NHẬN THỨC (CỰC KỲ QUAN TRỌNG):
+   - Tuyệt đối KHÔNG được để trống mức "Thông hiểu" hoặc bất kỳ mức độ nào.
+   - Phân bổ câu hỏi theo tỷ lệ: Nhận biết ~40%, Thông hiểu ~30%, Vận dụng ~20%, Vận dụng cao ~10%.
+   - Phải có sự phân bổ đều các mức độ cho TẤT CẢ các phần (Phần I, II, III, IV).
+2. TÊN CHỦ ĐỀ/BÀI:
+   - BẮT BUỘC sử dụng chính xác tên các tệp tin đã tải lên làm tên Chủ đề/Đơn vị kiến thức trong câu hỏi.
+   - NGHIÊM CẤM tự ý thay đổi tên bài hoặc bịa đặt tên chủ đề khác không có trong tài liệu.
+3. KHỚP DỮ LIỆU:
+   - Số lượng câu hỏi ở từng phần (I, II, III, IV) PHẢI KHỚP TUYỆT ĐỐI với cấu trúc đã yêu cầu dưới đây.
+
+CẤU TRÚC BỘ ĐỀ GỐC:
+- Phần I (Trắc nghiệm 4 lựa chọn): ${p1} câu.
+- Phần II (Trắc nghiệm Đúng/Sai 4 ý a,b,c,d): ${p2} câu.
+- Phần III (Trả lời ngắn): ${p3} câu.
+- Phần IV (Tự luận): ${p4} câu.
 
 HỆ THỐNG MỨC ĐỘ NĂNG LỰC: ${cognitiveList}.
-NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
-1. Môn tính toán / KHTN: Viết công thức bằng LaTeX giữa $...$. Chú ý escape dấu gạch chéo ngược trong JSON thành 2 dấu (ví dụ: "\\\\frac{1}{2}").
-2. Mỗi câu hỏi trong đề phải hoàn toàn khác biệt.
-3. Trả về DUY NHẤT một mảng JSON các câu hỏi.
+
+YÊU CẦU ĐỊNH DẠNG JSON (Mảng các đối tượng QuestionItem):
+[
+  {
+    "question": "...",
+    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+    "correctAnswer": "...",
+    "explanation": "...",
+    "level": "Nhận biết" hoặc "Thông hiểu" hoặc "Vận dụng" hoặc "Vận dụng cao",
+    "part": "part1" hoặc "part2" hoặc "part3" hoặc "part4",
+    "type": "...",
+    "topic": "TÊN FILE CHÍNH XÁC (từ tài liệu tải lên)",
+    "subItems": [...],
+    "rubric": [...]
+  }
+]
 `;
 
-  const requestParts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-    { text: prompt },
-  ];
-
-  if (config.uploadedDocs && config.uploadedDocs.length > 0) {
-    for (const doc of config.uploadedDocs) {
-      if (doc.id) {
-        try {
-          const b64Res = await getCachedFileAsBase64(doc.id);
-          if (b64Res) {
-            requestParts.push({
-              inlineData: {
-                mimeType: b64Res.mimeType,
-                data: b64Res.base64,
-              },
-            });
-          }
-        } catch (e) {
-          console.warn(`Could not get base64 for ${doc.name}`, e);
-        }
-      }
-    }
-  }
+  requestParts.unshift({ text: prompt });
 
   const { data } = await fetchGeminiWithFallback(
     { contents: [{ parts: requestParts }] },
     apiKey,
     {
-      temperature: 0.7,
+      temperature: 0.4,
       responseMimeType: 'application/json',
-      maxOutputTokens: 8192,
+      maxOutputTokens: 65536, // Maximum output to prevent truncation
     }
   );
 
@@ -229,12 +265,13 @@ NGUYÊN TẮC BIÊN SOẠN CÂU HỎI THẬT:
   const questionsList = extractQuestionArray(parsed);
 
   if (questionsList && questionsList.length > 0) {
-    // CRITICAL: Normalize data before returning to prevent UI crashes
     return normalizeExamQuestions(questionsList);
   }
 
   throw new Error('Không bóc tách được mảng câu hỏi từ phản hồi AI.');
 }
+
+
 
 function extractQuestionArray(parsed: unknown): QuestionItem[] | null {
   if (!parsed) return null;
@@ -334,7 +371,9 @@ export function ensureExactQuestionCount(
   const topic = config.topicTitle || config.customSubject || config.subject || 'Kiến thức trọng tâm';
 
   // 1. Strictly normalize part and type for all input questions
-  const normalized = questions.map((q, idx) => {
+  const normalized = (Array.isArray(questions) ? questions : [])
+    .filter(q => q && safeString(q.question).trim().length > 1) // Filter out truly empty/invalid questions
+    .map((q, idx) => {
     let part = q.part;
     let type = q.type;
 

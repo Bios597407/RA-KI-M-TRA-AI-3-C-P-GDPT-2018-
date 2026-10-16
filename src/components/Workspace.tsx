@@ -1234,8 +1234,32 @@ function renderExamQuestions(
                   <div className="flex-1">
                     <MathRenderer text={sub.statement} />
                   </div>
+                  <div className="flex items-center space-x-3 text-[10px] font-bold text-slate-400 shrink-0 uppercase tracking-tighter">
+                    <span>Đúng</span>
+                    <div className="h-4 w-4 rounded-full border border-slate-300"></div>
+                    <span>Sai</span>
+                    <div className="h-4 w-4 rounded-full border border-slate-300"></div>
+                  </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Part III: Short Answer */}
+          {(q.type === 'short_answer' || q.part === 'part3') && (
+            <div className="mt-3 pl-4 sm:pl-6">
+              <div className="flex items-baseline space-x-2">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Trả lời:</span>
+                <div className="flex-1 border-b border-dashed border-slate-400 h-5"></div>
+              </div>
+            </div>
+          )}
+
+          {/* Part IV: Essay */}
+          {(q.type === 'essay' || q.part === 'part4') && (
+            <div className="mt-3 pl-4 sm:pl-6 space-y-2">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phần trả lời tự luận của học sinh:</div>
+              <div className="border border-dashed border-slate-200 rounded-lg h-32 bg-slate-50/30"></div>
             </div>
           )}
         </div>
