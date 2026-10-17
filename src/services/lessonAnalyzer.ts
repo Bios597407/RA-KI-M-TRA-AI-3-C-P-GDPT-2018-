@@ -168,14 +168,22 @@ TRẢ VỀ JSON:
     fileIdx++;
   }
 
+  // Helper to sanitize and remove raw file tags like "📄 [filename.docx]:"
+  const cleanFieldVal = (val: string) => {
+    if (!val) return '';
+    return safeString(val)
+      .replace(/📄\s*\[.*?\]:?\s*/g, '')
+      .replace(/\[.*?\.(docx|pdf|txt|png|jpg|jpeg)\]:?\s*/gi, '')
+      .trim();
+  };
+
   // Aggregate Results (Reduce step)
   onProgress?.(`Đang tổng hợp dữ liệu từ ${docs.length} tài liệu...`);
   
-  // Requirement: Preserve existing data from config if it exists
-  const topicTitles: string[] = config.topicTitle ? config.topicTitle.split('\n') : [];
-  const chapters: string[] = config.chapter ? config.chapter.split('\n') : [];
-  const outcomes: string[] = config.learningOutcomes ? config.learningOutcomes.split('\n') : [];
-  const passages: string[] = config.readingPassage ? config.readingPassage.split('\n\n') : [];
+  const cleanTopics: string[] = [];
+  const cleanChapters: string[] = [];
+  const cleanOutcomesList: string[] = [];
+  const cleanPassagesList: string[] = [];
   
   let finalGradeLevel: GradeLevel | undefined = config.gradeLevel;
   let finalGrade: string | undefined = config.grade;
@@ -183,37 +191,71 @@ TRẢ VỀ JSON:
   let finalBook: string | undefined = config.textbook;
 
   results.forEach((res: any, idx: number) => {
-    const name = res.fileName || docs[idx]?.name || `Tài liệu ${idx + 1}`;
-    
-    // Only add if not already present to avoid duplicates
-    const titleEntry = `📄 [${name}]: ${safeString(res.topicTitle)}`;
-    if (res.topicTitle && !topicTitles.includes(titleEntry)) topicTitles.push(titleEntry);
-    
-    const chapterEntry = `📄 [${name}]: ${safeString(res.chapter)}`;
-    if (res.chapter && !chapters.includes(chapterEntry)) chapters.push(chapterEntry);
-    
-    const outcomeEntry = `📄 [${name}]: ${safeString(res.learningOutcomes)}`;
-    if (res.learningOutcomes && !outcomes.includes(outcomeEntry)) outcomes.push(outcomeEntry);
-    
-    // Structured knowledge markers as requested
-    const filePassage = safeString(res.readingPassage || res.content || '');
-    const passageEntry = `=== BẮT ĐẦU NỘI DUNG FILE ${idx + 1}: ${name} ===\n${filePassage}\n=== KẾT THÚC NỘI DUNG FILE ${idx + 1} ===`;
-    if (!passages.includes(passageEntry)) passages.push(passageEntry);
-    
+    const rawTitle = cleanFieldVal(res.topicTitle);
+    const rawChapter = cleanFieldVal(res.chapter);
+    const rawOutcomes = cleanFieldVal(res.learningOutcomes);
+    const rawPassage = cleanFieldVal(res.readingPassage || res.content || '');
+
+    // 1. Topic Title: Each lesson extracted on a separate line (Mỗi bài trên 1 dòng riêng)
+    if (rawTitle) {
+      // Split if multiple lines in single file
+      rawTitle.split('\n').forEach((t) => {
+        const trimmed = cleanFieldVal(t);
+        if (trimmed && !cleanTopics.includes(trimmed)) {
+          cleanTopics.push(trimmed);
+        }
+      });
+    }
+
+    // 2. Chapter / Scope: Each chapter/scope on a separate line
+    if (rawChapter) {
+      rawChapter.split('\n').forEach((c) => {
+        const trimmed = cleanFieldVal(c);
+        if (trimmed && !cleanChapters.includes(trimmed)) {
+          cleanChapters.push(trimmed);
+        }
+      });
+    }
+
+    // 3. Learning Outcomes: Clean bullet points without file tag clutter
+    if (rawOutcomes) {
+      rawOutcomes.split('\n').forEach((line) => {
+        const trimmed = cleanFieldVal(line);
+        if (trimmed && !cleanOutcomesList.includes(trimmed)) {
+          cleanOutcomesList.push(trimmed);
+        }
+      });
+    }
+
+    // 4. Reading Passage / Content
+    if (rawPassage) {
+      const docName = docs[idx]?.name || `File ${idx + 1}`;
+      const header = docs.length > 1 ? `--- Nội dung tài liệu ${idx + 1}: ${docName} ---` : '';
+      const formatted = header ? `${header}\n${rawPassage}` : rawPassage;
+      if (!cleanPassagesList.includes(formatted)) {
+        cleanPassagesList.push(formatted);
+      }
+    }
+
     if (res.gradeLevel) finalGradeLevel = res.gradeLevel;
     if (res.grade) finalGrade = String(res.grade);
     if (res.subject) finalSubject = res.subject;
     if (res.textbook) finalBook = res.textbook;
   });
 
+  // If no chapter was extracted, generate a combined scope string for all extracted topics
+  if (cleanChapters.length === 0 && cleanTopics.length > 0) {
+    cleanChapters.push(`Phạm vi: ${cleanTopics.length} bài học đính kèm`);
+  }
+
   return {
     gradeLevel: finalGradeLevel,
     grade: finalGrade,
     subject: finalSubject,
     textbook: finalBook,
-    topicTitle: topicTitles.join('\n'),
-    chapter: chapters.join('\n'),
-    learningOutcomes: outcomes.join('\n'),
-    readingPassage: passages.join('\n\n'),
+    topicTitle: cleanTopics.join('\n'),
+    chapter: cleanChapters.join('\n'),
+    learningOutcomes: cleanOutcomesList.join('\n'),
+    readingPassage: cleanPassagesList.join('\n\n'),
   };
 }

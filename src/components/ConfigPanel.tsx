@@ -127,19 +127,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         textbook: result.textbook || config.textbook,
         cognitiveSystem: targetCognitiveSystem,
         cognitiveDist: targetCognitiveDist,
-        // Requirement 4: Merge instead of overwrite
-        topicTitle: config.topicTitle 
-          ? `${config.topicTitle}\n${result.topicTitle}`.trim()
-          : result.topicTitle || '',
-        chapter: config.chapter 
-          ? `${config.chapter}\n${result.chapter}`.trim()
-          : result.chapter || '',
-        learningOutcomes: config.learningOutcomes 
-          ? `${config.learningOutcomes}\n${result.learningOutcomes}`.trim()
-          : result.learningOutcomes || '',
-        readingPassage: config.readingPassage 
-          ? `${config.readingPassage}\n\n${result.readingPassage}`.trim()
-          : result.readingPassage || '',
+        // Set fresh clean AI analysis result for all N files (no duplicate repeats)
+        topicTitle: result.topicTitle || config.topicTitle || '',
+        chapter: result.chapter || config.chapter || '',
+        learningOutcomes: result.learningOutcomes || config.learningOutcomes || '',
+        readingPassage: result.readingPassage || config.readingPassage || '',
       };
 
       onChange(finalizedConfig);
