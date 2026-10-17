@@ -74,13 +74,22 @@ export interface StudyGuideData {
   reviewTips: string[];
 }
 
+export interface ExamMatrixCellDetails {
+  count: number;
+  codeStr?: string; // Ví dụ: "(a3.1)", "(d3.2)", "(a3.3)"
+}
+
+export type MatrixCellValue = number | ExamMatrixCellDetails;
+
 export interface ExamMatrixRow {
-  topic: string;
+  stt?: number;
+  chapter?: string; // VD: "Chủ đề 1", "Chủ đề 2"
+  topic: string;    // VD: "Bài 1: Vai trò của..."
   subTopic?: string;
-  part1: Record<string, number>; // level -> count
-  part2: Record<string, number>;
-  part3: Record<string, number>;
-  part4: Record<string, number>;
+  part1: Record<string, MatrixCellValue>; // TNKQ Nhiều lựa chọn (4 lựa chọn)
+  part2: Record<string, MatrixCellValue>; // TNKQ Đúng - Sai (4 lệnh hỏi)
+  part3?: Record<string, MatrixCellValue>;// TNKQ Trả lời ngắn
+  part4: Record<string, MatrixCellValue>; // Tự luận
   totalQuestions: number;
   totalScore: number;
   percent: number;

@@ -32,6 +32,8 @@ import {
 } from '../utils/exporter';
 import { useToast } from './Toast';
 import OfficialExamHeader from './OfficialExamHeader';
+import OfficialMatrixTable from './OfficialMatrixTable';
+import OfficialSpecificationTable from './OfficialSpecificationTable';
 
 export type PrintDocType = 'exam' | 'answers' | 'matrix' | 'spec' | 'study_guide' | 'full';
 
@@ -415,67 +417,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   </div>
                 </div>
 
-                <table className="w-full text-xs border border-black border-collapse text-center">
-                  <thead>
-                    <tr className="bg-slate-100 font-bold">
-                      <th rowSpan={2} className="p-1.5 border border-black w-10">TT</th>
-                      <th rowSpan={2} className="p-1.5 border border-black text-left">Chủ đề kiến thức</th>
-                      {matrix.levels.map((lvl) => (
-                        <th key={lvl} colSpan={2} className="p-1.5 border border-black">{lvl}</th>
-                      ))}
-                      <th colSpan={2} className="p-1.5 border border-black bg-slate-100">Tổng cộng</th>
-                    </tr>
-                    <tr className="bg-slate-50 font-semibold text-[10px]">
-                      {matrix.levels.map((lvl) => (
-                        <React.Fragment key={`${lvl}-col`}>
-                          <th className="p-1 border border-black w-12">Số câu</th>
-                          <th className="p-1 border border-black w-12">Điểm</th>
-                        </React.Fragment>
-                      ))}
-                      <th className="p-1 border border-black w-12">Số câu</th>
-                      <th className="p-1 border border-black w-14">Tỷ lệ %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matrix.rows.map((row, idx) => (
-                      <tr key={idx}>
-                        <td className="p-1.5 border border-black font-bold">{idx + 1}</td>
-                        <td className="p-1.5 border border-black text-left">{row.topic}</td>
-                        {matrix.levels.map((lvl) => {
-                          const count =
-                            (row.part1[lvl] || 0) +
-                            (row.part2[lvl] || 0) +
-                            (row.part3[lvl] || 0) +
-                            (row.part4[lvl] || 0);
-                          return (
-                            <React.Fragment key={`${idx}-${lvl}`}>
-                              <td className="p-1.5 border border-black font-bold">{count > 0 ? count : '-'}</td>
-                              <td className="p-1.5 border border-black text-slate-600">
-                                {count > 0 ? (count * 0.25).toFixed(2) : '-'}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
-                        <td className="p-1.5 border border-black font-bold">{row.totalQuestions}</td>
-                        <td className="p-1.5 border border-black font-bold">{row.percent}%</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-slate-100 font-black">
-                      <td colSpan={2} className="p-1.5 border border-black text-center">TỔNG TOÀN ĐỀ</td>
-                      {matrix.levels.map((lvl) => {
-                        const data = matrix.totalByLevel[lvl] || { count: 0, score: 0 };
-                        return (
-                          <React.Fragment key={`tot-${lvl}`}>
-                            <td className="p-1.5 border border-black">{data.count}</td>
-                            <td className="p-1.5 border border-black">{data.score}đ</td>
-                          </React.Fragment>
-                        );
-                      })}
-                      <td className="p-1.5 border border-black">{matrix.grandTotal.count}</td>
-                      <td className="p-1.5 border border-black">100% ({matrix.grandTotal.score}đ)</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <OfficialMatrixTable matrix={matrix} config={config} />
               </div>
             )}
 
@@ -491,30 +433,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   </div>
                 </div>
 
-                <table className="w-full text-xs border border-black border-collapse text-left">
-                  <thead>
-                    <tr className="bg-slate-100 font-bold text-center">
-                      <th className="p-1.5 border border-black w-10">TT</th>
-                      <th className="p-1.5 border border-black w-36">Chủ đề</th>
-                      <th className="p-1.5 border border-black">Yêu cầu cần đạt / Đánh giá</th>
-                      <th className="p-1.5 border border-black w-32">Dạng câu</th>
-                      <th className="p-1.5 border border-black w-20">Mức độ</th>
-                      <th className="p-1.5 border border-black w-12">Điểm</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {specs.map((spec) => (
-                      <tr key={spec.id}>
-                        <td className="p-1.5 border border-black text-center font-bold">{spec.stt}</td>
-                        <td className="p-1.5 border border-black font-semibold">{spec.topic}</td>
-                        <td className="p-1.5 border border-black leading-relaxed">{spec.competency}</td>
-                        <td className="p-1.5 border border-black text-slate-600">{spec.questionType}</td>
-                        <td className="p-1.5 border border-black text-center">{spec.level}</td>
-                        <td className="p-1.5 border border-black text-center font-bold text-blue-900">{spec.score}đ</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <OfficialSpecificationTable matrix={matrix} specs={specs} config={config} />
               </div>
             )}
 

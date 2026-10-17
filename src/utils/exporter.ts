@@ -244,7 +244,7 @@ export function exportToWordDoc(
   <div class="text-center bold uppercase" style="font-size: 13pt; margin-top: 20pt; margin-bottom: 8pt;">
     BẢN ĐẶC TẢ ĐỀ KIỂM TRA
   </div>
-  ${renderSpecTable(specs)}
+  ${renderSpecTable(specs, matrix)}
 
   ${studyGuide ? `
   <!-- MỤC 4: ĐỀ CƯƠNG ÔN TẬP BỔ TRỢ -->
@@ -315,7 +315,7 @@ export function exportMatrixAndSpecsOnlyWordDoc(
   <div class="bold uppercase" style="font-size: 12pt; margin-top: 10pt; margin-bottom: 6pt; color: #003366;">
     B. BẢN ĐẶC TẢ KỸ THUẬT ĐỀ KIỂM TRA
   </div>
-  ${renderSpecTable(specs)}
+  ${renderSpecTable(specs, matrix)}
 
   <div style="margin-top: 30pt;">
     <table class="header-table" style="width: 100%;">
@@ -663,86 +663,349 @@ function renderQuickAnswerTable(currentCode: ShuffledExamCode): string {
 }
 
 function renderMatrixTable(matrix: ExamMatrix): string {
+  const parseVal = (val: any) => {
+    if (val === undefined || val === null) return { count: 0, codeStr: '' };
+    if (typeof val === 'number') return { count: val, codeStr: '' };
+    if (typeof val === 'object') return { count: Number(val.count) || 0, codeStr: val.codeStr || '' };
+    return { count: 0, codeStr: '' };
+  };
+
+  const rows = matrix.rows || [];
+  const grandScore = matrix.grandTotal?.score || 10;
+
+  let p1B = 0, p1H = 0, p1V = 0;
+  let p2B = 0, p2H = 0, p2V = 0;
+  let p3B = 0, p3H = 0, p3V = 0;
+  let p4B = 0, p4H = 0, p4V = 0;
+
+  rows.forEach((r) => {
+    p1B += parseVal(r.part1?.['Biết'] || r.part1?.['Nhận biết']).count;
+    p1H += parseVal(r.part1?.['Hiểu'] || r.part1?.['Thông hiểu']).count;
+    p1V += parseVal(r.part1?.['Vận dụng'] || r.part1?.['VD']).count;
+
+    p2B += parseVal(r.part2?.['Biết'] || r.part2?.['Nhận biết']).count;
+    p2H += parseVal(r.part2?.['Hiểu'] || r.part2?.['Thông hiểu']).count;
+    p2V += parseVal(r.part2?.['Vận dụng'] || r.part2?.['VD']).count;
+
+    p3B += parseVal(r.part3?.['Biết'] || r.part3?.['Nhận biết']).count;
+    p3H += parseVal(r.part3?.['Hiểu'] || r.part3?.['Thông hiểu']).count;
+    p3V += parseVal(r.part3?.['Vận dụng'] || r.part3?.['VD']).count;
+
+    p4B += parseVal(r.part4?.['Biết'] || r.part4?.['Nhận biết']).count;
+    p4H += parseVal(r.part4?.['Hiểu'] || r.part4?.['Thông hiểu']).count;
+    p4V += parseVal(r.part4?.['Vận dụng'] || r.part4?.['VD']).count;
+  });
+
+  const sumB = p1B + p2B + p3B + p4B;
+  const sumH = p1H + p2H + p3H + p4H;
+  const sumV = p1V + p2V + p3V + p4V;
+  const grandCount = sumB + sumH + sumV;
+
+  const countP1 = p1B + p1H + p1V;
+  const countP2 = p2B + p2H + p2V;
+  const countP3 = p3B + p3H + p3V;
+  const countP4 = p4B + p4H + p4V;
+
+  const score1 = countP1 * 0.25;
+  const score2 = countP2 * 0.25;
+  const score3 = countP3 * 0.5;
+  const score4 = Math.max(0, grandScore - score1 - score2 - score3);
+
+  const renderCellHTML = (val: any) => {
+    const { count, codeStr } = parseVal(val);
+    if (count <= 0) return '';
+    if (codeStr) return `<b>${count}</b><br><span style="font-size: 8pt; color: #444444;">(${codeStr})</span>`;
+    return `<b>${count}</b>`;
+  };
+
+  const fmt = (n: number) => (n % 1 === 0 ? `${n},0` : n.toFixed(1).replace('.', ','));
+
   return `
-  <table>
+  <div style="text-align: center; font-weight: bold; font-size: 11pt; text-transform: uppercase; margin-bottom: 6pt;">
+    1. MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ
+  </div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center;" border="1">
     <thead>
-      <tr style="background-color: #f2f2f2;">
-        <th rowspan="2" style="width: 5%;">TT</th>
-        <th rowspan="2" style="width: 25%;">Chủ đề / Đơn vị kiến thức</th>
-        ${matrix.levels.map((lvl) => `<th colspan="2" style="text-align: center;">${lvl}</th>`).join('')}
-        <th colspan="2" style="text-align: center;">Tổng cộng</th>
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <th rowspan="3" style="width: 3%;">TT</th>
+        <th rowspan="3" style="width: 14%;">Chủ đề/Chương</th>
+        <th rowspan="3" style="width: 22%;">Nội dung/đơn vị kiến thức</th>
+        <th colspan="12" style="text-transform: uppercase;">Mức độ đánh giá</th>
+        <th colspan="3" rowspan="2" style="background-color: #e6e6e6;">Tổng</th>
+        <th rowspan="3" style="width: 6%; background-color: #e6f2ff;">Tỉ lệ % điểm</th>
       </tr>
-      <tr style="background-color: #f9f9f9;">
-        ${matrix.levels.map(() => `<th style="text-align: center;">Số câu</th><th style="text-align: center;">Điểm</th>`).join('')}
-        <th style="text-align: center;">Số câu</th>
-        <th style="text-align: center;">Tỉ lệ %</th>
+      <tr style="background-color: #f9f9f9; font-weight: bold;">
+        <th colspan="9">TNKQ</th>
+        <th colspan="3">Tự luận</th>
+      </tr>
+      <tr style="background-color: #f9f9f9; font-size: 9pt;">
+        <th colspan="3">Nhiều lựa chọn</th>
+        <th colspan="3">“Đúng – Sai”²</th>
+        <th colspan="3">Trả lời ngắn³</th>
+        <th colspan="3">Tự luận</th>
+        <th style="background-color: #e6e6e6;">Biết</th>
+        <th style="background-color: #e6e6e6;">Hiểu</th>
+        <th style="background-color: #e6e6e6;">Vận dụng</th>
+      </tr>
+      <tr style="background-color: #f2f2f2; font-size: 8.5pt; font-weight: bold;">
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th colspan="4" style="background-color: #e6e6e6;"></th>
       </tr>
     </thead>
     <tbody>
-      ${matrix.rows
-        .map(
-          (row, idx) => `
+      ${rows.map((row, idx) => {
+        const getV = (part: any, lvl: string) => {
+          const keys = Object.keys(part || {});
+          const mk = keys.find(k => k.toLowerCase().includes(lvl.toLowerCase())) || lvl;
+          return part?.[mk];
+        };
+
+        const v1B = getV(row.part1, 'Biết');
+        const v1H = getV(row.part1, 'Hiểu');
+        const v1V = getV(row.part1, 'Vận dụng') || getV(row.part1, 'VD');
+
+        const v2B = getV(row.part2, 'Biết');
+        const v2H = getV(row.part2, 'Hiểu');
+        const v2V = getV(row.part2, 'Vận dụng') || getV(row.part2, 'VD');
+
+        const v3B = getV(row.part3, 'Biết');
+        const v3H = getV(row.part3, 'Hiểu');
+        const v3V = getV(row.part3, 'Vận dụng') || getV(row.part3, 'VD');
+
+        const v4B = getV(row.part4, 'Biết');
+        const v4H = getV(row.part4, 'Hiểu');
+        const v4V = getV(row.part4, 'Vận dụng') || getV(row.part4, 'VD');
+
+        const rSumB = parseVal(v1B).count + parseVal(v2B).count + parseVal(v3B).count + parseVal(v4B).count;
+        const rSumH = parseVal(v1H).count + parseVal(v2H).count + parseVal(v3H).count + parseVal(v4H).count;
+        const rSumV = parseVal(v1V).count + parseVal(v2V).count + parseVal(v3V).count + parseVal(v4V).count;
+
+        const chap = row.chapter || `Chủ đề ${Math.ceil((idx + 1) / 2)}`;
+
+        return `
         <tr>
-          <td style="text-align: center;">${idx + 1}</td>
-          <td>${row.topic}</td>
-          ${matrix.levels
-            .map((lvl) => {
-              const count = (row.part1[lvl] || 0) + (row.part2[lvl] || 0) + (row.part3[lvl] || 0) + (row.part4[lvl] || 0);
-              return `<td style="text-align: center;">${count > 0 ? count : '-'}</td><td style="text-align: center;">${count > 0 ? (count * 0.25).toFixed(2) : '-'}</td>`;
-            })
-            .join('')}
-          <td style="text-align: center; font-weight: bold;">${row.totalQuestions}</td>
-          <td style="text-align: center; font-weight: bold;">${row.percent}%</td>
+          <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td style="text-align: left; font-weight: bold;">${chap}</td>
+          <td style="text-align: left;">${row.topic}</td>
+
+          <td>${renderCellHTML(v1B)}</td>
+          <td>${renderCellHTML(v1H)}</td>
+          <td>${renderCellHTML(v1V)}</td>
+
+          <td>${renderCellHTML(v2B)}</td>
+          <td>${renderCellHTML(v2H)}</td>
+          <td>${renderCellHTML(v2V)}</td>
+
+          <td>${renderCellHTML(v3B)}</td>
+          <td>${renderCellHTML(v3H)}</td>
+          <td>${renderCellHTML(v3V)}</td>
+
+          <td>${renderCellHTML(v4B)}</td>
+          <td>${renderCellHTML(v4H)}</td>
+          <td>${renderCellHTML(v4V)}</td>
+
+          <td style="background-color: #f5f5f5; font-weight: bold;">${rSumB > 0 ? rSumB : ''}</td>
+          <td style="background-color: #f5f5f5; font-weight: bold;">${rSumH > 0 ? rSumH : ''}</td>
+          <td style="background-color: #f5f5f5; font-weight: bold;">${rSumV > 0 ? rSumV : ''}</td>
+
+          <td style="background-color: #e6f2ff; font-weight: bold;">${row.percent ? `${row.percent}%` : ''}</td>
         </tr>
-      `
-        )
-        .join('')}
-      <tr style="background-color: #e6f0fa; font-weight: bold;">
-        <td colspan="2" style="text-align: center;">TỔNG TOÀN ĐỀ</td>
-        ${matrix.levels
-          .map((lvl) => {
-            const data = matrix.totalByLevel[lvl] || { count: 0, score: 0 };
-            return `<td style="text-align: center;">${data.count}</td><td style="text-align: center;">${data.score}đ</td>`;
-          })
-          .join('')}
-        <td style="text-align: center;">${matrix.grandTotal.count}</td>
-        <td style="text-align: center;">100% (${matrix.grandTotal.score}đ)</td>
+        `;
+      }).join('')}
+
+      <!-- Dòng 1: Tổng số câu -->
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <td colspan="3" style="text-align: center; text-transform: uppercase;">Tổng số câu</td>
+        <td colspan="3">${countP1 || ''}</td>
+        <td colspan="3">${countP2 || ''}</td>
+        <td colspan="3">${countP3 || ''}</td>
+        <td colspan="3">${countP4 || ''}</td>
+        <td style="background-color: #e6e6e6;">${sumB || ''}</td>
+        <td style="background-color: #e6e6e6;">${sumH || ''}</td>
+        <td style="background-color: #e6e6e6;">${sumV || ''}</td>
+        <td style="background-color: #cce5ff;"></td>
+      </tr>
+
+      <!-- Dòng 2: Tổng số điểm -->
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <td colspan="3" style="text-align: center; text-transform: uppercase;">Tổng số điểm</td>
+        <td colspan="3">${fmt(score1) || '3,0'}⁵</td>
+        <td colspan="3">${fmt(score2) || '2,0'}</td>
+        <td colspan="3">${fmt(score3) || '2,0'}</td>
+        <td colspan="3">${fmt(score4) || '3,0'}</td>
+        <td style="background-color: #e6e6e6;">4,0</td>
+        <td style="background-color: #e6e6e6;">3,0</td>
+        <td style="background-color: #e6e6e6;">3,0</td>
+        <td style="background-color: #cce5ff;">${grandScore},0</td>
+      </tr>
+
+      <!-- Dòng 3: Tỉ lệ % -->
+      <tr style="background-color: #e6f2ff; font-weight: bold;">
+        <td colspan="3" style="text-align: center; text-transform: uppercase;">Tỉ lệ %</td>
+        <td colspan="3">30</td>
+        <td colspan="3">20</td>
+        <td colspan="3">20</td>
+        <td colspan="3">30</td>
+        <td style="background-color: #b3d7ff;">40</td>
+        <td style="background-color: #b3d7ff;">30</td>
+        <td style="background-color: #b3d7ff;">30</td>
+        <td style="background-color: #80bfff; font-size: 10pt;">100%</td>
       </tr>
     </tbody>
   </table>
+  <div style="font-size: 8.5pt; font-style: italic; margin-top: 6pt; line-height: 1.4; color: #333;">
+    <div><sup>2</sup> Mỗi câu hỏi bao gồm 4 ý nhỏ, mỗi ý học sinh phải chọn đúng hoặc sai. Một số tài liệu xếp loại câu hỏi này vào loại <i>Nhiều lựa chọn phức hợp</i> hoặc <i>Nhiều lựa chọn có nhiều phương án đúng</i>.</div>
+    <div><sup>3</sup> Đối với môn học không sử dụng dạng này thì chuyển toàn bộ số điểm cho dạng <i>“Đúng – Sai”</i>.</div>
+    <div><sup>4</sup> Có ở trong một số ô của ma trận, thể hiện số câu hỏi hoặc câu hỏi số bao nhiêu.</div>
+    <div><sup>5</sup> Lựa chọn sao cho được khoảng 3,0 điểm, tương ứng với tỉ lệ khoảng 30%; tương tự như thế đối với các dạng khác.</div>
+  </div>
   `;
 }
 
-function renderSpecTable(specs: ExamSpecificationRow[]): string {
+function renderSpecTable(specs: ExamSpecificationRow[], matrix?: ExamMatrix): string {
+  const rows = matrix?.rows || [];
+
+  const parseVal = (val: any) => {
+    if (val === undefined || val === null) return { count: 0, codeStr: '' };
+    if (typeof val === 'number') return { count: val, codeStr: '' };
+    if (typeof val === 'object') return { count: Number(val.count) || 0, codeStr: val.codeStr || '' };
+    return { count: 0, codeStr: '' };
+  };
+
+  const renderSpecCellHTML = (val: any) => {
+    const { count, codeStr } = parseVal(val);
+    if (count <= 0) return '';
+    return `(${count})<br><span style="font-size: 7.5pt; color: #444;">(${codeStr || 'NL?'})</span>`;
+  };
+
   return `
-  <table>
+  <div style="text-align: center; font-weight: bold; font-size: 11pt; text-transform: uppercase; margin-bottom: 6pt; margin-top: 15pt;">
+    2. BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ
+  </div>
+  <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center;" border="1">
     <thead>
-      <tr style="background-color: #f2f2f2;">
-        <th style="width: 5%;">TT</th>
-        <th style="width: 20%;">Chủ đề</th>
-        <th style="width: 40%;">Mức độ đánh giá / Yêu cầu cần đạt</th>
-        <th style="width: 15%;">Dạng câu hỏi</th>
-        <th style="width: 10%;">Mức độ</th>
-        <th style="width: 10%;">Điểm</th>
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <th rowspan="3" style="width: 3%;">TT</th>
+        <th rowspan="3" style="width: 12%;">Chủ đề/Chương</th>
+        <th rowspan="3" style="width: 15%;">Nội dung/đơn vị kiến thức</th>
+        <th rowspan="3" style="width: 30%;">Yêu cầu cần đạt</th>
+        <th colspan="12" style="text-transform: uppercase;">Số câu hỏi ở các mức độ đánh giá</th>
+      </tr>
+      <tr style="background-color: #f9f9f9; font-weight: bold;">
+        <th colspan="9">TNKQ</th>
+        <th colspan="3">Tự luận</th>
+      </tr>
+      <tr style="background-color: #f9f9f9; font-size: 9pt;">
+        <th colspan="3">Nhiều lựa chọn</th>
+        <th colspan="3">“Đúng – Sai”</th>
+        <th colspan="3">Trả lời ngắn</th>
+        <th colspan="3">Tự luận</th>
+      </tr>
+      <tr style="background-color: #f2f2f2; font-size: 8.5pt; font-weight: bold;">
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
+        <th>Biết</th><th>Hiểu</th><th>Vận dụng</th>
       </tr>
     </thead>
     <tbody>
-      ${specs
-        .map(
-          (spec) => `
+      ${rows.length > 0 ? rows.map((row, idx) => {
+        const getV = (part: any, lvl: string) => {
+          const keys = Object.keys(part || {});
+          const mk = keys.find(k => k.toLowerCase().includes(lvl.toLowerCase())) || lvl;
+          return part?.[mk];
+        };
+
+        const v1B = getV(row.part1, 'Biết');
+        const v1H = getV(row.part1, 'Hiểu');
+        const v1V = getV(row.part1, 'Vận dụng') || getV(row.part1, 'VD');
+
+        const v2B = getV(row.part2, 'Biết');
+        const v2H = getV(row.part2, 'Hiểu');
+        const v2V = getV(row.part2, 'Vận dụng') || getV(row.part2, 'VD');
+
+        const v3B = getV(row.part3, 'Biết');
+        const v3H = getV(row.part3, 'Hiểu');
+        const v3V = getV(row.part3, 'Vận dụng') || getV(row.part3, 'VD');
+
+        const v4B = getV(row.part4, 'Biết');
+        const v4H = getV(row.part4, 'Hiểu');
+        const v4V = getV(row.part4, 'Vận dụng') || getV(row.part4, 'VD');
+
+        const chap = row.chapter || `Chủ đề ${Math.ceil((idx + 1) / 2)}`;
+
+        return `
         <tr>
-          <td style="text-align: center;">${spec.stt}</td>
-          <td>${spec.topic}</td>
-          <td>${spec.competency}</td>
-          <td>${spec.questionType}</td>
-          <td style="text-align: center;">${spec.level}</td>
-          <td style="text-align: center; font-weight: bold;">${spec.score}đ</td>
+          <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td style="text-align: left; font-weight: bold;">${chap}</td>
+          <td style="text-align: left;">${row.topic}</td>
+          <td style="text-align: left; font-size: 9pt; line-height: 1.35;">
+            <div><b>- Biết:</b> Nhận biết và nêu được các kiến thức cốt lõi về ${row.topic}.</div>
+            <div><b>- Hiểu:</b> Giải thích, mô tả bản chất và tính toán đại lượng đặc trưng của ${row.topic}.</div>
+            <div><b>- VD:</b> Vận dụng định lý, quy tắc để giải quyết tình huống thực tế về ${row.topic}.</div>
+          </td>
+
+          <td>${renderSpecCellHTML(v1B)}</td>
+          <td>${renderSpecCellHTML(v1H)}</td>
+          <td>${renderSpecCellHTML(v1V)}</td>
+
+          <td>${renderSpecCellHTML(v2B)}</td>
+          <td>${renderSpecCellHTML(v2H)}</td>
+          <td>${renderSpecCellHTML(v2V)}</td>
+
+          <td>${renderSpecCellHTML(v3B)}</td>
+          <td>${renderSpecCellHTML(v3H)}</td>
+          <td>${renderSpecCellHTML(v3V)}</td>
+
+          <td>${renderSpecCellHTML(v4B)}</td>
+          <td>${renderSpecCellHTML(v4H)}</td>
+          <td>${renderSpecCellHTML(v4V)}</td>
         </tr>
-      `
-        )
-        .join('')}
+        `;
+      }).join('') : specs.map((s, idx) => `
+        <tr>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td>Chủ đề ${idx + 1}</td>
+          <td>${s.topic}</td>
+          <td style="text-align: left;">${s.competency}</td>
+          <td colspan="12" style="text-align: center;">${s.questionCount} câu (${s.level})</td>
+        </tr>
+      `).join('')}
+
+      <!-- Dòng 1: Tổng số câu -->
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <td colspan="4" style="text-align: center; text-transform: uppercase;">Tổng số câu</td>
+        <td colspan="3">12</td>
+        <td colspan="3">4</td>
+        <td colspan="3">4</td>
+        <td colspan="3">2</td>
+      </tr>
+
+      <!-- Dòng 2: Tổng số điểm -->
+      <tr style="background-color: #f2f2f2; font-weight: bold;">
+        <td colspan="4" style="text-align: center; text-transform: uppercase;">Tổng số điểm</td>
+        <td colspan="3">3,0</td>
+        <td colspan="3">2,0</td>
+        <td colspan="3">2,0</td>
+        <td colspan="3">3,0</td>
+      </tr>
+
+      <!-- Dòng 3: Tỉ lệ % -->
+      <tr style="background-color: #e6f2ff; font-weight: bold;">
+        <td colspan="4" style="text-align: center; text-transform: uppercase;">Tỉ lệ %</td>
+        <td colspan="3">30</td>
+        <td colspan="3">20</td>
+        <td colspan="3">20</td>
+        <td colspan="3">30</td>
+      </tr>
     </tbody>
   </table>
+  <div style="font-size: 8.5pt; font-style: italic; margin-top: 6pt; color: #333;">
+    <sup>6</sup> Kí hiệu năng lực thành tố cần đánh giá (hoặc mã câu hỏi tương ứng trong đề thi).
+  </div>
   `;
 }
 

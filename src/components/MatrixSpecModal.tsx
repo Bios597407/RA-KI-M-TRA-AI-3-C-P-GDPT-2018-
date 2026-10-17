@@ -13,6 +13,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { ExamConfig, ExamMatrix, ExamSpecificationRow } from '../types/exam';
+import OfficialMatrixTable from './OfficialMatrixTable';
+import OfficialSpecificationTable from './OfficialSpecificationTable';
 
 interface MatrixSpecModalProps {
   isOpen: boolean;
@@ -191,99 +193,7 @@ export const MatrixSpecModal: React.FC<MatrixSpecModalProps> = ({
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
-                <table className="w-full text-xs text-center border-collapse border border-slate-300">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-800 font-bold">
-                      <th rowSpan={2} className="p-2 border border-slate-300 w-10">TT</th>
-                      <th rowSpan={2} className="p-2 border border-slate-300 text-left min-w-[200px]">
-                        Chủ đề / Đơn vị kiến thức
-                      </th>
-                      {matrix.levels.map((lvl) => (
-                        <th key={lvl} colSpan={2} className="p-2 border border-slate-300">
-                          {lvl}
-                        </th>
-                      ))}
-                      <th colSpan={2} className="p-2 border border-slate-300 bg-blue-50 text-blue-900">
-                        Tổng cộng
-                      </th>
-                    </tr>
-                    <tr className="bg-slate-50 text-[11px] font-semibold text-slate-700">
-                      {matrix.levels.map((lvl) => (
-                        <React.Fragment key={`${lvl}-sub`}>
-                          <th className="p-1.5 border border-slate-300 w-14">Số câu</th>
-                          <th className="p-1.5 border border-slate-300 w-14">Điểm</th>
-                        </React.Fragment>
-                      ))}
-                      <th className="p-1.5 border border-slate-300 w-16 bg-blue-50">Số câu</th>
-                      <th className="p-1.5 border border-slate-300 w-16 bg-blue-50">Tỉ lệ %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matrix.rows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/80">
-                        <td className="p-2 border border-slate-300 font-bold text-slate-700">{idx + 1}</td>
-                        <td className="p-2 border border-slate-300 text-left font-medium text-slate-800">
-                          <div className="font-semibold text-slate-900">{row.topic}</div>
-                          {row.subTopic && (
-                            <div className="text-[11px] text-slate-500 italic">{row.subTopic}</div>
-                          )}
-                        </td>
-                        {matrix.levels.map((lvl) => {
-                          const count =
-                            (row.part1[lvl] || 0) +
-                            (row.part2[lvl] || 0) +
-                            (row.part3[lvl] || 0) +
-                            (row.part4[lvl] || 0);
-                          const score =
-                            (row.part1[lvl] || 0) * 0.25 +
-                            (row.part2[lvl] || 0) * 1.0 +
-                            (row.part3[lvl] || 0) * 0.5 +
-                            (row.part4[lvl] || 0) * (p4 > 0 ? 1.0 : 0);
-                          return (
-                            <React.Fragment key={`${idx}-${lvl}`}>
-                              <td className="p-2 border border-slate-300 font-bold text-slate-700">
-                                {count > 0 ? count : '-'}
-                              </td>
-                              <td className="p-2 border border-slate-300 text-slate-500">
-                                {count > 0 ? score.toFixed(2) : '-'}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
-                        <td className="p-2 border border-slate-300 font-extrabold text-blue-800 bg-blue-50/30">
-                          {row.totalQuestions}
-                        </td>
-                        <td className="p-2 border border-slate-300 font-extrabold text-blue-800 bg-blue-50/30">
-                          {row.percent}%
-                        </td>
-                      </tr>
-                    ))}
-
-                    {/* Grand Total Row */}
-                    <tr className="bg-blue-100/70 font-extrabold text-slate-900">
-                      <td colSpan={2} className="p-2.5 border border-slate-300 uppercase tracking-wider text-center">
-                        TỔNG TOÀN ĐỀ
-                      </td>
-                      {matrix.levels.map((lvl) => {
-                        const data = matrix.totalByLevel[lvl] || { count: 0, score: 0 };
-                        return (
-                          <React.Fragment key={`tot-${lvl}`}>
-                            <td className="p-2.5 border border-slate-300">{data.count}</td>
-                            <td className="p-2.5 border border-slate-300">{data.score}đ</td>
-                          </React.Fragment>
-                        );
-                      })}
-                      <td className="p-2.5 border border-slate-300 text-blue-900 font-black">
-                        {matrix.grandTotal.count} câu
-                      </td>
-                      <td className="p-2.5 border border-slate-300 text-blue-900 font-black">
-                        100% ({matrix.grandTotal.score}đ)
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <OfficialMatrixTable matrix={matrix} config={config} />
 
               {/* Assessment Footnote */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1">
@@ -301,59 +211,7 @@ export const MatrixSpecModal: React.FC<MatrixSpecModalProps> = ({
           {/* TAB 2: BẢN ĐẶC TẢ CHI TIẾT */}
           {activeTab === 'spec' && (
             <div className="space-y-4">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
-                  BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KỲ CHI TIẾT
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Xác định chuẩn kiến thức, năng lực và yêu cầu cần đạt (YCCĐ) theo Chương trình GDPT 2018
-                </p>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-xs">
-                <table className="w-full text-xs border border-slate-300 text-left border-collapse">
-                  <thead className="bg-slate-100 font-bold text-slate-800">
-                    <tr>
-                      <th className="p-2.5 border border-slate-300 w-10 text-center">TT</th>
-                      <th className="p-2.5 border border-slate-300 w-44">Chủ đề / Đơn vị</th>
-                      <th className="p-2.5 border border-slate-300">Yêu cầu cần đạt chuẩn GDPT 2018</th>
-                      <th className="p-2.5 border border-slate-300 w-36">Dạng câu hỏi</th>
-                      <th className="p-2.5 border border-slate-300 w-24 text-center">Mức độ</th>
-                      <th className="p-2.5 border border-slate-300 w-16 text-center">Số câu</th>
-                      <th className="p-2.5 border border-slate-300 w-16 text-center">Điểm</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {specs.map((spec) => (
-                      <tr key={spec.id} className="hover:bg-slate-50">
-                        <td className="p-2.5 border border-slate-300 text-center font-bold text-slate-700">
-                          {spec.stt}
-                        </td>
-                        <td className="p-2.5 border border-slate-300 font-semibold text-slate-800">
-                          {spec.topic}
-                        </td>
-                        <td className="p-2.5 border border-slate-300 text-slate-700 leading-relaxed">
-                          {spec.competency}
-                        </td>
-                        <td className="p-2.5 border border-slate-300 font-medium text-slate-600">
-                          {spec.questionType}
-                        </td>
-                        <td className="p-2.5 border border-slate-300 text-center">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800">
-                            {spec.level}
-                          </span>
-                        </td>
-                        <td className="p-2.5 border border-slate-300 text-center font-bold">
-                          {spec.questionCount}
-                        </td>
-                        <td className="p-2.5 border border-slate-300 text-center font-bold text-blue-700">
-                          {spec.score}đ
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <OfficialSpecificationTable matrix={matrix} specs={specs} config={config} />
             </div>
           )}
 

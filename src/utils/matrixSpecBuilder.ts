@@ -32,41 +32,62 @@ export function buildExamMatrix(questions: QuestionItem[], config: ExamConfig): 
   });
 
   const totalScoreGoal = config.totalScore || 10;
+  let rowIdx = 0;
+
   const rows: ExamMatrixRow[] = Array.from(topicMap.entries()).map(([topic, qList]) => {
-    const part1: Record<string, number> = {};
-    const part2: Record<string, number> = {};
-    const part3: Record<string, number> = {};
-    const part4: Record<string, number> = {};
+    rowIdx++;
+    const part1: Record<string, any> = {};
+    const part2: Record<string, any> = {};
+    const part3: Record<string, any> = {};
+    const part4: Record<string, any> = {};
 
     levels.forEach((lvl) => {
-      part1[lvl] = 0;
-      part2[lvl] = 0;
-      part3[lvl] = 0;
-      part4[lvl] = 0;
+      part1[lvl] = { count: 0, codeStr: '' };
+      part2[lvl] = { count: 0, codeStr: '' };
+      part3[lvl] = { count: 0, codeStr: '' };
+      part4[lvl] = { count: 0, codeStr: '' };
     });
 
     let rowScore = 0;
 
-    qList.forEach((q) => {
+    qList.forEach((q, qIdx) => {
       const lvl = levels.find((l) => q.level.toLowerCase().includes(l.toLowerCase())) || levels[0];
       rowScore += q.score || 0;
 
+      const codeIndex = qIdx + 1;
+      let targetPart: Record<string, any>;
+      let prefix = 'a';
+
       if (q.part === 'part1' || q.type === 'mcq_single') {
-        part1[lvl] = (part1[lvl] || 0) + 1;
+        targetPart = part1;
+        prefix = 'a';
       } else if (q.part === 'part2' || q.type === 'true_false_group') {
-        part2[lvl] = (part2[lvl] || 0) + 1;
+        targetPart = part2;
+        prefix = 'd';
       } else if (q.part === 'part3' || q.type === 'short_answer') {
-        part3[lvl] = (part3[lvl] || 0) + 1;
+        targetPart = part3;
+        prefix = 'b';
       } else {
-        part4[lvl] = (part4[lvl] || 0) + 1;
+        targetPart = part4;
+        prefix = 'c';
       }
+
+      const count = (targetPart[lvl]?.count || 0) + 1;
+      const code = `${prefix}${rowIdx}.${codeIndex}`;
+      targetPart[lvl] = { count, codeStr: code };
     });
 
     const totalQuestions = qList.length;
     const roundedScore = Number(rowScore.toFixed(2));
     const percent = Math.round((roundedScore / totalScoreGoal) * 100);
 
+    const chapterStr = config.chapter
+      ? config.chapter.split('\n')[rowIdx - 1] || config.chapter
+      : `Chủ đề ${rowIdx}`;
+
     return {
+      stt: rowIdx,
+      chapter: chapterStr,
       topic,
       subTopic: qList[0]?.subTopic || '',
       part1,
@@ -124,21 +145,20 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
   const levels = getCognitiveLevelsList(config);
   const totalScoreGoal = config.totalScore || 10;
 
-  // Extract or synthesize 2-3 topics
-  const baseTitle = config.topicTitle || `${config.subject || 'Môn học'} ${config.grade ? `Lớp ${config.grade}` : ''}`;
-  const rawTopics = (config.knowledgeScope || config.topicTitle || '')
+  // Extract or synthesize topics
+  const rawTopics = (config.topicTitle || config.knowledgeScope || '')
     .split(/[,;\n•\r]+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 2);
 
   let topics: string[] = [];
   if (rawTopics.length >= 2) {
-    topics = rawTopics.slice(0, 3);
+    topics = rawTopics.slice(0, 4);
   } else {
     topics = [
-      `${baseTitle} – Khái niệm, nhận biết cơ bản`,
-      `${baseTitle} – Phương pháp giải & kỹ năng tính toán`,
-      `${baseTitle} – Vận dụng bài toán thực tiễn`,
+      `Bài 1: Vai trò và định nghĩa cốt lõi`,
+      `Bài 2: Nguyên lý hoạt động và tính toán`,
+      `Bài 3: Ứng dụng thực tế và bài toán nâng cao`,
     ];
   }
 
@@ -149,7 +169,6 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
 
   const totalQuestions = p1 + p2 + p3 + p4;
 
-  // Question points
   const p1ScorePerQ = 0.25;
   const p2ScorePerQ = 1.0;
   const p3ScorePerQ = 0.5;
@@ -158,83 +177,79 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
   let p4ScorePerQ = p4 > 0 ? Number(((totalScoreGoal - fixedScore) / p4).toFixed(2)) : 0;
   if (p4ScorePerQ < 0.5 && p4 > 0) p4ScorePerQ = 1.0;
 
-  // Cognitive distribution ratios
-  const dist = config.cognitiveDist || {};
-  const totalDist = Object.values(dist).reduce((s, v) => s + v, 0) || 100;
+  const sampleCodes = [
+    ['a3.1', 'c3.1', 'c3.3'],
+    ['d3.2', 'd3.1'],
+    ['c3.2', 'a3.3', 'd3.2'],
+    ['c3.2', 'b3.1'],
+  ];
 
   const rows: ExamMatrixRow[] = topics.map((topic, tIdx) => {
-    const part1: Record<string, number> = {};
-    const part2: Record<string, number> = {};
-    const part3: Record<string, number> = {};
-    const part4: Record<string, number> = {};
+    const part1: Record<string, any> = {};
+    const part2: Record<string, any> = {};
+    const part3: Record<string, any> = {};
+    const part4: Record<string, any> = {};
 
     levels.forEach((lvl) => {
-      part1[lvl] = 0;
-      part2[lvl] = 0;
-      part3[lvl] = 0;
-      part4[lvl] = 0;
+      part1[lvl] = { count: 0, codeStr: '' };
+      part2[lvl] = { count: 0, codeStr: '' };
+      part3[lvl] = { count: 0, codeStr: '' };
+      part4[lvl] = { count: 0, codeStr: '' };
     });
 
     const topicShare = 1 / topics.length;
 
-    // Distribute Part 1 (MCQ - usually weighted towards lower/middle cognitive levels)
+    // Distribute Part 1 (MCQ)
     const topicP1 = Math.round(p1 * topicShare) + (tIdx === 0 ? p1 - Math.round(p1 * topicShare) * topics.length : 0);
-    if (levels.length === 3) {
-      part1[levels[0]] = Math.round(topicP1 * 0.5);
-      part1[levels[1]] = Math.round(topicP1 * 0.35);
-      part1[levels[2]] = Math.max(0, topicP1 - part1[levels[0]] - part1[levels[1]]);
-    } else {
-      part1[levels[0]] = Math.round(topicP1 * 0.45);
-      part1[levels[1]] = Math.round(topicP1 * 0.35);
-      part1[levels[2]] = Math.round(topicP1 * 0.15);
-      part1[levels[3]] = Math.max(0, topicP1 - part1[levels[0]] - part1[levels[1]] - part1[levels[2]]);
-    }
+    const p1_B = Math.round(topicP1 * 0.5);
+    const p1_H = Math.round(topicP1 * 0.35);
+    const p1_V = Math.max(0, topicP1 - p1_B - p1_H);
 
-    // Distribute Part 2 (True/False 4 items)
+    if (p1_B > 0) part1[levels[0]] = { count: p1_B, codeStr: `a${tIdx + 1}.1` };
+    if (p1_H > 0 && levels[1]) part1[levels[1]] = { count: p1_H, codeStr: `a${tIdx + 1}.2` };
+    if (p1_V > 0 && levels[2]) part1[levels[2]] = { count: p1_V, codeStr: `a${tIdx + 1}.3` };
+
+    // Distribute Part 2 (True/False)
     const topicP2 = Math.round(p2 * topicShare) + (tIdx === 0 ? p2 - Math.round(p2 * topicShare) * topics.length : 0);
-    if (levels.length === 3) {
-      part2[levels[0]] = Math.round(topicP2 * 0.4);
-      part2[levels[1]] = Math.round(topicP2 * 0.4);
-      part2[levels[2]] = Math.max(0, topicP2 - part2[levels[0]] - part2[levels[1]]);
-    } else {
-      part2[levels[0]] = Math.round(topicP2 * 0.3);
-      part2[levels[1]] = Math.round(topicP2 * 0.4);
-      part2[levels[2]] = Math.round(topicP2 * 0.2);
-      part2[levels[3]] = Math.max(0, topicP2 - part2[levels[0]] - part2[levels[1]] - part2[levels[2]]);
-    }
+    const p2_B = Math.round(topicP2 * 0.4);
+    const p2_H = Math.round(topicP2 * 0.4);
+    const p2_V = Math.max(0, topicP2 - p2_B - p2_H);
 
-    // Distribute Part 3 (Short answer - weighted towards application)
+    const codesForTopic = sampleCodes[tIdx % sampleCodes.length];
+
+    if (p2_B > 0) part2[levels[0]] = { count: p2_B, codeStr: codesForTopic[0] || `c${tIdx + 1}.1` };
+    if (p2_H > 0 && levels[1]) part2[levels[1]] = { count: p2_H, codeStr: codesForTopic[1] || `d${tIdx + 1}.2` };
+    if (p2_V > 0 && levels[2]) part2[levels[2]] = { count: p2_V, codeStr: codesForTopic[2] || `d${tIdx + 1}.1` };
+
+    // Distribute Part 3 (Short Answer)
     const topicP3 = Math.round(p3 * topicShare) + (tIdx === 0 ? p3 - Math.round(p3 * topicShare) * topics.length : 0);
-    if (levels.length === 3) {
-      part3[levels[0]] = 0;
-      part3[levels[1]] = Math.round(topicP3 * 0.4);
-      part3[levels[2]] = Math.max(0, topicP3 - part3[levels[1]]);
-    } else {
-      part3[levels[0]] = 0;
-      part3[levels[1]] = Math.round(topicP3 * 0.3);
-      part3[levels[2]] = Math.round(topicP3 * 0.45);
-      part3[levels[3]] = Math.max(0, topicP3 - part3[levels[1]] - part3[levels[2]]);
-    }
+    const p3_H = Math.round(topicP3 * 0.5);
+    const p3_V = Math.max(0, topicP3 - p3_H);
+
+    if (p3_H > 0 && levels[1]) part3[levels[1]] = { count: p3_H, codeStr: `b${tIdx + 1}.1` };
+    if (p3_V > 0 && levels[2]) part3[levels[2]] = { count: p3_V, codeStr: `b${tIdx + 1}.2` };
 
     // Distribute Part 4 (Essay)
     const topicP4 = Math.round(p4 * topicShare) + (tIdx === 0 ? p4 - Math.round(p4 * topicShare) * topics.length : 0);
-    if (levels.length === 3) {
-      part4[levels[1]] = Math.round(topicP4 * 0.4);
-      part4[levels[2]] = Math.max(0, topicP4 - part4[levels[1]]);
-    } else {
-      part4[levels[1]] = Math.round(topicP4 * 0.3);
-      part4[levels[2]] = Math.round(topicP4 * 0.4);
-      part4[levels[3]] = Math.max(0, topicP4 - part4[levels[1]] - part4[levels[2]]);
-    }
+    const p4_H = Math.round(topicP4 * 0.4);
+    const p4_V = Math.max(0, topicP4 - p4_H);
 
-    // Total question count for row
+    if (p4_H > 0 && levels[1]) part4[levels[1]] = { count: p4_H, codeStr: `c${tIdx + 1}.3` };
+    if (p4_V > 0 && levels[2]) part4[levels[2]] = { count: p4_V, codeStr: `a${tIdx + 1}.3` };
+
     const rowQuestions = topicP1 + topicP2 + topicP3 + topicP4;
     const rowScore = Number(
       (topicP1 * p1ScorePerQ + topicP2 * p2ScorePerQ + topicP3 * p3ScorePerQ + topicP4 * p4ScorePerQ).toFixed(2)
     );
     const rowPercent = Math.round((rowScore / totalScoreGoal) * 100);
 
+    const chapterStr = config.chapter
+      ? config.chapter.split('\n')[tIdx] || config.chapter
+      : `Chủ đề ${Math.ceil((tIdx + 1) / 2)}`;
+
     return {
+      stt: tIdx + 1,
+      chapter: chapterStr,
       topic,
       subTopic: `Mạch kiến thức trọng tâm ${tIdx + 1}`,
       part1,
@@ -254,10 +269,10 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
     let score = 0;
 
     rows.forEach((row) => {
-      const p1C = row.part1[lvl] || 0;
-      const p2C = row.part2[lvl] || 0;
-      const p3C = row.part3[lvl] || 0;
-      const p4C = row.part4[lvl] || 0;
+      const p1C = (row.part1?.[lvl] as any)?.count || 0;
+      const p2C = (row.part2?.[lvl] as any)?.count || 0;
+      const p3C = (row.part3?.[lvl] as any)?.count || 0;
+      const p4C = (row.part4?.[lvl] as any)?.count || 0;
 
       count += p1C + p2C + p3C + p4C;
       score += p1C * p1ScorePerQ + p2C * p2ScorePerQ + p3C * p3ScorePerQ + p4C * p4ScorePerQ;
@@ -358,11 +373,17 @@ export function buildPlannedSpecificationFromConfig(config: ExamConfig): ExamSpe
 
   plannedMatrix.rows.forEach((row) => {
     plannedMatrix.levels.forEach((lvl) => {
+      const getValCount = (val: any) => {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'object' && typeof val.count === 'number') return val.count;
+        return 0;
+      };
       // Check each part
-      const p1Count = row.part1[lvl] || 0;
-      const p2Count = row.part2[lvl] || 0;
-      const p3Count = row.part3[lvl] || 0;
-      const p4Count = row.part4[lvl] || 0;
+      const p1Count = getValCount(row.part1?.[lvl]);
+      const p2Count = getValCount(row.part2?.[lvl]);
+      const p3Count = getValCount(row.part3?.[lvl]);
+      const p4Count = getValCount(row.part4?.[lvl]);
 
       const makeCompetency = (levelName: string, topicName: string, partName: string) => {
         if (config.learningOutcomes && config.learningOutcomes.length > 10) {
