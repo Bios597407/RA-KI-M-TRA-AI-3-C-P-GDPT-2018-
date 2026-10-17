@@ -634,9 +634,9 @@ export default function App() {
         onConfigChange={setConfig}
       />
 
-      {/* Main Top-Bottom Layout */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 py-6 space-y-6">
-        {/* Top: Configuration Panel (Horizontal/Horizontal Grouping) */}
+      {/* Main Top-Bottom Stacked Layout */}
+      <main className="flex-1 max-w-[1720px] mx-auto w-full px-3 sm:px-6 py-6 space-y-8">
+        {/* Top: Configuration Panel (Horizontal multi-column layout across top) */}
         <div className="no-print w-full">
           <ConfigPanel
             config={config}
@@ -648,49 +648,49 @@ export default function App() {
           />
         </div>
 
-        {/* Bottom: Workspace Section (Full Width) */}
+        {/* Bottom: Workspace Preview, Tabs, Action Toolbar & Exam Content (Full Width) */}
         <div id="workspace-section" className="w-full space-y-6">
-            {/* Realtime 7-Step Stepper during Generation */}
-            {isGenerating && (
-              <GenerationStepper currentStep={progressStep} message={progressMsg} />
-            )}
+          {/* Realtime 7-Step Stepper during Generation */}
+          {isGenerating && (
+            <GenerationStepper currentStep={progressStep} message={progressMsg} />
+          )}
 
-            {/* 6 Tab Workspace */}
-            <Workspace
-              config={config}
-              questions={questions}
-              shuffledCodes={shuffledCodes}
-              activeCode={activeCode}
-              onSelectCode={setActiveCode}
-              matrix={matrix}
-              specs={specs}
-              qaReport={qaReport}
-              currentTab={workspaceTab}
-              onTabChange={setWorkspaceTab}
-              onOpenQA={() => setShowQAModal(true)}
-              onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
-              onOpenAzotaExport={() => setShowAzotaModal(true)}
-              onOpenImport={() => setShowImportModal(true)}
-              onOpenMatrixModal={() => setShowMatrixModal(true)}
-              onExportExamOnly={handleExportExamOnly}
-              onExportAnswerOnly={handleExportAnswerOnly}
-              onExportFullWord={handleExportFullWord}
-              onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
-              onExportStudyGuideWord={handleExportStudyGuideWord}
-              onOpenPrintPreview={handleOpenPrintPreview}
-              onPrintA4={handlePrintA4}
-              onCopyContent={handleCopyContent}
-              onRegenerateAll={handleGenerate}
-              onGenerateEquivalent={handleRegenerateEquivalent}
-              onEditQuestion={handleEditQuestion}
-              onDeleteQuestion={handleDeleteQuestion}
-              onRegenerateSingleQuestion={handleRegenerateSingleQuestion}
-              onSaveToBank={handleSaveToBank}
-              onAddNewQuestion={handleAddNewQuestion}
-              isGenerating={isGenerating}
-              apiKey={apiKey}
-            />
-          </div>
+          {/* 6 Tab Workspace */}
+          <Workspace
+            config={config}
+            questions={questions}
+            shuffledCodes={shuffledCodes}
+            activeCode={activeCode}
+            onSelectCode={setActiveCode}
+            matrix={matrix}
+            specs={specs}
+            qaReport={qaReport}
+            currentTab={workspaceTab}
+            onTabChange={setWorkspaceTab}
+            onOpenQA={() => setShowQAModal(true)}
+            onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
+            onOpenAzotaExport={() => setShowAzotaModal(true)}
+            onOpenImport={() => setShowImportModal(true)}
+            onOpenMatrixModal={() => setShowMatrixModal(true)}
+            onExportExamOnly={handleExportExamOnly}
+            onExportAnswerOnly={handleExportAnswerOnly}
+            onExportFullWord={handleExportFullWord}
+            onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
+            onExportStudyGuideWord={handleExportStudyGuideWord}
+            onOpenPrintPreview={handleOpenPrintPreview}
+            onPrintA4={handlePrintA4}
+            onCopyContent={handleCopyContent}
+            onRegenerateAll={handleGenerate}
+            onGenerateEquivalent={handleRegenerateEquivalent}
+            onEditQuestion={handleEditQuestion}
+            onDeleteQuestion={handleDeleteQuestion}
+            onRegenerateSingleQuestion={handleRegenerateSingleQuestion}
+            onSaveToBank={handleSaveToBank}
+            onAddNewQuestion={handleAddNewQuestion}
+            isGenerating={isGenerating}
+            apiKey={apiKey}
+          />
+        </div>
       </main>
 
       {/* Modals */}

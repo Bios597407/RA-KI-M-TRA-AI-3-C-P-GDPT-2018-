@@ -434,9 +434,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Column 1: Cơ bản */}
-        <div className="space-y-6">
+      <div className="space-y-5 w-full">
 
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
@@ -457,209 +455,204 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
 
         {showHeaderForm && (
-          <div className="space-y-3 pt-1 border-t border-indigo-200/60">
-            {/* Row 1: Sở/Phòng GD&ĐT & Tên Trường */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Sở / Phòng GD&ĐT chủ quản:
-                </label>
-                <input
-                  type="text"
-                  value={config.departmentName || ''}
-                  onChange={(e) => onChange({ ...config, departmentName: e.target.value })}
-                  placeholder="VD: SỞ GIÁO DỤC & ĐÀO TẠO TPHCM"
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Tên Trường THPT / THCS:
-                </label>
-                <input
-                  type="text"
-                  value={config.schoolName || ''}
-                  onChange={(e) => onChange({ ...config, schoolName: e.target.value })}
-                  placeholder="VD: TRƯỜNG THPT VÕ TRƯỜNG TOẢN"
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
-                />
-              </div>
-            </div>
-
-            {/* Row 2: Môn Thi & Kỳ Thi */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Môn thi chính thức:
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <select
-                    value={config.subject}
-                    onChange={(e) => onChange({ ...config, subject: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
-                  >
-                    {subjectOptions.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    value={config.customSubject || ''}
-                    onChange={(e) => onChange({ ...config, customSubject: e.target.value })}
-                    placeholder="Môn khác..."
-                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-[11px] font-medium"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Kỳ thi / Tên Đề kiểm tra:
-                </label>
-                <div className="flex gap-1.5">
-                  <select
-                    value={config.examTitle}
-                    onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
-                    className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-950 focus:border-indigo-500 focus:outline-hidden"
-                  >
-                    <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 1">ĐỀ KIỂM TRA GIỮA HỌC KÌ 1</option>
-                    <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 1">ĐỀ KIỂM TRA CUỐI HỌC KÌ 1</option>
-                    <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 2">ĐỀ KIỂM TRA GIỮA HỌC KÌ 2</option>
-                    <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 2">ĐỀ KIỂM TRA CUỐI HỌC KÌ 2</option>
-                    <option value="ĐỀ KIỂM TRA 15 PHÚT">ĐỀ KIỂM TRA 15 PHÚT</option>
-                    <option value="ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)">ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)</option>
-                    <option value="ĐỀ THI THỬ TỐT NGHIỆP THPT">ĐỀ THI THỬ TỐT NGHIỆP THPT</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={config.examTitle}
-                    onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
-                    placeholder="Tên tùy chỉnh..."
-                    className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-[11px]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Row 3: Năm học, Thời gian & Số trang */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Năm học:
-                </label>
-                <input
-                  type="text"
-                  value={config.academicYear || ''}
-                  onChange={(e) => onChange({ ...config, academicYear: e.target.value })}
-                  placeholder="VD: 2026 - 2027"
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian (phút):</label>
-                <input
-                  type="number"
-                  min="5"
-                  max="180"
-                  value={config.durationMinutes}
-                  onChange={(e) => onChange({ ...config, durationMinutes: Number(e.target.value) || 45 })}
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 text-center"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Số trang đề thi:</label>
-                <input
-                  type="text"
-                  value={config.pageCountText || '2'}
-                  onChange={(e) => onChange({ ...config, pageCountText: e.target.value })}
-                  placeholder="VD: 2 hoặc 3"
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-center font-bold text-indigo-900"
-                />
-                <span className="block text-[10px] text-slate-500 mt-1 text-center">Hiển thị "(Đề có _2_ trang)"</span>
-              </div>
-            </div>
-
-            {/* Row 4: Quản lý Mã Đề Thi Tùy Chọn & Số Lượng */}
-            <div className="pt-2 border-t border-indigo-200/60 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-[11px] font-extrabold text-indigo-950 uppercase tracking-wide">
-                  Mã đề thi (Đảo đề tùy chọn linh hoạt):
-                </label>
-                <span className="text-[10px] text-slate-500">Hiển thị khung "Mã đề xxx" cho học sinh</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="pt-2 border-t border-indigo-200/60 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+              {/* Col 1: Sở/Phòng GD&ĐT & Trường */}
+              <div className="space-y-2">
                 <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Số lượng mã đề sinh ra:</label>
-                  <select
-                    value={config.testCodesCount || 2}
-                    onChange={(e) => {
-                      const count = Number(e.target.value);
-                      const defaultPreset = ['101', '102', '103', '104', '105', '106', '107', '108'].slice(0, count);
-                      onChange({ ...config, testCodesCount: count, customTestCodesList: defaultPreset });
-                    }}
-                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-900"
-                  >
-                    <option value={1}>1 Mã đề (Đề gốc - 101)</option>
-                    <option value={2}>2 Mã đề đảo (vd: 101, 102)</option>
-                    <option value={4}>4 Mã đề đảo (vd: 101, 102, 103, 104)</option>
-                    <option value={6}>6 Mã đề đảo</option>
-                    <option value={8}>8 Mã đề đảo</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
-                    Tùy chỉnh danh sách Mã đề (ngăn cách bởi dấu phẩy):
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Sở / Phòng GD&ĐT chủ quản:
                   </label>
                   <input
                     type="text"
-                    value={config.customTestCodesList ? config.customTestCodesList.join(', ') : '101, 102, 103, 104'}
-                    onChange={(e) => {
-                      const list = e.target.value
-                        .split(',')
-                        .map((s) => s.trim())
-                        .filter(Boolean);
-                      onChange({
-                        ...config,
-                        customTestCodesList: list,
-                        testCodesCount: Math.max(1, list.length),
-                      });
-                    }}
-                    placeholder="VD: 101, 102, 103, 104 hoặc 111, 222, 333, 444"
-                    className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-mono text-indigo-900 font-bold"
+                    value={config.departmentName || ''}
+                    onChange={(e) => onChange({ ...config, departmentName: e.target.value })}
+                    placeholder="VD: SỞ GIÁO DỤC & ĐÀO TẠO TPHCM"
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Tên Trường THPT / THCS:
+                  </label>
+                  <input
+                    type="text"
+                    value={config.schoolName || ''}
+                    onChange={(e) => onChange({ ...config, schoolName: e.target.value })}
+                    placeholder="VD: TRƯỜNG THPT VÕ TRƯỜNG TOẢN"
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium focus:border-indigo-500 focus:outline-hidden"
                   />
                 </div>
               </div>
 
-              {/* Sample Preset Buttons for Test Codes */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] font-bold text-slate-500">Mẫu mã đề nhanh:</span>
-                {[
-                  { label: '1 mã (101)', list: ['101'] },
-                  { label: '2 mã (101, 102)', list: ['101', '102'] },
-                  { label: '4 mã (101, 102, 103, 104)', list: ['101', '102', '103', '104'] },
-                  { label: '4 mã (111, 222, 333, 444)', list: ['111', '222', '333', '444'] },
-                  { label: '4 mã (201, 202, 203, 204)', list: ['201', '202', '203', '204'] },
-                ].map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() =>
-                      onChange({
-                        ...config,
-                        testCodesCount: p.list.length,
-                        customTestCodesList: p.list,
-                      })
-                    }
-                    className="px-2 py-0.5 bg-white border border-indigo-200 text-indigo-900 text-[10px] rounded-md font-bold hover:bg-indigo-100 transition cursor-pointer"
-                  >
-                    {p.label}
-                  </button>
-                ))}
+              {/* Col 2: Môn Thi & Tên Đề */}
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Môn thi chính thức:
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <select
+                      value={config.subject}
+                      onChange={(e) => onChange({ ...config, subject: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
+                    >
+                      {subjectOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={config.customSubject || ''}
+                      onChange={(e) => onChange({ ...config, customSubject: e.target.value })}
+                      placeholder="Môn khác..."
+                      className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-[11px] font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Kỳ thi / Tên Đề kiểm tra:
+                  </label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={config.examTitle}
+                      onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                      className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-bold text-indigo-950 focus:border-indigo-500 focus:outline-hidden"
+                    >
+                      <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 1">ĐỀ KIỂM TRA GIỮA HỌC KÌ 1</option>
+                      <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 1">ĐỀ KIỂM TRA CUỐI HỌC KÌ 1</option>
+                      <option value="ĐỀ KIỂM TRA GIỮA HỌC KÌ 2">ĐỀ KIỂM TRA GIỮA HỌC KÌ 2</option>
+                      <option value="ĐỀ KIỂM TRA CUỐI HỌC KÌ 2">ĐỀ KIỂM TRA CUỐI HỌC KÌ 2</option>
+                      <option value="ĐỀ KIỂM TRA 15 PHÚT">ĐỀ KIỂM TRA 15 PHÚT</option>
+                      <option value="ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)">ĐỀ KIỂM TRA 1 TIẾT (45 PHÚT)</option>
+                      <option value="ĐỀ THI THỬ TỐT NGHIỆP THPT">ĐỀ THI THỬ TỐT NGHIỆP THPT</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={config.examTitle}
+                      onChange={(e) => onChange({ ...config, examTitle: e.target.value })}
+                      placeholder="Tên tùy chỉnh..."
+                      className="w-1/2 rounded-lg border border-slate-300 bg-white p-1.5 text-[11px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Col 3: Năm học, Thời gian & Số trang */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Năm học:
+                    </label>
+                    <input
+                      type="text"
+                      value={config.academicYear || ''}
+                      onChange={(e) => onChange({ ...config, academicYear: e.target.value })}
+                      placeholder="VD: 2026 - 2027"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 focus:border-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Thời gian (phút):</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="180"
+                      value={config.durationMinutes}
+                      onChange={(e) => onChange({ ...config, durationMinutes: Number(e.target.value) || 45 })}
+                      className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-indigo-900 text-center"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Số trang đề thi:</label>
+                  <input
+                    type="text"
+                    value={config.pageCountText || '2'}
+                    onChange={(e) => onChange({ ...config, pageCountText: e.target.value })}
+                    placeholder="VD: 2 hoặc 3"
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-center font-bold text-indigo-900"
+                  />
+                  <span className="block text-[10px] text-slate-500 mt-0.5 text-center">Hiển thị "(Đề có _2_ trang)"</span>
+                </div>
+              </div>
+
+              {/* Col 4: Mã Đề Thi Động */}
+              <div className="space-y-2 bg-indigo-50/70 p-2.5 rounded-lg border border-indigo-100">
+                <label className="block text-[11px] font-extrabold text-indigo-950 uppercase tracking-wide">
+                  Mã đề thi (Tùy chọn đảo đề):
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Số lượng mã:</label>
+                    <select
+                      value={config.testCodesCount || 2}
+                      onChange={(e) => {
+                        const count = Number(e.target.value);
+                        const defaultPreset = ['101', '102', '103', '104', '105', '106', '107', '108'].slice(0, count);
+                        onChange({ ...config, testCodesCount: count, customTestCodesList: defaultPreset });
+                      }}
+                      className="w-full rounded-lg border border-slate-300 bg-white p-1 text-xs font-bold text-indigo-900"
+                    >
+                      <option value={1}>1 Mã (101)</option>
+                      <option value={2}>2 Mã (101, 102)</option>
+                      <option value={4}>4 Mã (101 - 104)</option>
+                      <option value={6}>6 Mã</option>
+                      <option value={8}>8 Mã</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Danh sách mã:</label>
+                    <input
+                      type="text"
+                      value={config.customTestCodesList ? config.customTestCodesList.join(', ') : '101, 102, 103, 104'}
+                      onChange={(e) => {
+                        const list = e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean);
+                        onChange({
+                          ...config,
+                          customTestCodesList: list,
+                          testCodesCount: Math.max(1, list.length),
+                        });
+                      }}
+                      placeholder="VD: 101, 102, 103, 104"
+                      className="w-full rounded-lg border border-slate-300 bg-white p-1 text-xs font-mono text-indigo-900 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1 pt-1">
+                  <span className="text-[10px] font-bold text-slate-500">Mẫu mã:</span>
+                  {[
+                    { label: '101, 102', list: ['101', '102'] },
+                    { label: '101-104', list: ['101', '102', '103', '104'] },
+                    { label: '111-444', list: ['111', '222', '333', '444'] },
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() =>
+                        onChange({
+                          ...config,
+                          testCodesCount: p.list.length,
+                          customTestCodesList: p.list,
+                        })
+                      }
+                      className="px-1.5 py-0.5 bg-white border border-indigo-200 text-indigo-900 text-[9px] rounded font-bold hover:bg-indigo-100 transition cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -712,7 +705,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           {/* Chọn Lớp */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Chọn lớp:</label>
@@ -791,13 +784,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
           </div>
         </div>
-      </div>
 
-        </div>
-
-        {/* Column 2: Nội dung & Tài liệu */}
-        <div className="space-y-6">
-      {/* Step 4: Nội dung kiến thức & Yêu cầu cần đạt */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
 
         <div className="flex items-center justify-between mb-2">
@@ -843,8 +830,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
         )}
 
-        <div className="space-y-2.5">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          <div className="space-y-2">
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tên bài / Chủ đề:</label>
               <input
@@ -872,7 +859,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               Yêu cầu cần đạt / Mục tiêu đánh giá:
             </label>
             <textarea
-              rows={2}
+              rows={4}
               value={config.learningOutcomes}
               onChange={(e) => onChange({ ...config, learningOutcomes: e.target.value })}
               placeholder="VD: Nhận biết cực trị, tính được giới hạn, giải quyết bài toán tối ưu..."
@@ -885,10 +872,10 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               Dán nội dung bài học hoặc ngữ liệu đọc hiểu:
             </label>
             <textarea
-              rows={3}
+              rows={4}
               value={config.readingPassage}
               onChange={(e) => onChange({ ...config, readingPassage: e.target.value })}
-              placeholder="Dán văn bản đoạn trích thơ, văn xuôi, đoạn thông tin khoa học hoặc dữ kiện thực tế để làm ngữ liệu ra đề chùm..."
+              placeholder="Dán văn bản đoạn trích thơ, văn xuôi, đoạn thông tin khoa học hoặc dữ kiện thực tế..."
               className="w-full rounded-lg border border-slate-300 p-2 text-xs font-sans leading-relaxed"
             />
           </div>
@@ -914,11 +901,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           {/* Upload Area */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/60 rounded-xl p-4 text-center cursor-pointer transition"
+            className="lg:col-span-5 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/30 hover:bg-blue-50/60 rounded-xl p-4 text-center cursor-pointer transition flex flex-col justify-center"
           >
             <input
               type="file"
@@ -936,6 +923,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               💡 Bạn có thể chọn cùng lúc NHIỀU TẬP TIN (PDF, DOCX, TXT, PNG, JPG) hoặc nhấp chọn để tải thêm file khác. Gemini 3 Flash Preview sẽ đọc và tổng hợp 100% tất cả các file cùng lúc!
             </p>
           </div>
+
+          <div className="lg:col-span-7 space-y-3">
 
           {/* Uploaded Files List */}
           {config.uploadedDocs?.length > 0 && (
@@ -1092,418 +1081,254 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               </div>
             )}
           </div>
+          </div>
         </div>
       </div>
 
-      {/* Step 6: Loại đề & Thời gian làm bài */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-            5
-          </span>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Loại Đề & Thời Gian</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Loại kiểm tra:</label>
-            <select
-              value={config.examType}
-              onChange={(e) => onChange({ ...config, examType: e.target.value, examTitle: `ĐỀ ${e.target.value.toUpperCase()}` })}
-              className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium"
-            >
-              <option value="Kiểm tra thường xuyên">Kiểm tra thường xuyên</option>
-              <option value="Kiểm tra 15 phút">Kiểm tra 15 phút</option>
-              <option value="Kiểm tra 45 phút (1 tiết)">Kiểm tra 45 phút (1 tiết)</option>
-              <option value="Kiểm tra giữa học kỳ">Kiểm tra giữa học kỳ</option>
-              <option value="Kiểm tra cuối học kỳ">Kiểm tra cuối học kỳ</option>
-              <option value="Đề ôn tập">Đề ôn tập</option>
-              <option value="Đề luyện tập">Đề luyện tập</option>
-              <option value="Khảo sát chất lượng">Khảo sát chất lượng</option>
-            </select>
+      {/* Step 5, 6, 7: Cấu Trúc, Loại Đề & Mức Độ Nhận Thức - Full Width 3 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        {/* Step 5: Loại đề & Thời gian làm bài */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs h-full">
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+              5
+            </span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Loại Đề & Thời Gian</h2>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Thời gian làm bài:</label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="5"
-                max="180"
-                value={config.durationMinutes}
-                onChange={(e) => onChange({ ...config, durationMinutes: parseInt(e.target.value, 10) || 45 })}
-                className="w-20 rounded-lg border border-slate-300 p-2 text-xs font-bold text-center"
-              />
-              <span className="text-xs text-slate-600">phút</span>
-              <div className="flex space-x-1">
-                {[15, 45, 60, 90].map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => onChange({ ...config, durationMinutes: t })}
-                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-bold"
-                  >
-                    {t}'
-                  </button>
-                ))}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Loại kiểm tra:</label>
+              <select
+                value={config.examType}
+                onChange={(e) => onChange({ ...config, examType: e.target.value, examTitle: `ĐỀ ${e.target.value.toUpperCase()}` })}
+                className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium"
+              >
+                <option value="Kiểm tra thường xuyên">Kiểm tra thường xuyên</option>
+                <option value="Kiểm tra 15 phút">Kiểm tra 15 phút</option>
+                <option value="Kiểm tra 45 phút (1 tiết)">Kiểm tra 45 phút (1 tiết)</option>
+                <option value="Kiểm tra giữa học kỳ">Kiểm tra giữa học kỳ</option>
+                <option value="Kiểm tra cuối học kỳ">Kiểm tra cuối học kỳ</option>
+                <option value="Đề ôn tập">Đề ôn tập</option>
+                <option value="Đề luyện tập">Đề luyện tập</option>
+                <option value="Khảo sát chất lượng">Khảo sát chất lượng</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Thời gian làm bài:</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="5"
+                  max="180"
+                  value={config.durationMinutes}
+                  onChange={(e) => onChange({ ...config, durationMinutes: parseInt(e.target.value, 10) || 45 })}
+                  className="w-20 rounded-lg border border-slate-300 p-2 text-xs font-bold text-center"
+                />
+                <span className="text-xs text-slate-600">phút</span>
+                <div className="flex space-x-1">
+                  {[15, 45, 60, 90].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => onChange({ ...config, durationMinutes: t })}
+                      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-bold"
+                    >
+                      {t}'
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-        </div>
-
-        {/* Column 3: Cấu trúc & Khởi tạo */}
-        <div className="space-y-6">
-      {/* Step 7: Cấu trúc số lượng câu hỏi */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-              6
-            </span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Cấu Trúc Đề (Cấu trúc mới 2025)
-            </h2>
-          </div>
-          <div className="text-[11px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full">
-            Tổng: {totalQuestions} câu • {totalCommands} lệnh hỏi
-          </div>
-        </div>
-
-        <div className="space-y-2 text-xs">
-          {/* Phần I */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-            <div>
-              <span className="font-bold text-slate-800">Phần I: TN nhiều lựa chọn</span>
-              <p className="text-[10px] text-slate-500">4 phương án A, B, C, D (chọn 1)</p>
-            </div>
+        {/* Step 6: Cấu Trúc Đề 2025 */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs h-full">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="0"
-                max="40"
-                value={config.sectionCounts.part1}
-                onChange={(e) =>
-                  onChange({
-                    ...config,
-                    sectionCounts: { ...config.sectionCounts, part1: parseInt(e.target.value, 10) || 0 },
-                  })
-                }
-                className="w-16 rounded-md border border-slate-300 p-1.5 text-center font-bold"
-              />
-              <span className="text-slate-500">câu</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+                6
+              </span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Cấu Trúc Đề (Cấu trúc mới 2025)
+              </h2>
+            </div>
+            <div className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full">
+              {totalQuestions} câu • {totalCommands} lệnh
             </div>
           </div>
 
-          {/* Phần II */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-            <div>
-              <span className="font-bold text-slate-800">Phần II: TN Đúng/Sai 2025</span>
-              <p className="text-[10px] text-slate-500">Mỗi câu gồm 4 ý a, b, c, d (4 lệnh hỏi)</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={config.sectionCounts.part2}
-                onChange={(e) =>
-                  onChange({
-                    ...config,
-                    sectionCounts: { ...config.sectionCounts, part2: parseInt(e.target.value, 10) || 0 },
-                  })
-                }
-                className="w-16 rounded-md border border-slate-300 p-1.5 text-center font-bold"
-              />
-              <span className="text-slate-500">câu</span>
-            </div>
-          </div>
-
-          {/* Phần III */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-            <div>
-              <span className="font-bold text-slate-800">Phần III: TN Trả lời ngắn</span>
-              <p className="text-[10px] text-slate-500">Học sinh tính toán và điền đáp số ngắn</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="0"
-                max="20"
-                value={config.sectionCounts.part3}
-                onChange={(e) =>
-                  onChange({
-                    ...config,
-                    sectionCounts: { ...config.sectionCounts, part3: parseInt(e.target.value, 10) || 0 },
-                  })
-                }
-                className="w-16 rounded-md border border-slate-300 p-1.5 text-center font-bold"
-              />
-              <span className="text-slate-500">câu</span>
-            </div>
-          </div>
-
-          {/* Phần IV */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-            <div>
-              <span className="font-bold text-slate-800">Phần IV: Câu hỏi Tự luận</span>
-              <p className="text-[10px] text-slate-500">Giải bài tập, giải thích, viết đoạn văn...</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={config.sectionCounts.part4}
-                onChange={(e) =>
-                  onChange({
-                    ...config,
-                    sectionCounts: { ...config.sectionCounts, part4: parseInt(e.target.value, 10) || 0 },
-                  })
-                }
-                className="w-16 rounded-md border border-slate-300 p-1.5 text-center font-bold"
-              />
-              <span className="text-slate-500">câu</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 8: Thiết lập Mức độ nhận thức */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-              7
-            </span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Mức Độ Nhận Thức</h2>
-          </div>
-
-          {/* Toggle System for THCS / THPT */}
-          {config.gradeLevel !== 'primary' && (
-            <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-[10px]">
-              <button
-                type="button"
-                onClick={() => handleCognitiveSystemToggle('secondary_3')}
-                className={`px-2 py-0.5 rounded font-bold transition ${
-                  config.cognitiveSystem === 'secondary_3' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
-                }`}
-              >
-                Hệ 3 Mức (CV 7991)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCognitiveSystemToggle('secondary_4')}
-                className={`px-2 py-0.5 rounded font-bold transition ${
-                  config.cognitiveSystem === 'secondary_4' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
-                }`}
-              >
-                Hệ 4 Mức (NB-TH-VD-VDC)
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Cognitive Percent Inputs */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
-          {Object.entries(config.cognitiveDist).map(([lvl, val]) => (
-            <div key={lvl} className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
-              <span className="block font-bold text-slate-700 truncate">{lvl}</span>
-              <div className="mt-1 flex items-center justify-center space-x-1">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* Phần I */}
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-800 block text-[11px]">Phần I: TN nhiều lựa chọn</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-500">4 ý chọn 1</span>
                 <input
                   type="number"
                   min="0"
-                  max="100"
-                  value={val}
+                  max="40"
+                  value={config.sectionCounts.part1}
                   onChange={(e) =>
                     onChange({
                       ...config,
-                      cognitiveDist: { ...config.cognitiveDist, [lvl]: parseInt(e.target.value, 10) || 0 },
+                      sectionCounts: { ...config.sectionCounts, part1: parseInt(e.target.value, 10) || 0 },
                     })
                   }
-                  className="w-12 rounded border border-slate-300 p-1 text-center font-bold"
+                  className="w-12 rounded-md border border-slate-300 p-1 text-center font-bold"
                 />
-                <span className="text-slate-500">%</span>
               </div>
             </div>
-          ))}
+
+            {/* Phần II */}
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-800 block text-[11px]">Phần II: TN Đúng/Sai 2025</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-500">4 ý a,b,c,d</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={config.sectionCounts.part2}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      sectionCounts: { ...config.sectionCounts, part2: parseInt(e.target.value, 10) || 0 },
+                    })
+                  }
+                  className="w-12 rounded-md border border-slate-300 p-1 text-center font-bold"
+                />
+              </div>
+            </div>
+
+            {/* Phần III */}
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-800 block text-[11px]">Phần III: TN Trả lời ngắn</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-500">Điền đáp số</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={config.sectionCounts.part3}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      sectionCounts: { ...config.sectionCounts, part3: parseInt(e.target.value, 10) || 0 },
+                    })
+                  }
+                  className="w-12 rounded-md border border-slate-300 p-1 text-center font-bold"
+                />
+              </div>
+            </div>
+
+            {/* Phần IV */}
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-800 block text-[11px]">Phần IV: Tự luận</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-500">Bài tập/Đoạn văn</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={config.sectionCounts.part4}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      sectionCounts: { ...config.sectionCounts, part4: parseInt(e.target.value, 10) || 0 },
+                    })
+                  }
+                  className="w-12 rounded-md border border-slate-300 p-1 text-center font-bold"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Total Percent Warning */}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
-          <span className="text-slate-500">
-            Tổng tỷ lệ: <strong className={isPercentValid ? 'text-emerald-700' : 'text-rose-600 font-bold'}>{totalPercent}%</strong>
-          </span>
-          {!isPercentValid && (
+        {/* Step 7: Thiết lập Mức độ nhận thức */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs h-full">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <span className="text-rose-600 font-bold flex items-center space-x-1 text-[11px]">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>Chưa đủ 100%</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+                7
               </span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Mức Độ Nhận Thức</h2>
+            </div>
+
+            {/* Toggle System for THCS / THPT */}
+            {config.gradeLevel !== 'primary' && (
+              <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => handleCognitiveSystemToggle('secondary_3')}
+                  className={`px-1.5 py-0.5 rounded font-bold transition ${
+                    config.cognitiveSystem === 'secondary_3' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  3 Mức
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCognitiveSystemToggle('secondary_4')}
+                  className={`px-1.5 py-0.5 rounded font-bold transition ${
+                    config.cognitiveSystem === 'secondary_4' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  4 Mức
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Cognitive Percent Inputs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+            {Object.entries(config.cognitiveDist).map(([lvl, val]) => (
+              <div key={lvl} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                <span className="block font-bold text-slate-700 truncate text-[10px]">{lvl}</span>
+                <div className="mt-0.5 flex items-center justify-center space-x-0.5">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={val}
+                    onChange={(e) =>
+                      onChange({
+                        ...config,
+                        cognitiveDist: { ...config.cognitiveDist, [lvl]: parseInt(e.target.value, 10) || 0 },
+                      })
+                    }
+                    className="w-10 rounded border border-slate-300 p-0.5 text-center font-bold text-xs"
+                  />
+                  <span className="text-slate-500 text-[10px]">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Total Percent Warning */}
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs">
+            <span className="text-slate-500 text-[11px]">
+              Tổng: <strong className={isPercentValid ? 'text-emerald-700' : 'text-rose-600 font-bold'}>{totalPercent}%</strong>
+            </span>
+            {!isPercentValid && (
               <button
                 type="button"
                 onClick={handleAutoBalanceCognitive}
-                className="text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-lg flex items-center space-x-1 transition shadow-2xs cursor-pointer"
+                className="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-lg flex items-center space-x-1 transition shadow-2xs cursor-pointer"
                 title="Tự động chia lại tỷ lệ thành 100% chuẩn GDPT"
               >
                 <Wand2 className="h-3 w-3" />
                 <span>Cân bằng 100%</span>
               </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <div className="flex items-center space-x-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
-          <Sparkles className="h-4 w-4 text-purple-600" />
-          <span>Tùy chỉnh Giao diện & In ấn</span>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Chiều cao chữ (Dòng):</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'compact', label: 'Hẹp', sub: '1.2' },
-                { id: 'standard', label: 'Vừa', sub: '1.5' },
-                { id: 'relaxed', label: 'Rộng', sub: '1.8' }
-              ].map((lh) => (
-                <button
-                  key={lh.id}
-                  type="button"
-                  onClick={() => onChange({ ...config, layoutLineHeight: lh.id as any })}
-                  className={`py-1.5 px-1 rounded-lg border flex flex-col items-center transition-all ${
-                    config.layoutLineHeight === lh.id 
-                      ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-xs' 
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-[11px] font-bold">{lh.label}</span>
-                  <span className="text-[9px] opacity-60">{lh.sub}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Cỡ chữ văn bản (In):</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'small', label: 'Nhỏ', sub: '10pt' },
-                { id: 'medium', label: 'Vừa', sub: '11pt' },
-                { id: 'large', label: 'Lớn', sub: '12pt' }
-              ].map((fs) => (
-                <button
-                  key={fs.id}
-                  type="button"
-                  onClick={() => onChange({ ...config, layoutFontSize: fs.id as any })}
-                  className={`py-1.5 px-1 rounded-lg border flex flex-col items-center transition-all ${
-                    config.layoutFontSize === fs.id 
-                      ? 'bg-indigo-50 border-indigo-600 text-indigo-700 shadow-xs' 
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-[11px] font-bold">{fs.label}</span>
-                  <span className="text-[9px] opacity-60">{fs.sub}</span>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Advanced Toggle */}
-      <div className="border-t pt-2">
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex w-full items-center justify-between py-1 text-xs font-bold text-slate-600 hover:text-blue-700"
-        >
-          <span>⚙️ Cài đặt nâng cao (Thang điểm, Đảo đề, Giữ câu hỏi GV)</span>
-          {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
-
-        {showAdvanced && (
-          <div className="mt-3 space-y-3 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs animate-in fade-in duration-150">
-            {/* Thang điểm & Quy tắc */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Thang điểm:</label>
-                <select
-                  value={config.totalScore}
-                  onChange={(e) => onChange({ ...config, totalScore: parseInt(e.target.value, 10) || 10 })}
-                  className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs font-bold"
-                >
-                  <option value={10}>Thang 10 điểm (Chuẩn)</option>
-                  <option value={20}>Thang 20 điểm</option>
-                  <option value={100}>Thang 100 điểm</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                  Quy tắc chấm Đúng/Sai 4 ý:
-                </label>
-                <select
-                  value={config.gradingRuleTF}
-                  onChange={(e) => onChange({ ...config, gradingRuleTF: e.target.value as 'stepped' | 'equal' })}
-                  className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs font-medium"
-                >
-                  <option value="stepped">Lũy tiến Bộ GD&ĐT (0.1 - 0.25 - 0.5 - 1.0)</option>
-                  <option value="equal">Chia đều (0.25 điểm / mỗi ý)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Số mã đề */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                Số lượng mã đề cần tạo tự động:
-              </label>
-              <div className="flex space-x-2">
-                {[1, 2, 3, 4].map((cnt) => (
-                  <button
-                    key={cnt}
-                    type="button"
-                    onClick={() => onChange({ ...config, testCodesCount: cnt as 1 | 2 | 3 | 4 })}
-                    className={`flex-1 py-1 rounded border text-xs font-bold ${
-                      config.testCodesCount === cnt
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {cnt} mã ({cnt === 1 ? '101' : cnt === 2 ? '101, 102' : cnt === 3 ? '101-103' : '101-104'})
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Giữ câu hỏi GV */}
-            <div className="pt-1">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.keepFixedQuestions}
-                  onChange={(e) => onChange({ ...config, keepFixedQuestions: e.target.checked })}
-                  className="rounded text-blue-600"
-                />
-                <span className="font-semibold text-slate-800">
-                  Bật chế độ: Giữ nguyên các câu hỏi giáo viên tự nhập / đã ghim
-                </span>
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="space-y-3 pt-4 border-t border-slate-100">
+      {/* Action Buttons - Full Width Horizontal Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
         <button
           type="button"
           onClick={handleGenerateClick}
@@ -1517,7 +1342,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <button
           type="button"
           onClick={onBuildMatrixOnly}
-          className="w-full py-3.5 px-4 rounded-2xl border-2 border-blue-200 bg-blue-50/50 hover:bg-blue-100 hover:border-blue-400 text-blue-900 text-sm font-black transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98"
+          className="w-full py-4 px-4 rounded-2xl border-2 border-blue-200 bg-blue-50/50 hover:bg-blue-100 hover:border-blue-400 text-blue-900 text-base font-black transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer active:scale-98"
           title="Xem trước khung Ma trận 2 chiều và Bản đặc tả kỹ thuật theo cấu hình hiện tại trước khi tạo câu hỏi"
         >
           <FileCheck2 className="h-5 w-5 text-blue-700 shrink-0" />
