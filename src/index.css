@@ -8,17 +8,17 @@
 
   /* Global UI Scaling - Affects all rem-based sizes and typography */
   :root[data-ui-scale="compact"] {
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1.35;
   }
 
   :root[data-ui-scale="standard"] {
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1.5;
   }
 
   :root[data-ui-scale="relaxed"] {
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1.65;
   }
 }

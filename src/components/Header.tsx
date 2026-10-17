@@ -108,9 +108,9 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden sm:flex items-center space-x-1 rounded-xl border border-slate-200 bg-slate-50/80 p-1 shadow-xs">
             <span className="text-[10px] font-black uppercase text-slate-500 px-2">Cỡ chữ:</span>
             {[
-              { id: 'compact', label: 'Nhỏ', desc: '18px - dòng 1.35' },
-              { id: 'standard', label: 'Vừa', desc: '20px - dòng 1.5' },
-              { id: 'relaxed', label: 'Lớn', desc: '24px - dòng 1.65' },
+              { id: 'compact', label: 'Nhỏ', desc: '16px - dòng 1.35' },
+              { id: 'standard', label: 'Vừa', desc: '18px - dòng 1.5' },
+              { id: 'relaxed', label: 'Lớn', desc: '20px - dòng 1.65' },
             ].map((s) => (
               <button
                 key={s.id}
@@ -150,9 +150,9 @@ export const Header: React.FC<HeaderProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 gap-2">
                     {[
-                      { id: 'compact', label: 'Cỡ chữ nhỏ', desc: '18px - dòng 1.35' },
-                      { id: 'standard', label: 'Cỡ chữ tiêu chuẩn', desc: '20px - dòng 1.5' },
-                      { id: 'relaxed', label: 'Cỡ chữ lớn', desc: '24px - dòng 1.65' }
+                      { id: 'compact', label: 'Cỡ chữ nhỏ', desc: '16px - dòng 1.35' },
+                      { id: 'standard', label: 'Cỡ chữ tiêu chuẩn', desc: '18px - dòng 1.5' },
+                      { id: 'relaxed', label: 'Cỡ chữ lớn', desc: '20px - dòng 1.65' }
                     ].map((s) => (
                       <button
                         key={s.id}
