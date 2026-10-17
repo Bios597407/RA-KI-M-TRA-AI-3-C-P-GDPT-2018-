@@ -104,7 +104,30 @@ export const Header: React.FC<HeaderProps> = ({
             <Download className="h-5 w-5" />
           </button>
 
-          {/* Settings / Global UI Scale */}
+          {/* Direct 3-Mode Font Size Quick Selector */}
+          <div className="hidden sm:flex items-center space-x-1 rounded-xl border border-slate-200 bg-slate-50/80 p-1 shadow-xs">
+            <span className="text-[10px] font-black uppercase text-slate-500 px-2">Cỡ chữ:</span>
+            {[
+              { id: 'compact', label: 'Nhỏ', desc: '18px - dòng 1.35' },
+              { id: 'standard', label: 'Vừa', desc: '20px - dòng 1.5' },
+              { id: 'relaxed', label: 'Lớn', desc: '24px - dòng 1.65' },
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onConfigChange({ ...config, appUiScale: s.id as any })}
+                title={`${s.label}: ${s.desc}`}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  (config.appUiScale || 'standard') === s.id
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-white hover:text-blue-600'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Settings / Global UI Scale Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -121,13 +144,15 @@ export const Header: React.FC<HeaderProps> = ({
             {showSettings && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSettings(false)}></div>
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <h3 className="text-[11px] font-black uppercase text-slate-500 mb-3 tracking-widest">Kích cỡ hệ thống</h3>
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <h3 className="text-[11px] font-black uppercase text-slate-500 mb-3 tracking-widest">
+                    Hiển thị & Kích thước chữ toàn ứng dụng
+                  </h3>
                   <div className="grid grid-cols-1 gap-2">
                     {[
-                      { id: 'compact', label: 'Cỡ chữ nhỏ', desc: '14px - Dòng 1.35' },
-                      { id: 'standard', label: 'Cỡ chữ tiêu chuẩn', desc: '16px - Dòng 1.5' },
-                      { id: 'relaxed', label: 'Cỡ chữ lớn', desc: '18px - Dòng 1.65' }
+                      { id: 'compact', label: 'Cỡ chữ nhỏ', desc: '18px - dòng 1.35' },
+                      { id: 'standard', label: 'Cỡ chữ tiêu chuẩn', desc: '20px - dòng 1.5' },
+                      { id: 'relaxed', label: 'Cỡ chữ lớn', desc: '24px - dòng 1.65' }
                     ].map((s) => (
                       <button
                         key={s.id}
@@ -135,13 +160,13 @@ export const Header: React.FC<HeaderProps> = ({
                           onConfigChange({ ...config, appUiScale: s.id as any });
                           setShowSettings(false);
                         }}
-                        className={`w-full text-left p-3 rounded-xl border-2 transition-all group ${
-                          config.appUiScale === s.id 
-                            ? 'border-blue-600 bg-blue-50/50' 
+                        className={`w-full text-left p-3 rounded-xl border-2 transition-all group cursor-pointer ${
+                          (config.appUiScale || 'standard') === s.id 
+                            ? 'border-blue-600 bg-blue-50/70' 
                             : 'border-transparent bg-slate-50 hover:bg-white hover:border-slate-200'
                         }`}
                       >
-                        <div className={`text-xs font-black uppercase ${config.appUiScale === s.id ? 'text-blue-700' : 'text-slate-700'}`}>
+                        <div className={`text-xs font-black uppercase ${ (config.appUiScale || 'standard') === s.id ? 'text-blue-700' : 'text-slate-700'}`}>
                           {s.label}
                         </div>
                         <div className="text-[10px] text-slate-500 font-medium mt-0.5">{s.desc}</div>
