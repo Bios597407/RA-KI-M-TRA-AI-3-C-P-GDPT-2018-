@@ -881,6 +881,22 @@ function renderSpecTable(specs: ExamSpecificationRow[], matrix?: ExamMatrix): st
     return `(${count})<br><span style="font-size: 7.5pt; color: #444;">(${codeStr || 'NL?'})</span>`;
   };
 
+  const grandScore = matrix?.grandTotal?.score || 10;
+  let countP1 = 0, countP2 = 0, countP3 = 0, countP4 = 0;
+
+  rows.forEach((r) => {
+    countP1 += parseVal(r.part1?.['Biết'] || r.part1?.['Nhận biết']).count + parseVal(r.part1?.['Hiểu'] || r.part1?.['Thông hiểu']).count + parseVal(r.part1?.['Vận dụng'] || r.part1?.['VD']).count;
+    countP2 += parseVal(r.part2?.['Biết'] || r.part2?.['Nhận biết']).count + parseVal(r.part2?.['Hiểu'] || r.part2?.['Thông hiểu']).count + parseVal(r.part2?.['Vận dụng'] || r.part2?.['VD']).count;
+    countP3 += parseVal(r.part3?.['Biết'] || r.part3?.['Nhận biết']).count + parseVal(r.part3?.['Hiểu'] || r.part3?.['Thông hiểu']).count + parseVal(r.part3?.['Vận dụng'] || r.part3?.['VD']).count;
+    countP4 += parseVal(r.part4?.['Biết'] || r.part4?.['Nhận biết']).count + parseVal(r.part4?.['Hiểu'] || r.part4?.['Thông hiểu']).count + parseVal(r.part4?.['Vận dụng'] || r.part4?.['VD']).count;
+  });
+
+  const score1 = countP1 * 0.25;
+  const score2 = countP2 * 0.25;
+  const score3 = countP3 * 0.5;
+  const score4 = Math.max(0, grandScore - score1 - score2 - score3);
+  const fmt = (n: number) => (n % 1 === 0 ? `${n},0` : n.toFixed(1).replace('.', ','));
+
   return `
   <div style="text-align: center; font-weight: bold; font-size: 11pt; text-transform: uppercase; margin-bottom: 6pt; margin-top: 15pt;">
     2. BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ
@@ -978,28 +994,28 @@ function renderSpecTable(specs: ExamSpecificationRow[], matrix?: ExamMatrix): st
       <!-- Dòng 1: Tổng số câu -->
       <tr style="background-color: #f2f2f2; font-weight: bold;">
         <td colspan="4" style="text-align: center; text-transform: uppercase;">Tổng số câu</td>
-        <td colspan="3">12</td>
-        <td colspan="3">4</td>
-        <td colspan="3">4</td>
-        <td colspan="3">2</td>
+        <td colspan="3">${countP1 || 12}</td>
+        <td colspan="3">${countP2 || 4}</td>
+        <td colspan="3">${countP3 || 4}</td>
+        <td colspan="3">${countP4 || 2}</td>
       </tr>
 
       <!-- Dòng 2: Tổng số điểm -->
       <tr style="background-color: #f2f2f2; font-weight: bold;">
         <td colspan="4" style="text-align: center; text-transform: uppercase;">Tổng số điểm</td>
-        <td colspan="3">3,0</td>
-        <td colspan="3">2,0</td>
-        <td colspan="3">2,0</td>
-        <td colspan="3">3,0</td>
+        <td colspan="3">${fmt(score1) || '3,0'}</td>
+        <td colspan="3">${fmt(score2) || '2,0'}</td>
+        <td colspan="3">${fmt(score3) || '2,0'}</td>
+        <td colspan="3">${fmt(score4) || '3,0'}</td>
       </tr>
 
       <!-- Dòng 3: Tỉ lệ % -->
       <tr style="background-color: #e6f2ff; font-weight: bold;">
         <td colspan="4" style="text-align: center; text-transform: uppercase;">Tỉ lệ %</td>
-        <td colspan="3">30</td>
-        <td colspan="3">20</td>
-        <td colspan="3">20</td>
-        <td colspan="3">30</td>
+        <td colspan="3">${Math.round((score1 / grandScore) * 100) || 30}</td>
+        <td colspan="3">${Math.round((score2 / grandScore) * 100) || 20}</td>
+        <td colspan="3">${Math.round((score3 / grandScore) * 100) || 20}</td>
+        <td colspan="3">${Math.round((score4 / grandScore) * 100) || 30}</td>
       </tr>
     </tbody>
   </table>
