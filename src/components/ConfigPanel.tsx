@@ -90,26 +90,66 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       
       console.log('AI Inference Result:', result);
 
-      let targetGradeLevel: GradeLevel = result.gradeLevel || config.gradeLevel;
-      let targetGrade = result.grade || config.grade;
+      // Normalize Grade & Level
+      let gLevel: GradeLevel = config.gradeLevel;
+      let gVal: string = config.grade;
+      if (result.grade) {
+        const num = parseInt(String(result.grade).replace(/\D/g, ''), 10);
+        if (!isNaN(num) && num >= 1 && num <= 12) {
+          gVal = String(num);
+          if (num <= 5) gLevel = 'primary';
+          else if (num <= 9) gLevel = 'secondary';
+          else gLevel = 'high';
+        }
+      } else if (result.gradeLevel) {
+        gLevel = result.gradeLevel;
+      }
 
-      // Ensure grade matches grade level if grade level is updated
-      if (result.grade && !result.gradeLevel) {
-        const num = parseInt(result.grade, 10);
-        if (num >= 1 && num <= 5) targetGradeLevel = 'primary';
-        else if (num >= 6 && num <= 9) targetGradeLevel = 'secondary';
-        else if (num >= 10 && num <= 12) targetGradeLevel = 'high';
+      // Normalize Subject
+      let subjVal = config.subject;
+      let customSubjVal = config.customSubject || '';
+      if (result.subject) {
+        const sTrim = result.subject.trim();
+        const sLower = sTrim.toLowerCase();
+        const matched = subjectOptions.find(opt => opt.toLowerCase() === sLower);
+        if (matched) {
+          subjVal = matched;
+          customSubjVal = '';
+        } else if (sLower.includes('toán')) { subjVal = 'Toán học'; customSubjVal = ''; }
+        else if (sLower.includes('văn')) { subjVal = 'Ngữ văn'; customSubjVal = ''; }
+        else if (sLower.includes('anh')) { subjVal = 'Tiếng Anh'; customSubjVal = ''; }
+        else if (sLower.includes('khtn') || sLower.includes('khoa học tự nhiên')) { subjVal = 'Khoa học tự nhiên'; customSubjVal = ''; }
+        else if (sLower.includes('lịch sử & địa lý') || sLower.includes('sử địa')) { subjVal = 'Lịch sử & Địa lý'; customSubjVal = ''; }
+        else if (sLower.includes('vật l')) { subjVal = 'Vật lý'; customSubjVal = ''; }
+        else if (sLower.includes('hóa')) { subjVal = 'Hóa học'; customSubjVal = ''; }
+        else if (sLower.includes('sinh')) { subjVal = 'Sinh học'; customSubjVal = ''; }
+        else if (sLower.includes('lịch sử') || sLower.includes('sử')) { subjVal = 'Lịch sử'; customSubjVal = ''; }
+        else if (sLower.includes('địa')) { subjVal = 'Địa lý'; customSubjVal = ''; }
+        else if (sLower.includes('tin')) { subjVal = 'Tin học'; customSubjVal = ''; }
+        else {
+          customSubjVal = sTrim;
+        }
+      }
+
+      // Normalize Textbook
+      let tbVal = config.textbook;
+      if (result.textbook) {
+        const tbLower = result.textbook.toLowerCase();
+        if (tbLower.includes('kết nối') || tbLower.includes('kntt')) tbVal = 'Kết nối tri thức với cuộc sống';
+        else if (tbLower.includes('chân trời') || tbLower.includes('ctst')) tbVal = 'Chân trời sáng tạo';
+        else if (tbLower.includes('cánh diều') || tbLower.includes('cd')) tbVal = 'Cánh Diều';
+        else if (tbLower.includes('chung') || tbLower.includes('gdpt')) tbVal = 'Chung chương trình GDPT 2018';
       }
 
       // Default cognitive system & distribution based on inferred grade level
       let targetCognitiveSystem: CognitiveSystem = config.cognitiveSystem;
       let targetCognitiveDist = { ...config.cognitiveDist };
 
-      if (targetGradeLevel !== config.gradeLevel) {
-        if (targetGradeLevel === 'primary') {
+      if (gLevel !== config.gradeLevel) {
+        if (gLevel === 'primary') {
           targetCognitiveSystem = 'primary_3';
           targetCognitiveDist = { 'Mức 1': 40, 'Mức 2': 40, 'Mức 3': 20 };
-        } else if (targetGradeLevel === 'secondary') {
+        } else if (gLevel === 'secondary') {
           targetCognitiveSystem = 'secondary_3';
           targetCognitiveDist = { 'Biết': 40, 'Hiểu': 30, 'Vận dụng': 30 };
         } else {
@@ -120,14 +160,14 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
       const finalizedConfig: ExamConfig = {
         ...config,
-        uploadedDocs: docs, // Explicitly preserve the latest docs passed to the analyzer
-        gradeLevel: targetGradeLevel,
-        grade: targetGrade,
-        subject: result.subject || config.subject,
-        textbook: result.textbook || config.textbook,
+        uploadedDocs: docs,
+        gradeLevel: gLevel,
+        grade: gVal,
+        subject: subjVal,
+        customSubject: customSubjVal,
+        textbook: tbVal,
         cognitiveSystem: targetCognitiveSystem,
         cognitiveDist: targetCognitiveDist,
-        // Set fresh clean AI analysis result for all N files (no duplicate repeats)
         topicTitle: result.topicTitle || config.topicTitle || '',
         chapter: result.chapter || config.chapter || '',
         learningOutcomes: result.learningOutcomes || config.learningOutcomes || '',
@@ -825,23 +865,27 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           <div className="space-y-2">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tên bài / Chủ đề:</label>
-              <input
-                type="text"
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                Tên bài / Chủ đề (Mỗi bài 1 dòng):
+              </label>
+              <textarea
+                rows={2}
                 value={config.topicTitle}
                 onChange={(e) => onChange({ ...config, topicTitle: e.target.value })}
-                placeholder="VD: Khảo sát hàm số, Sóng cơ học..."
-                className="w-full rounded-lg border border-slate-300 p-2 text-xs font-medium"
+                placeholder="Bài 1: Hàm số và Đồ thị&#10;Bài 2: Cực trị hàm số&#10;Bài 3: Tiệm cận"
+                className="w-full rounded-lg border border-slate-300 p-2 text-xs font-medium leading-relaxed focus:border-blue-500 focus:outline-hidden"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">Chương / Phạm vi:</label>
-              <input
-                type="text"
+              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                Chương / Phạm vi (Tương ứng theo bài):
+              </label>
+              <textarea
+                rows={2}
                 value={config.chapter}
                 onChange={(e) => onChange({ ...config, chapter: e.target.value })}
-                placeholder="VD: Chương I, Giữa học kỳ 1..."
-                className="w-full rounded-lg border border-slate-300 p-2 text-xs font-medium"
+                placeholder="Chương I&#10;Chương I&#10;Chương I"
+                className="w-full rounded-lg border border-slate-300 p-2 text-xs font-medium leading-relaxed focus:border-blue-500 focus:outline-hidden"
               />
             </div>
           </div>
