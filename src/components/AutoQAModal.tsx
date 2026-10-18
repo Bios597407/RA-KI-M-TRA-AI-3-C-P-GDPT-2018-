@@ -33,7 +33,7 @@ export const AutoQAModal: React.FC<AutoQAModalProps> = ({ isOpen, onClose, repor
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Đối chiếu 12 tiêu chuẩn khảo thí chuẩn Bộ GD&ĐT & Chương trình GDPT 2018
+                Đối chiếu 15 tiêu chuẩn khảo thí sư phạm chuyên sâu chuẩn Bộ GD&ĐT & GDPT 2018
               </p>
             </div>
           </div>

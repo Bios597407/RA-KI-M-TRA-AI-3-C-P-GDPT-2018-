@@ -14,6 +14,7 @@ import ExamImportModal from './components/ExamImportModal';
 import MatrixSpecModal from './components/MatrixSpecModal';
 import ConfirmModal from './components/ConfirmModal';
 import PrintPreviewModal from './components/PrintPreviewModal';
+import AssessmentPipeline from './components/AssessmentPipeline';
 import { useToast } from './components/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -195,6 +196,7 @@ export default function App() {
   const [printDocType, setPrintDocType] = useState<'exam' | 'answers' | 'matrix' | 'study_guide' | 'full'>('exam');
   const [workspaceTab, setWorkspaceTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(null);
+  const [viewMode, setViewMode] = useState<'pipeline' | 'workspace'>('pipeline');
 
   const toast = useToast();
   const [confirmState, setConfirmState] = useState<{
@@ -268,14 +270,25 @@ export default function App() {
     }
   }, [questions]);
 
+  // Custom Matrix & Specs state (for interactive dashboard adjustments)
+  const [customMatrix, setCustomMatrix] = useState<ExamMatrix | null>(null);
+  const [customSpecs, setCustomSpecs] = useState<ExamSpecificationRow[] | null>(null);
+
   // Derived Matrix and Specs
   const matrix: ExamMatrix = useMemo(() => {
+    if (customMatrix) return customMatrix;
     return buildExamMatrix(questions, config);
-  }, [questions, config]);
+  }, [customMatrix, questions, config]);
 
   const specs: ExamSpecificationRow[] = useMemo(() => {
+    if (customSpecs) return customSpecs;
     return buildExamSpecification(questions, config);
-  }, [questions, config]);
+  }, [customSpecs, questions, config]);
+
+  const handleUpdateMatrix = (newMatrix: ExamMatrix, newSpecs: ExamSpecificationRow[]) => {
+    setCustomMatrix(newMatrix);
+    setCustomSpecs(newSpecs);
+  };
 
   // Derived Shuffled Codes (111, 222, 333, 444...)
   const shuffledCodes: ShuffledExamCode[] = useMemo(() => {
@@ -369,8 +382,10 @@ export default function App() {
   };
 
   const handleBuildMatrixOnly = () => {
-    setShowMatrixModal(true);
-    setWorkspaceTab('matrix');
+    setViewMode('pipeline');
+    const el = document.getElementById('workspace-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    toast.info('Đang chuyển đến Bước 2: Thiết lập và phê duyệt Ma trận đề kiểm tra (CV 7991).');
   };
 
   const handleExportMatrixOnlyWord = () => {
@@ -418,6 +433,14 @@ export default function App() {
         toast.info('Đã xóa sạch toàn bộ lịch sử.');
       },
     });
+  };
+
+  const handleAutoBalanceMatrixAndScore = () => {
+    if (questions.length === 0) return;
+    const cloned = [...questions];
+    applyScoringRules(cloned, config);
+    setQuestions(cloned);
+    toast.success('🎉 Đã tự động chuẩn hóa thang điểm 10.0 và cân bằng ma trận theo Thông tư 22!');
   };
 
   // Inline Question Tools
@@ -650,46 +673,122 @@ export default function App() {
 
         {/* Bottom: Workspace Preview, Tabs, Action Toolbar & Exam Content (Full Width) */}
         <div id="workspace-section" className="w-full space-y-6">
-          {/* Realtime 7-Step Stepper during Generation */}
+          {/* Realtime Stepper during Generation */}
           {isGenerating && (
             <GenerationStepper currentStep={progressStep} message={progressMsg} />
           )}
 
-          {/* 6 Tab Workspace */}
-          <Workspace
-            config={config}
-            questions={questions}
-            shuffledCodes={shuffledCodes}
-            activeCode={activeCode}
-            onSelectCode={setActiveCode}
-            matrix={matrix}
-            specs={specs}
-            qaReport={qaReport}
-            currentTab={workspaceTab}
-            onTabChange={setWorkspaceTab}
-            onOpenQA={() => setShowQAModal(true)}
-            onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
-            onOpenAzotaExport={() => setShowAzotaModal(true)}
-            onOpenImport={() => setShowImportModal(true)}
-            onOpenMatrixModal={() => setShowMatrixModal(true)}
-            onExportExamOnly={handleExportExamOnly}
-            onExportAnswerOnly={handleExportAnswerOnly}
-            onExportFullWord={handleExportFullWord}
-            onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
-            onExportStudyGuideWord={handleExportStudyGuideWord}
-            onOpenPrintPreview={handleOpenPrintPreview}
-            onPrintA4={handlePrintA4}
-            onCopyContent={handleCopyContent}
-            onRegenerateAll={handleGenerate}
-            onGenerateEquivalent={handleRegenerateEquivalent}
-            onEditQuestion={handleEditQuestion}
-            onDeleteQuestion={handleDeleteQuestion}
-            onRegenerateSingleQuestion={handleRegenerateSingleQuestion}
-            onSaveToBank={handleSaveToBank}
-            onAddNewQuestion={handleAddNewQuestion}
-            isGenerating={isGenerating}
-            apiKey={apiKey}
-          />
+          {/* View Mode Switcher: 4-Step Assessment Pipeline (TT 22 & CV 7991) vs Detailed Workspace */}
+          <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setViewMode('pipeline')}
+                className={`px-4 py-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
+                  viewMode === 'pipeline'
+                    ? 'bg-gradient-to-r from-indigo-700 to-blue-800 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🏛️ Quy Trình 4 Bước (TT 22 & CV 7991)</span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded-full">
+                  Chuẩn Bộ
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('workspace')}
+                className={`px-4 py-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center space-x-2 ${
+                  viewMode === 'workspace'
+                    ? 'bg-gradient-to-r from-indigo-700 to-blue-800 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>📝 Không Gian Soạn Thảo (Workspace)</span>
+                {questions.length > 0 && (
+                  <span className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.2 rounded-full">
+                    {questions.length} câu
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500 font-medium hidden md:block">
+              {viewMode === 'pipeline' ? (
+                <span>
+                  Đang ở chế độ <strong>Khảo thí 4 bước tuần tự có Điểm dừng phê duyệt</strong> (Bảo đảm đề khớp Ma trận 100%)
+                </span>
+              ) : (
+                <span>
+                  Đang ở chế độ <strong>Xem chi tiết đề, bảng đáp án, biểu điểm và chỉnh sửa từng câu hỏi</strong>
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Render Active View */}
+          {viewMode === 'pipeline' ? (
+            <AssessmentPipeline
+              config={config}
+              matrix={matrix}
+              specs={specs}
+              questions={questions}
+              bank={bank}
+              shuffledCodes={shuffledCodes}
+              activeCode={activeCode}
+              onSelectCode={setActiveCode}
+              qaReport={qaReport}
+              isGenerating={isGenerating}
+              onGenerateExam={handleGenerate}
+              onAutoBalanceMatrix={handleAutoBalanceMatrixAndScore}
+              onUpdateMatrix={handleUpdateMatrix}
+              onExportFullWord={handleExportFullWord}
+              onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
+              onOpenPrintPreview={handleOpenPrintPreview}
+              onOpenQA={() => setShowQAModal(true)}
+              onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
+              onSwitchToTraditionalWorkspace={() => setViewMode('workspace')}
+            />
+          ) : (
+            /* 6 Tab Workspace */
+            <Workspace
+              config={config}
+              questions={questions}
+              shuffledCodes={shuffledCodes}
+              activeCode={activeCode}
+              onSelectCode={setActiveCode}
+              matrix={matrix}
+              specs={specs}
+              qaReport={qaReport}
+              currentTab={workspaceTab}
+              onTabChange={setWorkspaceTab}
+              onOpenQA={() => setShowQAModal(true)}
+              onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
+              onOpenAzotaExport={() => setShowAzotaModal(true)}
+              onOpenImport={() => setShowImportModal(true)}
+              onOpenMatrixModal={() => setShowMatrixModal(true)}
+              onExportExamOnly={handleExportExamOnly}
+              onExportAnswerOnly={handleExportAnswerOnly}
+              onExportFullWord={handleExportFullWord}
+              onExportMatrixSpecsWord={handleExportMatrixOnlyWord}
+              onExportStudyGuideWord={handleExportStudyGuideWord}
+              onOpenPrintPreview={handleOpenPrintPreview}
+              onPrintA4={handlePrintA4}
+              onCopyContent={handleCopyContent}
+              onRegenerateAll={handleGenerate}
+              onGenerateEquivalent={handleRegenerateEquivalent}
+              onEditQuestion={handleEditQuestion}
+              onDeleteQuestion={handleDeleteQuestion}
+              onRegenerateSingleQuestion={handleRegenerateSingleQuestion}
+              onSaveToBank={handleSaveToBank}
+              onAddNewQuestion={handleAddNewQuestion}
+              onAutoBalanceMatrix={handleAutoBalanceMatrixAndScore}
+              onUpdateMatrix={handleUpdateMatrix}
+              isGenerating={isGenerating}
+              apiKey={apiKey}
+            />
+          )}
         </div>
       </main>
 
@@ -722,6 +821,10 @@ export default function App() {
         onRestore={handleRestoreHistory}
         onDeleteHistoryItem={handleDeleteHistoryItem}
         onClearAllHistory={handleClearAllHistory}
+        onImportHistory={(imported) => {
+          setHistory((prev) => [...imported, ...prev]);
+          toast.success(`Đã nạp thành công ${imported.length} đề thi từ tệp sao lưu!`);
+        }}
       />
 
       <AzotaExportModal

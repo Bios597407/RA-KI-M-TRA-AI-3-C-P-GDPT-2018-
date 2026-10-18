@@ -38,6 +38,9 @@ import { useToast } from './Toast';
 import OfficialExamHeader from './OfficialExamHeader';
 import OfficialMatrixTable from './OfficialMatrixTable';
 import OfficialSpecificationTable from './OfficialSpecificationTable';
+import MatrixAuditBar from './MatrixAuditBar';
+import { InteractiveMatrixDashboard } from './InteractiveMatrixDashboard';
+import { exportMasterAnswerKeyWordDoc } from '../utils/exporter';
 
 interface WorkspaceProps {
   config: ExamConfig;
@@ -72,6 +75,8 @@ interface WorkspaceProps {
   apiKey?: string;
   currentTab?: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide';
   onTabChange?: (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => void;
+  onAutoBalanceMatrix?: () => void;
+  onUpdateMatrix?: (newMatrix: ExamMatrix, newSpecs: ExamSpecificationRow[]) => void;
 }
 
 export const Workspace: React.FC<WorkspaceProps> = ({
@@ -107,9 +112,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   apiKey,
   currentTab,
   onTabChange,
+  onAutoBalanceMatrix,
+  onUpdateMatrix,
 }) => {
   const toast = useToast();
   const [localTab, setLocalTab] = useState<'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide'>('exam');
+  const [answerKeyViewMode, setAnswerKeyViewMode] = useState<'single' | 'master'>('single');
+  const [matrixViewMode, setMatrixViewMode] = useState<'dashboard' | 'official'>('dashboard');
   const activeTab = currentTab !== undefined ? currentTab : localTab;
   const setActiveTab = (tab: 'exam' | 'answers' | 'rubric' | 'matrix' | 'spec' | 'study_guide') => {
     setLocalTab(tab);
@@ -389,6 +398,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Real-time Matrix Audit Bar */}
+      <MatrixAuditBar
+        config={config}
+        questions={questions}
+        onAutoBalance={onAutoBalanceMatrix}
+      />
+
       {/* Academic Safety Banner */}
       <div className="no-print rounded-xl bg-amber-50/70 border border-amber-200/80 p-3 text-xs text-amber-900 flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -473,31 +489,249 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       {/* Tab 2: BẢNG ĐÁP ÁN */}
       {activeTab === 'answers' && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="border-b pb-3 flex items-center justify-between">
+          <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-slate-800 text-base">Bảng Đáp Án Nhanh – Mã Đề {currentExam.code}</h3>
-              <p className="text-xs text-slate-500">Dành cho cán bộ chấm thi và đối chiếu kết quả</p>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-slate-800 text-base sm:text-lg">
+                  {answerKeyViewMode === 'single'
+                    ? `Bảng Đáp Án Nhanh – Mã Đề ${currentExam.code}`
+                    : `Bảng Tổng Hợp Đối Chiếu Đáp Án Đa Mã Đề (${shuffledCodes.map((c) => c.code).join(' – ')})`}
+                </h3>
+                <span className="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full">
+                  {shuffledCodes.length} mã đề
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {answerKeyViewMode === 'single'
+                  ? 'Dành cho cán bộ chấm thi đối chiếu đáp án chi tiết theo từng câu hỏi'
+                  : 'Bảng ma trận đối chiếu đáp án tất cả các mã đề thi để chấm thi tập trung siêu tốc'}
+              </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={onExportAnswerOnly}
-                className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
-              >
-                <FileDown className="h-3.5 w-3.5 text-blue-600" />
-                <span>Xuất Word Đáp Án (.doc)</span>
-              </button>
-              <button
-                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('answers') : onPrintA4())}
-                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                <span>In Bảng Đáp Án</span>
-              </button>
+
+            {/* View Mode Switcher & Export */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setAnswerKeyViewMode('single')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    answerKeyViewMode === 'single'
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Mã {currentExam.code}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnswerKeyViewMode('master')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center space-x-1 ${
+                    answerKeyViewMode === 'master'
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Grid className="h-3 w-3" />
+                  <span>Tổng hợp {shuffledCodes.length} mã</span>
+                </button>
+              </div>
+
+              {answerKeyViewMode === 'single' ? (
+                <>
+                  <button
+                    onClick={onExportAnswerOnly}
+                    className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Xuất Word Đáp Án (.doc)</span>
+                  </button>
+                  <button
+                    onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('answers') : onPrintA4())}
+                    className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span>In Bảng Đáp Án</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => exportMasterAnswerKeyWordDoc(config, shuffledCodes)}
+                    className="no-print text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 px-3.5 py-1.5 rounded-lg shadow-xs flex items-center space-x-1.5 cursor-pointer"
+                    title="Xuất bảng đối chiếu đáp án tất cả các mã đề thi ra file Word"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    <span>Xuất Word Tổng Hợp (.doc)</span>
+                  </button>
+                  <button
+                    onClick={() => onPrintA4()}
+                    className="no-print text-xs font-bold text-indigo-800 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span>In Bảng Tổng Hợp</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Quick Answers Grid */}
-          <div className="overflow-x-auto">
+          {/* VIEW MODE 1: MASTER COMPARATIVE ANSWER MATRIX */}
+          {answerKeyViewMode === 'master' && (
+            <div className="space-y-6">
+              {/* Part I Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-xs uppercase tracking-wider text-indigo-900 flex items-center space-x-1.5">
+                    <span className="h-2 w-2 rounded-full bg-indigo-600"></span>
+                    <span>PHẦN I. ĐÁP ÁN TRẮC NGHIỆM NHIỀU LỰA CHỌN (0.25đ / CÂU)</span>
+                  </h4>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-slate-300">
+                  <table className="w-full text-xs text-center border-collapse">
+                    <thead className="bg-slate-100 font-bold text-slate-800">
+                      <tr>
+                        <th className="p-2 border border-slate-300 w-16">Câu</th>
+                        {shuffledCodes.map((c) => (
+                          <th key={c.code} className="p-2 border border-slate-300 bg-indigo-50/50 text-indigo-950 font-black">
+                            Mã {c.code}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 font-mono">
+                      {Array.from({ length: config.sectionCounts.part1 || 12 }).map((_, idx) => {
+                        const qNum = idx + 1;
+                        return (
+                          <tr key={qNum} className="hover:bg-slate-50 font-medium">
+                            <td className="p-2 border border-slate-300 font-bold bg-slate-50 font-sans text-slate-700">
+                              Câu {qNum}
+                            </td>
+                            {shuffledCodes.map((c) => {
+                              const q = (c.questions.filter((item) => item.part === 'part1' || item.type === 'mcq_single'))[idx];
+                              const ans = q ? String(q.correctAnswer) : '-';
+                              return (
+                                <td key={c.code} className="p-2 border border-slate-300 font-extrabold text-emerald-700 text-sm">
+                                  {ans}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Part II Table: True / False */}
+              {(config.sectionCounts.part2 || 0) > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-xs uppercase tracking-wider text-indigo-900 flex items-center space-x-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-600"></span>
+                    <span>PHẦN II. ĐÁP ÁN TRẮC NGHIỆM ĐÚNG / SAI 4 Ý (BẬC THANG: 0.1 – 0.25 – 0.5 – 1.0 ĐIỂM)</span>
+                  </h4>
+                  <div className="overflow-x-auto rounded-xl border border-slate-300">
+                    <table className="w-full text-xs text-center border-collapse">
+                      <thead className="bg-slate-100 font-bold text-slate-800">
+                        <tr>
+                          <th className="p-2 border border-slate-300 w-16">Câu</th>
+                          <th className="p-2 border border-slate-300 w-12">Ý</th>
+                          {shuffledCodes.map((c) => (
+                            <th key={c.code} className="p-2 border border-slate-300 bg-blue-50/50 text-blue-950 font-black">
+                              Mã {c.code}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="font-mono">
+                        {Array.from({ length: config.sectionCounts.part2 || 4 }).flatMap((_, qIdx) => {
+                          const qNum = qIdx + 1;
+                          return ['a', 'b', 'c', 'd'].map((label, subIdx) => (
+                            <tr key={`${qNum}_${label}`} className={`hover:bg-slate-50 ${subIdx === 0 ? 'border-t-2 border-slate-400' : ''}`}>
+                              {subIdx === 0 && (
+                                <td rowSpan={4} className="p-2 border border-slate-300 font-bold bg-slate-50 font-sans align-middle text-slate-800">
+                                  Câu {qNum}
+                                </td>
+                              )}
+                              <td className="p-1.5 border border-slate-300 font-bold text-slate-700 bg-slate-50/50">
+                                {label})
+                              </td>
+                              {shuffledCodes.map((c) => {
+                                const q = (c.questions.filter((item) => item.part === 'part2' || item.type === 'true_false_group'))[qIdx];
+                                const sub = q?.subItems?.[subIdx];
+                                const isCorrect = sub ? sub.isCorrect : false;
+                                return (
+                                  <td
+                                    key={c.code}
+                                    className={`p-1.5 border border-slate-300 font-black ${
+                                      isCorrect ? 'text-emerald-700 bg-emerald-50/20' : 'text-rose-700 bg-rose-50/20'
+                                    }`}
+                                  >
+                                    {isCorrect ? 'ĐÚNG' : 'SAI'}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ));
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Part III Table: Short Answer */}
+              {(config.sectionCounts.part3 || 0) > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-xs uppercase tracking-wider text-indigo-900 flex items-center space-x-1.5">
+                    <span className="h-2 w-2 rounded-full bg-purple-600"></span>
+                    <span>PHẦN III. ĐÁP ÁN TRẮC NGHIỆM TRẢ LỜI NGẮN (0.5đ / CÂU)</span>
+                  </h4>
+                  <div className="overflow-x-auto rounded-xl border border-slate-300">
+                    <table className="w-full text-xs text-center border-collapse">
+                      <thead className="bg-slate-100 font-bold text-slate-800">
+                        <tr>
+                          <th className="p-2 border border-slate-300 w-16">Câu</th>
+                          {shuffledCodes.map((c) => (
+                            <th key={c.code} className="p-2 border border-slate-300 bg-purple-50/50 text-purple-950 font-black">
+                              Mã {c.code}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 font-mono">
+                        {Array.from({ length: config.sectionCounts.part3 || 6 }).map((_, idx) => {
+                          const qNum = idx + 1;
+                          return (
+                            <tr key={qNum} className="hover:bg-slate-50 font-medium">
+                              <td className="p-2 border border-slate-300 font-bold bg-slate-50 font-sans text-slate-700">
+                                Câu {qNum}
+                              </td>
+                              {shuffledCodes.map((c) => {
+                                const q = (c.questions.filter((item) => item.part === 'part3' || item.type === 'short_answer'))[idx];
+                                const ans = q ? String(q.correctAnswer) : '-';
+                                return (
+                                  <td key={c.code} className="p-2 border border-slate-300 font-extrabold text-purple-700 text-sm">
+                                    {ans}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW MODE 2: SINGLE CODE DETAIL WITH EXPLANATIONS */}
+          {answerKeyViewMode === 'single' && (
+            <>
+              {/* Quick Answers Grid */}
+              <div className="overflow-x-auto">
             <table className="w-full text-xs border border-slate-300 text-left">
               <thead className="bg-slate-100 uppercase font-bold text-slate-700">
                 <tr>
@@ -574,6 +808,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               </div>
             ))}
           </div>
+          </>
+          )}
         </div>
       )}
 
@@ -669,45 +905,95 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       {/* Tab 4: MA TRẬN ĐỀ KIỂM TRA */}
       {activeTab === 'matrix' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <div className="border-b pb-3 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-slate-800 text-base">Ma Trận Đề Kiểm Tra Chuẩn GDPT 2018</h3>
-              <p className="text-xs text-slate-500">
-                Tính toán tự động bằng thuật toán, khớp tuyệt đối 100% với số lượng câu hỏi và tỷ lệ % trong đề
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              {onOpenMatrixModal && (
-                <button
-                  onClick={onOpenMatrixModal}
-                  className="no-print text-xs font-bold text-indigo-700 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center space-x-1"
-                  title="Mở ma trận & bản đặc tả dạng cửa sổ đầy đủ"
-                >
-                  <span>🔍 Phóng to / Chi tiết</span>
-                </button>
-              )}
-              {onExportMatrixSpecsWord && (
-                <button
-                  onClick={onExportMatrixSpecsWord}
-                  className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1"
-                  title="Xuất file Word Ma trận & Bản đặc tả riêng biệt"
-                >
-                  <FileDown className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Xuất Word (.doc)</span>
-                </button>
-              )}
-              <button
-                onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
-                className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                <span>In Ma trận</span>
-              </button>
-            </div>
-          </div>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="border-b pb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-black text-slate-800 text-base">Ma Trận Đề Kiểm Tra GDPT 2018</h3>
+                  <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full">
+                    Thông tư 22/2021 & Công văn 7991
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Tương tác trực tiếp: chỉnh sửa số câu, kéo thả chuyển mức độ tư duy, ma trận tự động tính lại tổng điểm
+                </p>
+              </div>
 
-          <OfficialMatrixTable matrix={matrix} config={config} />
+              <div className="flex flex-wrap items-center gap-2">
+                {/* View Mode Toggle */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setMatrixViewMode('dashboard')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                      matrixViewMode === 'dashboard'
+                        ? 'bg-white text-indigo-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>📊 Bảng Tương Tác (Dashboard)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMatrixViewMode('official')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                      matrixViewMode === 'official'
+                        ? 'bg-white text-indigo-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>📄 Bảng 19 Cột (Mẫu In A4)</span>
+                  </button>
+                </div>
+
+                {onOpenMatrixModal && (
+                  <button
+                    onClick={onOpenMatrixModal}
+                    className="no-print text-xs font-bold text-indigo-700 border border-indigo-200 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 flex items-center space-x-1"
+                    title="Mở ma trận & bản đặc tả dạng cửa sổ đầy đủ"
+                  >
+                    <span>🔍 Phóng to</span>
+                  </button>
+                )}
+                {onExportMatrixSpecsWord && (
+                  <button
+                    onClick={onExportMatrixSpecsWord}
+                    className="no-print text-xs font-bold text-slate-700 border border-slate-300 bg-white px-3 py-1.5 rounded-lg hover:bg-slate-50 flex items-center space-x-1 cursor-pointer"
+                    title="Xuất file Word Ma trận & Bản đặc tả riêng biệt"
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Xuất Word (.doc)</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
+                  className="no-print text-xs font-bold text-blue-700 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 flex items-center space-x-1 cursor-pointer"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  <span>In Ma trận</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content based on selected mode */}
+            {matrixViewMode === 'dashboard' ? (
+              <InteractiveMatrixDashboard
+                matrix={matrix}
+                specs={specs}
+                config={config}
+                onUpdateMatrix={(newM, newS) => {
+                  if (onUpdateMatrix) {
+                    onUpdateMatrix(newM, newS);
+                  }
+                }}
+                onExportWord={onExportMatrixSpecsWord}
+                onPrintA4={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
+              />
+            ) : (
+              <OfficialMatrixTable matrix={matrix} config={config} />
+            )}
+          </div>
         </div>
       )}
 

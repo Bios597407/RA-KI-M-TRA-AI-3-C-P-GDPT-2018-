@@ -475,3 +475,193 @@ export function buildPlannedSpecificationFromConfig(config: ExamConfig): ExamSpe
 
   return specRows;
 }
+
+/**
+ * Tự động tính toán lại toàn bộ điểm số, tỷ lệ % và dòng tổng của Ma trận khi giáo viên thay đổi bất kỳ ô nào
+ */
+export function recalculateMatrixTotals(matrix: ExamMatrix, config: ExamConfig): ExamMatrix {
+  const levels = matrix.levels || ['Biết', 'Hiểu', 'Vận dụng'];
+  const totalScoreGoal = config.totalScore || 10;
+
+  const parseVal = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object' && typeof val.count === 'number') return val.count;
+    return 0;
+  };
+
+  const rows = matrix.rows.map((row, rIdx) => {
+    let rowQuestions = 0;
+    let rowScore = 0;
+
+    levels.forEach((lvl) => {
+      const p1 = parseVal(row.part1?.[lvl]);
+      const p2 = parseVal(row.part2?.[lvl]);
+      const p3 = parseVal(row.part3?.[lvl]);
+      const p4 = parseVal(row.part4?.[lvl]);
+
+      rowQuestions += p1 + p2 + p3 + p4;
+      rowScore += p1 * 0.25 + p2 * 1.0 + p3 * 0.5 + p4 * 1.0;
+    });
+
+    const roundedRowScore = Number(rowScore.toFixed(2));
+    const percent = totalScoreGoal > 0 ? Math.round((roundedRowScore / totalScoreGoal) * 100) : 0;
+
+    return {
+      ...row,
+      stt: rIdx + 1,
+      totalQuestions: rowQuestions,
+      totalScore: roundedRowScore,
+      percent,
+    };
+  });
+
+  // Calculate totals by level
+  const totalByLevel: Record<string, { count: number; score: number; percent: number }> = {};
+  levels.forEach((lvl) => {
+    let lvlCount = 0;
+    let lvlScore = 0;
+
+    rows.forEach((r) => {
+      const p1 = parseVal(r.part1?.[lvl]);
+      const p2 = parseVal(r.part2?.[lvl]);
+      const p3 = parseVal(r.part3?.[lvl]);
+      const p4 = parseVal(r.part4?.[lvl]);
+
+      lvlCount += p1 + p2 + p3 + p4;
+      lvlScore += p1 * 0.25 + p2 * 1.0 + p3 * 0.5 + p4 * 1.0;
+    });
+
+    const roundedLvlScore = Number(lvlScore.toFixed(2));
+    totalByLevel[lvl] = {
+      count: lvlCount,
+      score: roundedLvlScore,
+      percent: totalScoreGoal > 0 ? Math.round((roundedLvlScore / totalScoreGoal) * 100) : 0,
+    };
+  });
+
+  const grandTotalQuestions = rows.reduce((sum, r) => sum + r.totalQuestions, 0);
+  const grandTotalScore = Number(rows.reduce((sum, r) => sum + r.totalScore, 0).toFixed(2));
+
+  return {
+    levels,
+    rows,
+    totalByLevel,
+    grandTotal: {
+      count: grandTotalQuestions,
+      score: grandTotalScore,
+      percent: 100,
+    },
+  };
+}
+
+/**
+ * Tự động đồng bộ 1-1 từ bất kỳ Ma trận nào sang Bản đặc tả (Live Sync)
+ */
+export function syncSpecificationFromMatrix(matrix: ExamMatrix, config: ExamConfig): ExamSpecificationRow[] {
+  const specRows: ExamSpecificationRow[] = [];
+  let stt = 1;
+
+  const parseValCount = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object' && typeof val.count === 'number') return val.count;
+    return 0;
+  };
+
+  const makeCompetency = (levelName: string, topicName: string, partName: string) => {
+    if (config.learningOutcomes && config.learningOutcomes.length > 10) {
+      return `${config.learningOutcomes} (Mức độ: ${levelName} – ${partName})`;
+    }
+    if (config.gradeLevel === 'primary') {
+      if (levelName.includes('Mức 1') || levelName.includes('Biết')) {
+        return `Nhận biết, nhắc lại và gọi tên được các kiến thức cơ bản về ${topicName}.`;
+      } else if (levelName.includes('Mức 2') || levelName.includes('Hiểu')) {
+        return `Kết nối, so sánh và thực hiện thao tác giải quyết tình huống quen thuộc về ${topicName}.`;
+      } else {
+        return `Vận dụng kiến thức, kỹ năng giải quyết tình huống mới trong học tập và đời sống về ${topicName}.`;
+      }
+    } else {
+      if (levelName.includes('Nhận biết') || levelName.includes('Biết')) {
+        return `Nhận biết và phát biểu chính xác định nghĩa, tính chất, quy tắc cơ bản của ${topicName}.`;
+      } else if (levelName.includes('Thông hiểu') || levelName.includes('Hiểu')) {
+        return `Hiểu rõ bản chất, giải thích, phân loại và tính toán các bài toán tường minh về ${topicName}.`;
+      } else if (levelName.includes('Vận dụng cao')) {
+        return `Vận dụng sáng tạo, liên hệ thực tiễn và mô hình hóa giải quyết bài toán phức tạp về ${topicName}.`;
+      } else {
+        return `Vận dụng kiến thức, phương pháp và công thức đã học để giải quyết bài toán điển hình về ${topicName}.`;
+      }
+    }
+  };
+
+  matrix.rows.forEach((row) => {
+    matrix.levels.forEach((lvl) => {
+      const p1Count = parseValCount(row.part1?.[lvl]);
+      const p2Count = parseValCount(row.part2?.[lvl]);
+      const p3Count = parseValCount(row.part3?.[lvl]);
+      const p4Count = parseValCount(row.part4?.[lvl]);
+
+      if (p1Count > 0) {
+        specRows.push({
+          id: `spec-${stt}`,
+          stt: stt++,
+          topic: row.topic,
+          subTopic: row.subTopic || '',
+          competency: makeCompetency(lvl, row.topic, 'Trắc nghiệm 4 lựa chọn'),
+          level: lvl,
+          questionType: 'Trắc nghiệm nhiều lựa chọn',
+          questionCount: p1Count,
+          questionIds: [],
+          score: Number((p1Count * 0.25).toFixed(2)),
+        });
+      }
+
+      if (p2Count > 0) {
+        specRows.push({
+          id: `spec-${stt}`,
+          stt: stt++,
+          topic: row.topic,
+          subTopic: row.subTopic || '',
+          competency: makeCompetency(lvl, row.topic, 'Trắc nghiệm Đúng/Sai 4 ý'),
+          level: lvl,
+          questionType: 'Trắc nghiệm Đúng/Sai (4 lệnh hỏi)',
+          questionCount: p2Count,
+          questionIds: [],
+          score: Number((p2Count * 1.0).toFixed(2)),
+        });
+      }
+
+      if (p3Count > 0) {
+        specRows.push({
+          id: `spec-${stt}`,
+          stt: stt++,
+          topic: row.topic,
+          subTopic: row.subTopic || '',
+          competency: makeCompetency(lvl, row.topic, 'Trắc nghiệm Trả lời ngắn'),
+          level: lvl,
+          questionType: 'Trắc nghiệm Trả lời ngắn',
+          questionCount: p3Count,
+          questionIds: [],
+          score: Number((p3Count * 0.5).toFixed(2)),
+        });
+      }
+
+      if (p4Count > 0) {
+        specRows.push({
+          id: `spec-${stt}`,
+          stt: stt++,
+          topic: row.topic,
+          subTopic: row.subTopic || '',
+          competency: makeCompetency(lvl, row.topic, 'Tự luận'),
+          level: lvl,
+          questionType: 'Câu hỏi Tự luận',
+          questionCount: p4Count,
+          questionIds: [],
+          score: Number((p4Count * 1.0).toFixed(2)),
+        });
+      }
+    });
+  });
+
+  return specRows;
+}

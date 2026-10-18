@@ -86,6 +86,12 @@ export interface ExamMatrixRow {
   chapter?: string; // VD: "Chủ đề 1", "Chủ đề 2"
   topic: string;    // VD: "Bài 1: Vai trò của..."
   subTopic?: string;
+  learningOutcomes?: {
+    know?: string;
+    understand?: string;
+    apply?: string;
+  };
+  competencyCode?: string; // VD: "TD1", "GQVĐ2"
   part1: Record<string, MatrixCellValue>; // TNKQ Nhiều lựa chọn (4 lựa chọn)
   part2: Record<string, MatrixCellValue>; // TNKQ Đúng - Sai (4 lệnh hỏi)
   part3?: Record<string, MatrixCellValue>;// TNKQ Trả lời ngắn
@@ -168,6 +174,10 @@ export interface ExamConfig {
   layoutLineHeight?: 'compact' | 'standard' | 'relaxed';
   layoutFontSize?: 'small' | 'medium' | 'large';
   appUiScale?: 'compact' | 'standard' | 'relaxed';
+
+  // Approved Matrix & Specifications
+  approvedMatrix?: ExamMatrix;
+  approvedSpecs?: ExamSpecificationRow[];
 }
 
 export interface ShuffledExamCode {

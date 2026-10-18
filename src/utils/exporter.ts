@@ -1255,3 +1255,296 @@ function renderDetailedSolutionsToWord(questions: QuestionItem[]): string {
   });
   return html;
 }
+
+/**
+ * 6. Xuất BẢNG TỔNG HỢP ĐÁP ÁN ĐA MÃ ĐỀ (.doc)
+ */
+export function exportMasterAnswerKeyWordDoc(
+  config: ExamConfig,
+  shuffledCodes: ShuffledExamCode[]
+): void {
+  const title = config.examTitle || 'ĐỀ KIỂM TRA ĐỊNH KỲ';
+  const school = (config.schoolName || 'TRƯỜNG THPT').toUpperCase();
+  const department = (config.departmentName || 'SỞ GIÁO DỤC VÀ ĐÀO TẠO').toUpperCase();
+  const subject = (config.customSubject || config.subject || 'Môn học').toUpperCase();
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade}` : `Lớp ${config.grade}`;
+  const academicYear = config.academicYear || '2025 - 2026';
+
+  const baseCode = shuffledCodes[0] || { code: '101', questions: [], quickAnswers: [] };
+  const baseQuestions = baseCode.questions || [];
+
+  const part1Base = baseQuestions.filter(q => q.part === 'part1' || q.type === 'mcq_single');
+  const part2Base = baseQuestions.filter(q => q.part === 'part2' || q.type === 'true_false_group');
+  const part3Base = baseQuestions.filter(q => q.part === 'part3' || q.type === 'short_answer');
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>BẢNG TỔNG HỢP ĐÁP ÁN ĐA MÃ ĐỀ - ${title}</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <!-- Header -->
+  <table class="header-table" style="width: 100%; border-collapse: collapse; margin-bottom: 8pt; font-family: 'Times New Roman', serif;">
+    <tr>
+      <td style="width: 45%; text-align: center; vertical-align: top; padding: 2pt;">
+        <div class="bold uppercase" style="font-size: 11pt;">${department}</div>
+        <div class="bold uppercase" style="font-size: 11pt;">${school}</div>
+        <div class="italic bold" style="font-size: 10.5pt; margin-top: 3pt;">HỘI ĐỒNG KHẢO THÍ</div>
+      </td>
+      <td style="width: 55%; text-align: center; vertical-align: top; padding: 2pt;">
+        <div class="bold uppercase" style="font-size: 12pt;">BẢNG TỔNG HỢP ĐÁP ÁN CÁC MÃ ĐỀ</div>
+        <div class="bold uppercase" style="font-size: 11pt; margin-top: 2pt;">${title} – NĂM HỌC ${academicYear}</div>
+        <div class="italic" style="font-size: 11pt; margin-top: 2pt;">MÔN: ${subject} – ${gradeStr.toUpperCase()}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="border-bottom: 1.5pt solid #000; margin-bottom: 14pt;"></div>
+
+  <!-- PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN -->
+  ${part1Base.length > 0 ? `
+  <div class="bold uppercase" style="font-size: 11.5pt; margin-bottom: 4pt; color: #1e3a8a;">
+    PHẦN I. ĐÁP ÁN TRẮC NGHIỆM NHIỀU LỰA CHỌN (Mỗi câu đúng được 0.25 điểm)
+  </div>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 14pt;">
+    <thead>
+      <tr style="background-color: #f2f2f2;">
+        <th style="width: 10%; text-align: center;">Câu</th>
+        ${shuffledCodes.map(c => `<th style="text-align: center; width: ${Math.floor(90 / shuffledCodes.length)}%;">Mã đề ${c.code}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${part1Base.map((_, idx) => {
+        const qNum = idx + 1;
+        return `
+          <tr>
+            <td style="text-align: center; font-weight: bold; background-color: #fafafa;">Câu ${qNum}</td>
+            ${shuffledCodes.map(c => {
+              const q = (c.questions.filter(item => item.part === 'part1' || item.type === 'mcq_single'))[idx];
+              const ans = q ? String(q.correctAnswer) : '-';
+              return `<td style="text-align: center; font-weight: bold; color: #006600; font-size: 11pt;">${ans}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+  ` : ''}
+
+  <!-- PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI 4 Ý -->
+  ${part2Base.length > 0 ? `
+  <div class="page-break"></div>
+  <div class="bold uppercase" style="font-size: 11.5pt; margin-top: 10pt; margin-bottom: 4pt; color: #1e3a8a;">
+    PHẦN II. ĐÁP ÁN TRẮC NGHIỆM ĐÚNG / SAI (Quy tắc bậc thang: 1 ý đúng = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ)
+  </div>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 14pt;">
+    <thead>
+      <tr style="background-color: #f2f2f2;">
+        <th style="width: 10%; text-align: center;">Câu</th>
+        <th style="width: 8%; text-align: center;">Lệnh</th>
+        ${shuffledCodes.map(c => `<th style="text-align: center; width: ${Math.floor(82 / shuffledCodes.length)}%;">Mã đề ${c.code}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${part2Base.flatMap((_, qIdx) => {
+        const qNum = qIdx + 1;
+        return ['a', 'b', 'c', 'd'].map((label, subIdx) => `
+          <tr ${subIdx === 0 ? 'style="border-top: 1.5pt solid #000;"' : ''}>
+            ${subIdx === 0 ? `<td rowspan="4" style="text-align: center; font-weight: bold; background-color: #f7f7f7; vertical-align: middle;">Câu ${qNum}</td>` : ''}
+            <td style="text-align: center; font-weight: bold;">${label})</td>
+            ${shuffledCodes.map(c => {
+              const q = (c.questions.filter(item => item.part === 'part2' || item.type === 'true_false_group'))[qIdx];
+              const sub = q?.subItems?.[subIdx];
+              const isCorrect = sub ? sub.isCorrect : false;
+              return `<td style="text-align: center; font-weight: bold; color: ${isCorrect ? '#006600' : '#cc0000'};">${isCorrect ? 'Đ' : 'S'}</td>`;
+            }).join('')}
+          </tr>
+        `);
+      }).join('')}
+    </tbody>
+  </table>
+  ` : ''}
+
+  <!-- PHẦN III: TRẢ LỜI NGẮN -->
+  ${part3Base.length > 0 ? `
+  <div class="bold uppercase" style="font-size: 11.5pt; margin-top: 10pt; margin-bottom: 4pt; color: #1e3a8a;">
+    PHẦN III. ĐÁP ÁN TRẮC NGHIỆM TRẢ LỜI NGẮN (Mỗi câu đúng được 0.5 điểm)
+  </div>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 14pt;">
+    <thead>
+      <tr style="background-color: #f2f2f2;">
+        <th style="width: 10%; text-align: center;">Câu</th>
+        ${shuffledCodes.map(c => `<th style="text-align: center; width: ${Math.floor(90 / shuffledCodes.length)}%;">Mã đề ${c.code}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${part3Base.map((_, idx) => {
+        const qNum = idx + 1;
+        return `
+          <tr>
+            <td style="text-align: center; font-weight: bold; background-color: #fafafa;">Câu ${qNum}</td>
+            ${shuffledCodes.map(c => {
+              const q = (c.questions.filter(item => item.part === 'part3' || item.type === 'short_answer'))[idx];
+              const ans = q ? String(q.correctAnswer) : '-';
+              return `<td style="text-align: center; font-weight: bold; color: #0044cc; font-size: 11pt;">${ans}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+  ` : ''}
+
+  <div class="text-center italic" style="margin-top: 25pt;">
+    --- HẾT BẢNG TỔNG HỢP ĐÁP ÁN ---
+  </div>
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `Bang_Tong_Hop_Dap_An_${subject.replace(/\s+/g, '_')}_Lop${config.grade}_DaMaDe.doc`);
+}
+
+/**
+ * 7. Xuất PHIẾU TRẢ LỜI TRẮC NGHIỆM CHUẨN A4 (.doc)
+ */
+export function exportAnswerSheetWordDoc(
+  config: ExamConfig,
+  currentCode: ShuffledExamCode
+): void {
+  const school = (config.schoolName || 'SỞ GIÁO DỤC VÀ ĐÀO TẠO').toUpperCase();
+  const subject = (config.customSubject || config.subject || 'Môn học').toUpperCase();
+  const gradeStr = config.gradeLevel === 'primary' ? `Khối ${config.grade}` : `Lớp ${config.grade}`;
+  const p1Count = config.sectionCounts.part1 || 12;
+  const p2Count = config.sectionCounts.part2 || 4;
+  const p3Count = config.sectionCounts.part3 || 6;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <title>PHIẾU TRẢ LỜI TRẮC NGHIỆM - ${subject}</title>
+  ${WORD_HEADER_STYLE}
+</head>
+<body>
+  <!-- Header -->
+  <table class="header-table" style="width: 100%; border-collapse: collapse; font-family: 'Times New Roman', serif;">
+    <tr>
+      <td style="width: 45%; text-align: center; vertical-align: top;">
+        <div class="bold uppercase" style="font-size: 10.5pt;">${school}</div>
+        <div class="bold uppercase" style="font-size: 10.5pt; margin-top: 2pt;">HỘI ĐỒNG COI THI: .........................</div>
+        <div style="font-size: 10pt; margin-top: 2pt;">Phòng thi số: ....... Điểm thi: .............</div>
+      </td>
+      <td style="width: 55%; text-align: center; vertical-align: top;">
+        <div class="bold uppercase" style="font-size: 11pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div class="bold underline" style="font-size: 10.5pt;">Độc lập - Tự do - Hạnh phúc</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Title -->
+  <div class="text-center" style="margin-top: 10pt; margin-bottom: 10pt;">
+    <div class="bold uppercase" style="font-size: 15pt; letter-spacing: 1px;">PHIẾU TRẢ LỜI TRẮC NGHIỆM</div>
+    <div class="bold uppercase" style="font-size: 11pt; margin-top: 2pt;">BÀI THI: ${subject} – ${gradeStr.toUpperCase()}</div>
+    <div class="italic" style="font-size: 9.5pt;">(Định dạng chuẩn khảo thí 2025 của Bộ Giáo dục và Đào tạo)</div>
+  </div>
+
+  <!-- Student Info Box -->
+  <table style="width: 100%; border: 1.5pt solid #000; margin-bottom: 8pt;">
+    <tr>
+      <td style="width: 60%; vertical-align: top; padding: 6pt; border-right: 1pt solid #000;">
+        <div style="margin-bottom: 6pt;"><strong>1. Họ, chữ đệm và tên thí sinh:</strong> ............................................................................</div>
+        <div style="margin-bottom: 6pt;"><strong>2. Ngày sinh:</strong> ..... / ..... / ......... &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>3. Lớp:</strong> ....................</div>
+        <div style="margin-bottom: 8pt;"><strong>4. Trường:</strong> ..........................................................................................................</div>
+        <table class="header-table" style="width: 100%; margin-top: 4pt;">
+          <tr>
+            <td style="text-align: center; width: 50%; border: 1pt solid #000; padding: 4pt; height: 40pt; vertical-align: top;">
+              <span style="font-size: 8.5pt; font-weight: bold;">CHỮ KÝ GIÁM THỊ 1</span>
+            </td>
+            <td style="text-align: center; width: 50%; border: 1pt solid #000; padding: 4pt; height: 40pt; vertical-align: top;">
+              <span style="font-size: 8.5pt; font-weight: bold;">CHỮ KÝ GIÁM THỊ 2</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td style="width: 40%; vertical-align: top; padding: 6pt; text-align: center;">
+        <div style="font-weight: bold; font-size: 9.5pt; margin-bottom: 4pt;">5. SỐ BÁO DANH &nbsp;&nbsp;&nbsp;&nbsp; 6. MÃ ĐỀ THI: [ ${currentCode.code} ]</div>
+        <div style="font-size: 9pt; color: #444; border: 1px dashed #666; padding: 8pt;">
+          [KHUNG TÔ BỌNG CHÌ ĐIỆN TỬ SBD & MÃ ĐỀ]<br>
+          <span style="font-size: 8pt;">(Học sinh dùng bút chì 2B tô tròn kín ô số tương ứng)</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Sections Tables -->
+  <table class="header-table" style="width: 100%; margin-top: 8pt;">
+    <tr>
+      <!-- Column Left: Part I -->
+      <td style="width: 50%; vertical-align: top; padding-right: 6pt;">
+        <div style="background-color: #000; color: #fff; font-weight: bold; text-align: center; padding: 3pt; font-size: 10pt;">
+          PHẦN I. CÂU TRẮC NGHIỆM NHIỀU LỰA CHỌN (${p1Count} câu)
+        </div>
+        <table style="width: 100%; margin-top: 4pt; font-size: 9pt;">
+          ${Array.from({ length: Math.max(p1Count, 12) }).map((_, idx) => {
+            const qNum = idx + 1;
+            return `
+              <tr>
+                <td style="width: 25%; font-weight: bold; text-align: center;">Câu ${qNum}</td>
+                <td style="text-align: center;">[A] &nbsp;&nbsp; [B] &nbsp;&nbsp; [C] &nbsp;&nbsp; [D]</td>
+              </tr>
+            `;
+          }).join('')}
+        </table>
+      </td>
+
+      <!-- Column Right: Part II & III -->
+      <td style="width: 50%; vertical-align: top; padding-left: 6pt;">
+        <div style="background-color: #000; color: #fff; font-weight: bold; text-align: center; padding: 3pt; font-size: 10pt;">
+          PHẦN II. CÂU ĐÚNG / SAI (${p2Count} câu x 4 ý)
+        </div>
+        <table style="width: 100%; margin-top: 4pt; font-size: 9pt;">
+          ${Array.from({ length: Math.max(p2Count, 4) }).map((_, idx) => {
+            const qNum = idx + 1;
+            return `
+              <tr style="background-color: #f2f2f2;">
+                <td colspan="2" style="font-weight: bold; text-align: center;">Câu ${qNum}</td>
+              </tr>
+              <tr><td style="width: 30%; text-align: center;">Ý a)</td><td style="text-align: center;">[Đ] &nbsp;&nbsp; [S]</td></tr>
+              <tr><td style="width: 30%; text-align: center;">Ý b)</td><td style="text-align: center;">[Đ] &nbsp;&nbsp; [S]</td></tr>
+              <tr><td style="width: 30%; text-align: center;">Ý c)</td><td style="text-align: center;">[Đ] &nbsp;&nbsp; [S]</td></tr>
+              <tr><td style="width: 30%; text-align: center;">Ý d)</td><td style="text-align: center;">[Đ] &nbsp;&nbsp; [S]</td></tr>
+            `;
+          }).join('')}
+        </table>
+
+        ${p3Count > 0 ? `
+        <div style="background-color: #000; color: #fff; font-weight: bold; text-align: center; padding: 3pt; font-size: 10pt; margin-top: 8pt;">
+          PHẦN III. TRẢ LỜI NGẮN (${p3Count} câu)
+        </div>
+        <table style="width: 100%; margin-top: 4pt; font-size: 9pt;">
+          ${Array.from({ length: p3Count }).map((_, idx) => {
+            const qNum = idx + 1;
+            return `
+              <tr>
+                <td style="width: 25%; font-weight: bold; text-align: center;">Câu ${qNum}</td>
+                <td style="text-align: center; font-style: italic; color: #666;">[ _ _ _ _ _ ] (Tô ô số kết quả)</td>
+              </tr>
+            `;
+          }).join('')}
+        </table>
+        ` : ''}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  downloadBlob(htmlContent, `Phieu_Tra_Loi_Trac_Nghiem_${subject.replace(/\s+/g, '_')}_Lop${config.grade}_Ma${currentCode.code}.doc`);
+}
+

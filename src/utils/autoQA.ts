@@ -186,6 +186,72 @@ export function runExamQA(questions: QuestionItem[], config: ExamConfig): QARepo
       : 'Một số câu tự luận nên bổ sung thêm các bước chia nhỏ điểm thành phần.'
   });
 
+  // 13. Cân bằng độ dài phương án (Distractor Length Balance)
+  let unbalancedOptionsCount = 0;
+  part1Questions.forEach(q => {
+    if (q.options && q.options.length >= 4) {
+      const lengths = q.options.map(o => o.trim().length);
+      const minLen = Math.min(...lengths);
+      const maxLen = Math.max(...lengths);
+      // If longest is > 3x shortest and > 40 chars
+      if (maxLen > 3 * minLen && maxLen > 40) {
+        unbalancedOptionsCount++;
+      }
+    }
+  });
+  items.push({
+    id: 13,
+    title: 'Cân bằng hình thức giữa đáp án đúng và phương án gây nhiễu',
+    passed: unbalancedOptionsCount === 0,
+    severity: unbalancedOptionsCount === 0 ? 'success' : 'warning',
+    details: unbalancedOptionsCount === 0
+      ? 'Độ dài các phương án A, B, C, D đồng đều, tránh bẫy tâm lý "chọn phương án dài nhất".'
+      : `Phát hiện ${unbalancedOptionsCount} câu có độ dài các phương án chênh lệch lớn (>3 lần).`
+  });
+
+  // 14. Tính đa dạng và phân loại của câu Đúng/Sai (Phần II)
+  let monoValueTfCount = 0;
+  part2Questions.forEach(q => {
+    if (q.subItems && q.subItems.length === 4) {
+      const allTrue = q.subItems.every(s => s.isCorrect);
+      const allFalse = q.subItems.every(s => !s.isCorrect);
+      if (allTrue || allFalse) {
+        monoValueTfCount++;
+      }
+    }
+  });
+  items.push({
+    id: 14,
+    title: 'Đa dạng tính Đúng/Sai trong mỗi câu hỏi chùm (Phần II)',
+    passed: monoValueTfCount === 0,
+    severity: monoValueTfCount === 0 ? 'success' : 'warning',
+    details: monoValueTfCount === 0
+      ? 'Tất cả câu hỏi Đúng/Sai đều có sự phân bổ xen kẽ giữa mệnh đề Đúng và mệnh đề Sai.'
+      : `Có ${monoValueTfCount} câu có toàn bộ 4 ý đều Đúng hoặc toàn bộ 4 ý đều Sai.`
+  });
+
+  // 15. Kiểm tra ngôn ngữ và tránh bẫy phủ định kép
+  let doubleNegativeCount = 0;
+  questions.forEach(q => {
+    const qLower = q.question.toLowerCase();
+    if (
+      (qLower.includes('không') && qLower.includes('không đúng')) ||
+      (qLower.includes('không') && qLower.includes('sai')) ||
+      qLower.includes('ngoại trừ các trường hợp không')
+    ) {
+      doubleNegativeCount++;
+    }
+  });
+  items.push({
+    id: 15,
+    title: 'Ngôn ngữ rõ ràng, tránh cấu trúc phủ định kép gây hiểu lầm',
+    passed: doubleNegativeCount === 0,
+    severity: doubleNegativeCount === 0 ? 'success' : 'warning',
+    details: doubleNegativeCount === 0
+      ? 'Câu lệnh trong sáng, trực diện, không chứa cấu trúc phủ định kép rườm rà.'
+      : `Có ${doubleNegativeCount} câu chứa cấu trúc phủ định phức tạp, thầy cô nên biên tập trực diện hơn.`
+  });
+
   const passedCount = items.filter(i => i.passed).length;
   const score = Math.round((passedCount / items.length) * 100);
 

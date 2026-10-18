@@ -1,6 +1,7 @@
 import React from 'react';
 import { Printer, X, Download } from 'lucide-react';
 import { ExamConfig, ShuffledExamCode } from '../types/exam';
+import { exportAnswerSheetWordDoc } from '../utils/exporter';
 
 interface AnswerSheetProps {
   isOpen: boolean;
@@ -46,8 +47,16 @@ export const AnswerSheet: React.FC<AnswerSheetProps> = ({
           </div>
           <div className="flex items-center space-x-2">
             <button
+              onClick={() => exportAnswerSheetWordDoc(config, currentCode)}
+              className="flex items-center space-x-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 shadow-xs cursor-pointer"
+              title="Tải mẫu phiếu trả lời trắc nghiệm dưới dạng Microsoft Word"
+            >
+              <Download className="h-4 w-4" />
+              <span>Xuất Word (.doc)</span>
+            </button>
+            <button
               onClick={handlePrint}
-              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-lg shadow-sm"
+              className="flex items-center space-x-1.5 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>In Phiếu Trả Lời A4</span>

@@ -21,6 +21,8 @@ import { useToast } from './Toast';
 import { analyzeAndSuggestLessonContent } from '../services/lessonAnalyzer';
 import { cacheFileObject, releaseCachedFile } from '../utils/memoryManager';
 import { safeString } from '../utils/dataNormalizer';
+import { CurriculumStandardModal } from './CurriculumStandardModal';
+import { CurriculumTopic } from '../data/curriculumStandards';
 
 interface ConfigPanelProps {
   config: ExamConfig;
@@ -45,6 +47,32 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const [isAnalyzingLesson, setIsAnalyzingLesson] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showHeaderForm, setShowHeaderForm] = useState(true);
+  const [showCurriculumModal, setShowCurriculumModal] = useState(false);
+
+  const handleApplyCurriculumTopics = (selectedTopics: CurriculumTopic[]) => {
+    if (selectedTopics.length === 0) return;
+    const chapters = selectedTopics.map((t) => t.chapter).join('\n');
+    const titles = selectedTopics.map((t) => t.topicTitle).join('\n');
+    const scopes = selectedTopics.map((t) => `${t.topicTitle}: ${t.knowledgeScope}`).join('\n');
+
+    const outcomesList = selectedTopics
+      .map((t) => {
+        const kStr = t.outcomes.know.map((k) => `+ Biết: ${k}`).join('\n');
+        const uStr = t.outcomes.understand.map((u) => `+ Hiểu: ${u}`).join('\n');
+        const aStr = t.outcomes.apply.map((a) => `+ Vận dụng: ${a}`).join('\n');
+        return `[${t.topicTitle}]\n${kStr}\n${uStr}\n${aStr}`;
+      })
+      .join('\n\n');
+
+    onChange({
+      ...config,
+      chapter: chapters,
+      topicTitle: titles,
+      knowledgeScope: scopes,
+      learningOutcomes: outcomesList,
+    });
+    toast.success(`Đã nạp ${selectedTopics.length} bài học chuẩn GDPT 2018 vào cấu hình đề!`);
+  };
 
   const handleGenerateClick = async () => {
     if (isGenerating) return;
@@ -829,27 +857,39 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </h2>
           </div>
 
-          <button
-            type="button"
-            disabled={isAnalyzingLesson}
-            onClick={() => handleAutoAnalyzeAndSuggestContent()}
-            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
-            title="Dùng Gemini AI phân tích file đính kèm hoặc tự động đề xuất nội dung bài học"
-          >
-            {isAnalyzingLesson ? (
-              <>
-                <Sparkles className="h-3.5 w-3.5 animate-spin text-yellow-300" />
-                <span>Đang phân tích AI...</span>
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-3.5 w-3.5 text-yellow-300" />
-                <span>
-                  {config.uploadedDocs?.length > 0 ? '✨ Tự động điền từ File' : '✨ AI Đề xuất Nội dung'}
-                </span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              onClick={() => setShowCurriculumModal(true)}
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-[11px] font-bold shadow-xs transition cursor-pointer"
+              title="Chọn nhanh từ khung chương trình và Yêu cầu cần đạt chuẩn của Bộ GD&ĐT"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-indigo-600" />
+              <span>📚 Thư viện GDPT 2018</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isAnalyzingLesson}
+              onClick={() => handleAutoAnalyzeAndSuggestContent()}
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[11px] font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              title="Dùng Gemini AI phân tích file đính kèm hoặc tự động đề xuất nội dung bài học"
+            >
+              {isAnalyzingLesson ? (
+                <>
+                  <Sparkles className="h-3.5 w-3.5 animate-spin text-yellow-300" />
+                  <span>Đang phân tích AI...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-3.5 w-3.5 text-yellow-300" />
+                  <span>
+                    {config.uploadedDocs?.length > 0 ? '✨ Tự động điền từ File' : '✨ AI Đề xuất Nội dung'}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* AI Auto-fill Banner status */}
@@ -1387,6 +1427,13 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
     </div>
   </div>
+
+  <CurriculumStandardModal
+    isOpen={showCurriculumModal}
+    onClose={() => setShowCurriculumModal(false)}
+    config={config}
+    onApply={handleApplyCurriculumTopics}
+  />
 </div>
 );
 };
