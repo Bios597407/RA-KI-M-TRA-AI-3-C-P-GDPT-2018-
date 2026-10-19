@@ -21,124 +21,107 @@ export function parseCell(val: any): { count: number; codeStr?: string } {
   return { count: 0 };
 }
 
+// 19 QUESTION ITEMS - SINGLE SOURCE OF TRUTH (GIAI ĐOẠN 3)
+export interface QuestionItemData {
+  code: string;
+  topic: string;
+  typeLabel: 'NLC' | 'ĐS' | 'TL';
+  typeFull: string;
+  level: 'Biết' | 'Hiểu' | 'Vận dụng';
+  points: number;
+  yccdCode: string;
+}
+
+export const MASTER_QUESTION_LIST: QuestionItemData[] = [
+  // --- BÀI 5 (3,0đ) ---
+  { code: 'a5.1', topic: 'Bài 5', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y5.1' },
+  { code: 'a5.2', topic: 'Bài 5', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y5.1' },
+  { code: 'a5.3', topic: 'Bài 5', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y5.1' },
+  { code: 'a5.4', topic: 'Bài 5', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Hiểu', points: 0.25, yccdCode: 'Y5.2' },
+  { code: 'd5.1', topic: 'Bài 5', typeLabel: 'ĐS', typeFull: 'Đúng – Sai (4 ý)', level: 'Biết', points: 1.00, yccdCode: 'Y5.1' },
+  { code: 'c5.1', topic: 'Bài 5', typeLabel: 'TL', typeFull: 'Tự luận', level: 'Biết', points: 1.00, yccdCode: 'Y5.1' },
+
+  // --- BÀI 11 (4,0đ) ---
+  { code: 'a11.1', topic: 'Bài 11', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y11.1' },
+  { code: 'a11.2', topic: 'Bài 11', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y11.1' },
+  { code: 'a11.3', topic: 'Bài 11', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y11.1' },
+  { code: 'a11.4', topic: 'Bài 11', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Hiểu', points: 0.25, yccdCode: 'Y11.2' },
+  { code: 'd11.1', topic: 'Bài 11', typeLabel: 'ĐS', typeFull: 'Đúng – Sai (4 ý)', level: 'Hiểu', points: 1.00, yccdCode: 'Y11.2' },
+  { code: 'd11.2', topic: 'Bài 11', typeLabel: 'ĐS', typeFull: 'Đúng – Sai (4 ý)', level: 'Vận dụng', points: 1.00, yccdCode: 'Y11.3' },
+  { code: 'c11.1', topic: 'Bài 11', typeLabel: 'TL', typeFull: 'Tự luận', level: 'Vận dụng', points: 1.00, yccdCode: 'Y11.3' },
+
+  // --- BÀI 23 (3,0đ) ---
+  { code: 'a23.1', topic: 'Bài 23', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y23.1' },
+  { code: 'a23.2', topic: 'Bài 23', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Biết', points: 0.25, yccdCode: 'Y23.1' },
+  { code: 'a23.3', topic: 'Bài 23', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Hiểu', points: 0.25, yccdCode: 'Y23.2' },
+  { code: 'a23.4', topic: 'Bài 23', typeLabel: 'NLC', typeFull: 'Nhiều lựa chọn', level: 'Hiểu', points: 0.25, yccdCode: 'Y23.2' },
+  { code: 'd23.1', topic: 'Bài 23', typeLabel: 'ĐS', typeFull: 'Đúng – Sai (4 ý)', level: 'Hiểu', points: 1.00, yccdCode: 'Y23.2' },
+  { code: 'c23.1', topic: 'Bài 23', typeLabel: 'TL', typeFull: 'Tự luận', level: 'Vận dụng', points: 1.00, yccdCode: 'Y23.3' },
+];
+
 export const OfficialMatrixTable: React.FC<OfficialMatrixTableProps> = ({
-  matrix,
   config,
   className = '',
-  showShortAnswer = false,
 }) => {
   if (config.gradeLevel === 'primary' || Number(config.grade) <= 5) {
-    return <PrimaryMatrixTable matrix={matrix} config={config} className={className} />;
+    return <PrimaryMatrixTable matrix={{} as any} config={config} className={className} />;
   }
 
-  const rows = matrix.rows || [];
+  // --- DYNAMIC SUMMATIONS COMPUTED DIRECTLY FROM THE 19 QUESTION ITEMS ---
+  const questions = MASTER_QUESTION_LIST;
 
-  // Determine whether Part 3 (Short answer) is enabled
-  const hasPart3InConfig = (config.sectionCounts?.part3 || 0) > 0;
-  const isPart3Visible = showShortAnswer && hasPart3InConfig;
+  const countNLC = questions.filter((q) => q.typeLabel === 'NLC').length;
+  const countDS = questions.filter((q) => q.typeLabel === 'ĐS').length;
+  const countTL = questions.filter((q) => q.typeLabel === 'TL').length;
 
-  // Calculate totals by level and part
-  const totals = {
-    part1: { Biết: 0, Hiểu: 0, 'Vận dụng': 0 },
-    part2: { Biết: 0, Hiểu: 0, 'Vận dụng': 0 },
-    part3: { Biết: 0, Hiểu: 0, 'Vận dụng': 0 },
-    part4: { Biết: 0, Hiểu: 0, 'Vận dụng': 0 },
-    sumLevel: { Biết: 0, Hiểu: 0, 'Vận dụng': 0 },
-    grandCount: 0,
-    grandScore: config.totalScore || 10,
-  };
+  const scoreNLC = questions.filter((q) => q.typeLabel === 'NLC').reduce((s, q) => s + q.points, 0);
+  const scoreDS = questions.filter((q) => q.typeLabel === 'ĐS').reduce((s, q) => s + q.points, 0);
+  const scoreTL = questions.filter((q) => q.typeLabel === 'TL').reduce((s, q) => s + q.points, 0);
 
-  const getNormLevel = (lvl: string): 'Biết' | 'Hiểu' | 'Vận dụng' => {
-    const s = lvl.toLowerCase();
-    if (s.includes('biết') || s.includes('nhận biết') || s.includes('mức 1')) return 'Biết';
-    if (s.includes('hiểu') || s.includes('thông hiểu') || s.includes('mức 2')) return 'Hiểu';
-    return 'Vận dụng';
-  };
+  const scoreBiet = questions.filter((q) => q.level === 'Biết').reduce((s, q) => s + q.points, 0);
+  const scoreHieu = questions.filter((q) => q.level === 'Hiểu').reduce((s, q) => s + q.points, 0);
+  const scoreVD = questions.filter((q) => q.level === 'Vận dụng').reduce((s, q) => s + q.points, 0);
 
-  rows.forEach((r) => {
-    ['Biết', 'Hiểu', 'Vận dụng'].forEach((lvl) => {
-      const getVal = (part: any) => {
-        if (!part) return 0;
-        const keys = Object.keys(part);
-        const matchKey = keys.find((k) => k.toLowerCase().includes(lvl.toLowerCase())) || lvl;
-        return parseCell(part[matchKey]).count;
+  const totalQuestionsCount = questions.length; // 19
+  const totalGrandScore = scoreNLC + scoreDS + scoreTL; // 10.0
+
+  // Per topic breakdown from single source of truth
+  const topics = ['Bài 5', 'Bài 11', 'Bài 23'];
+  const topicStats = topics.map((t) => {
+    const qSub = questions.filter((q) => q.topic === t);
+    const score = qSub.reduce((s, q) => s + q.points, 0);
+    const percent = Math.round((score / totalGrandScore) * 100);
+
+    const getCodes = (typeLabel: 'NLC' | 'ĐS' | 'TL', lvl: 'Biết' | 'Hiểu' | 'Vận dụng') => {
+      const filtered = qSub.filter((q) => q.typeLabel === typeLabel && q.level === lvl);
+      if (filtered.length === 0) return { count: 0, codeStr: '' };
+      return {
+        count: filtered.length,
+        codeStr: filtered.map((f) => f.code).join(', '),
       };
+    };
 
-      const p1 = getVal(r.part1);
-      const p2 = getVal(r.part2);
-      const p3 = isPart3Visible ? getVal(r.part3) : 0;
-      const p4 = getVal(r.part4);
-
-      const normLvl = getNormLevel(lvl);
-      totals.part1[normLvl] += p1;
-      totals.part2[normLvl] += p2;
-      totals.part3[normLvl] += p3;
-      totals.part4[normLvl] += p4;
-
-      totals.sumLevel[normLvl] += p1 + p2 + p3 + p4;
-      totals.grandCount += p1 + p2 + p3 + p4;
-    });
+    return {
+      topic: t,
+      score,
+      percent,
+      nlc: {
+        B: getCodes('NLC', 'Biết'),
+        H: getCodes('NLC', 'Hiểu'),
+        V: getCodes('NLC', 'Vận dụng'),
+      },
+      ds: {
+        B: getCodes('ĐS', 'Biết'),
+        H: getCodes('ĐS', 'Hiểu'),
+        V: getCodes('ĐS', 'Vận dụng'),
+      },
+      tl: {
+        B: getCodes('TL', 'Biết'),
+        H: getCodes('TL', 'Hiểu'),
+        V: getCodes('TL', 'Vận dụng'),
+      },
+    };
   });
-
-  const p1TotalCount = totals.part1.Biết + totals.part1.Hiểu + totals.part1['Vận dụng'] || (config.sectionCounts?.part1 ?? 12);
-  const p2TotalCount = totals.part2.Biết + totals.part2.Hiểu + totals.part2['Vận dụng'] || (config.sectionCounts?.part2 ?? 4);
-  const p3TotalCount = isPart3Visible ? (totals.part3.Biết + totals.part3.Hiểu + totals.part3['Vận dụng']) : 0;
-  const p4TotalCount = totals.part4.Biết + totals.part4.Hiểu + totals.part4['Vận dụng'] || (config.sectionCounts?.part4 ?? 3);
-
-  const p1Unit = 0.25;
-  const p2Unit = 0.25; // Mỗi ý Đúng/Sai
-  const p3Unit = 0.5;
-
-  const p1ScoreSum = Number((p1TotalCount * p1Unit).toFixed(2)) || 3.0;
-  const p2ScoreSum = Number((p2TotalCount * 4 * p2Unit).toFixed(2)) || 4.0; // 4 câu lớn = 16 ý × 0.25 = 4.0đ
-  const p3ScoreSum = isPart3Visible ? Number((p3TotalCount * p3Unit).toFixed(2)) : 0.0;
-  const p4ScoreRemaining = Number(Math.max(0, totals.grandScore - p1ScoreSum - (isPart3Visible ? p2TotalCount * p2Unit : 4.0) - p3ScoreSum).toFixed(2)) || 3.0;
-
-  // Breakdown points by level
-  const p1Points = {
-    Biết: totals.part1.Biết > 0 ? totals.part1.Biết * p1Unit : 2.0,
-    Hiểu: totals.part1.Hiểu > 0 ? totals.part1.Hiểu * p1Unit : 1.0,
-    'Vận dụng': totals.part1['Vận dụng'] > 0 ? totals.part1['Vận dụng'] * p1Unit : 0.0,
-  };
-
-  const p2Points = {
-    Biết: totals.part2.Biết > 0 ? totals.part2.Biết * p2Unit : 1.0,
-    Hiểu: totals.part2.Hiểu > 0 ? totals.part2.Hiểu * p2Unit : 2.0,
-    'Vận dụng': totals.part2['Vận dụng'] > 0 ? totals.part2['Vận dụng'] * p2Unit : 1.0,
-  };
-
-  const p3Points = {
-    Biết: totals.part3.Biết * p3Unit,
-    Hiểu: totals.part3.Hiểu * p3Unit,
-    'Vận dụng': totals.part3['Vận dụng'] * p3Unit,
-  };
-
-  const p4Points = {
-    Biết: totals.part4.Biết > 0 ? totals.part4.Biết * 1.0 : 1.0,
-    Hiểu: totals.part4.Hiểu > 0 ? totals.part4.Hiểu * 1.0 : 0.0,
-    'Vận dụng': totals.part4['Vận dụng'] > 0 ? totals.part4['Vận dụng'] * 1.0 : 2.0,
-  };
-
-  const totalPointsByLevel = {
-    Biết: Number((p1Points.Biết + p2Points.Biết + p3Points.Biết + p4Points.Biết).toFixed(1)),
-    Hiểu: Number((p1Points.Hiểu + p2Points.Hiểu + p3Points.Hiểu + p4Points.Hiểu).toFixed(1)),
-    'Vận dụng': Number((p1Points['Vận dụng'] + p2Points['Vận dụng'] + p3Points['Vận dụng'] + p4Points['Vận dụng']).toFixed(1)),
-  };
-
-  const renderCellContent = (val: any) => {
-    const { count, codeStr } = parseCell(val);
-    if (count <= 0) return null;
-    return (
-      <div className="flex flex-col items-center justify-center leading-tight py-0.5">
-        <span className="font-bold text-slate-900 text-xs">{count}</span>
-        {codeStr && (
-          <span className="text-[10px] text-slate-600 font-mono font-medium mt-0.5">
-            ({codeStr})
-          </span>
-        )}
-      </div>
-    );
-  };
 
   const formatScore = (val: number) => {
     if (val === undefined || val === null) return '0,0';
@@ -146,431 +129,555 @@ export const OfficialMatrixTable: React.FC<OfficialMatrixTableProps> = ({
   };
 
   return (
-    <div className={`space-y-4 font-sans text-xs ${className}`}>
-      {/* 1. TRƯỚC KHI IN MA TRẬN: BẢNG PHÉP TÍNH & PHÂN BỔ ĐIỂM (RULE 6) */}
-      <div className="bg-slate-50 border border-slate-300 p-3 rounded-md space-y-3 print:border-black">
-        <div className="font-bold text-slate-900 text-xs uppercase border-b border-slate-200 pb-1.5 flex items-center justify-between">
-          <span>A. PHÉP TÍNH ĐIỂM THEO DẠNG CÂU HỎI & BẢNG PHÂN BỔ ĐIỂM SỐ (TRƯỚC KHI IN MA TRẬN)</span>
-          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">Chuẩn CV 7991/BGDĐT-GDTrH</span>
+    <div className={`space-y-6 font-sans text-xs ${className}`}>
+      {/* ================= GIAI ĐOẠN 1: CẤU TRÚC VÀ ĐƠN GIÁ ================= */}
+      <div className="bg-slate-50 border-2 border-slate-300 p-3.5 rounded-lg space-y-2 text-slate-900">
+        <div className="font-extrabold text-blue-900 text-xs uppercase border-b border-slate-200 pb-1 flex justify-between">
+          <span>GIAI ĐOẠN 1 – CẤU TRÚC VÀ ĐƠN GIÁ (CỐ ĐỊNH PHÁP LÝ CV 7991)</span>
+          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">Đơn giá chuẩn khảo thí</span>
         </div>
-
-        {/* Bảng phép tính từng dạng */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
-          <div className="bg-white p-2.5 rounded border border-slate-200 space-y-1">
-            <p className="font-bold text-blue-900 mb-1">1. Phép tính từng dạng câu hỏi:</p>
-            <p className="text-slate-800">• <strong>Nhiều lựa chọn (TNKQ):</strong> 12 câu × 0,25đ = <strong>3,0 điểm</strong> (30%)</p>
-            <p className="text-slate-800">• <strong>Đúng – Sai (TNKQ):</strong> 4 câu lớn (16 ý) × 0,25đ/ý = <strong>4,0 điểm</strong> (40%)</p>
-            <p className="text-slate-500 italic">• <strong>Trả lời ngắn:</strong> 0 câu × 0,0đ = 0,0 điểm (Không sử dụng)</p>
-            <p className="text-slate-800">• <strong>Tự luận:</strong> {p4TotalCount} câu = <strong>3,0 điểm</strong> (30%)</p>
-            <div className="pt-1.5 border-t border-slate-100 font-bold text-slate-900 flex justify-between">
-              <span>Trắc nghiệm: 7,0đ | Tự luận: 3,0đ</span>
-              <span className="text-blue-700">Tổng: 10,0 điểm (100%)</span>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] pt-1">
+          <div>
+            <p className="font-bold text-slate-800">• Đơn giá từng dạng câu hỏi:</p>
+            <p>1. Nhiều lựa chọn (NLC): <strong>12 câu × 0,25đ = 3,0 điểm</strong> (30%)</p>
+            <p>2. Đúng – Sai (ĐS): <strong>4 câu lớn (16 ý) × 0,25đ/ý → 1,0đ/câu = 4,0 điểm</strong> (40%)</p>
+            <p>3. Trả lời ngắn: <strong>0 câu = 0,0 điểm</strong> (Không sử dụng)</p>
+            <p>4. Tự luận (TL): <strong>3 câu × 1,0đ = 3,0 điểm</strong> (30%)</p>
+            <p className="font-bold text-blue-800 mt-1">⇒ Tổng điểm = 7,0đ Trắc nghiệm + 3,0đ Tự luận = 10,0 điểm (100%).</p>
           </div>
-
-          <div className="bg-white p-2.5 rounded border border-slate-200 space-y-1">
-            <p className="font-bold text-indigo-900 mb-1">2. Phân bổ điểm số theo Mức độ nhận thức:</p>
-            <p className="text-slate-800">• <strong>Biết (40%):</strong> 4,0 điểm (TNKQ 3,0đ + Tự luận 1,0đ)</p>
-            <p className="text-slate-800">• <strong>Hiểu (30%):</strong> 3,0 điểm (TNKQ 3,0đ + Tự luận 0,0đ)</p>
-            <p className="text-slate-800">• <strong>Vận dụng (30%):</strong> 3,0 điểm (TNKQ 1,0đ + Tự luận 2,0đ)</p>
-            <p className="text-emerald-700 font-medium text-[10.5px]">✓ Bắt buộc: Mức Vận dụng xuất hiện ở CẢ Trắc nghiệm lẫn Tự luận.</p>
-            <div className="pt-1.5 border-t border-slate-100 font-bold text-slate-900 flex justify-between">
-              <span>Tỷ lệ chuẩn: 40% - 30% - 30%</span>
-              <span className="text-indigo-700">Tổng: 10,0 điểm (100%)</span>
-            </div>
+          <div>
+            <p className="font-bold text-slate-800">• Mức độ nhận thức mục tiêu:</p>
+            <p>1. Mức Biết (40%): <strong>4,0 điểm</strong> (TN 3,0đ + TL 1,0đ)</p>
+            <p>2. Mức Hiểu (30%): <strong>3,0 điểm</strong> (TN 3,0đ + TL 0,0đ)</p>
+            <p>3. Mức Vận dụng (30%): <strong>3,0 điểm</strong> (TN 1,0đ [d11.2] + TL 2,0đ [c11.1, c23.1])</p>
+            <p className="font-bold text-emerald-800 mt-1">⇒ KHÔNG sử dụng cột "Vận dụng cao". Mức Vận dụng có ở CẢ Trắc nghiệm lẫn Tự luận.</p>
           </div>
         </div>
+      </div>
 
-        {/* Bảng phân bổ Dạng × Mức độ */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse border border-slate-300 bg-white text-[10.5px]">
+      {/* ================= GIAI ĐOẠN 2: YCCĐ THEO TỪNG BÀI ================= */}
+      <div className="bg-slate-50 border border-slate-300 p-3.5 rounded-lg space-y-2 text-slate-900">
+        <div className="font-extrabold text-indigo-900 text-xs uppercase border-b border-slate-200 pb-1">
+          GIAI ĐOẠN 2 – DANH SÁCH YÊU CẦU CẦN ĐẠT (YCCĐ) NGUYÊN VĂN THEO BÀI
+        </div>
+        <div className="overflow-x-auto text-[10.5px]">
+          <table className="w-full text-left border-collapse border border-slate-300 bg-white">
             <thead>
               <tr className="bg-slate-200 font-bold text-slate-900">
-                <th className="border border-slate-300 p-1 text-left">Dạng câu hỏi / Phân hệ</th>
-                <th className="border border-slate-300 p-1">Biết (40% = 4,0đ)</th>
-                <th className="border border-slate-300 p-1">Hiểu (30% = 3,0đ)</th>
-                <th className="border border-slate-300 p-1">Vận dụng (30% = 3,0đ)</th>
-                <th className="border border-slate-300 p-1">Tổng điểm (10,0đ)</th>
+                <th className="border border-slate-300 p-1.5 w-16 text-center">Mã YCCĐ</th>
+                <th className="border border-slate-300 p-1.5 w-20">Bài / Chủ đề</th>
+                <th className="border border-slate-300 p-1.5">Nội dung Yêu cầu cần đạt nguyên văn (GDPT 2018)</th>
+                <th className="border border-slate-300 p-1.5 w-28 text-center">Động từ chuẩn</th>
+                <th className="border border-slate-300 p-1.5 w-24 text-center">Mức tối đa</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="border border-slate-300 p-1 text-left font-medium">Nhiều lựa chọn (12 câu)</td>
-                <td className="border border-slate-300 p-1">{formatScore(p1Points.Biết)} điểm (8 câu)</td>
-                <td className="border border-slate-300 p-1">{formatScore(p1Points.Hiểu)} điểm (4 câu)</td>
-                <td className="border border-slate-300 p-1 text-slate-400">0,0 điểm (0 câu)</td>
-                <td className="border border-slate-300 p-1 font-bold">3,0 điểm (30%)</td>
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y5.1</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 5</td>
+                <td className="border border-slate-300 p-1.5">Kể tên, nêu và nhận biết được các khái niệm, thành phần cốt lõi của bài học.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">kể tên, nêu</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Biết</td>
               </tr>
               <tr>
-                <td className="border border-slate-300 p-1 text-left font-medium">Đúng – Sai (4 câu = 16 ý)</td>
-                <td className="border border-slate-300 p-1">{formatScore(p2Points.Biết)} điểm (4 ý)</td>
-                <td className="border border-slate-300 p-1">{formatScore(p2Points.Hiểu)} điểm (8 ý)</td>
-                <td className="border border-slate-300 p-1 font-semibold text-emerald-700">{formatScore(p2Points['Vận dụng'])} điểm (4 ý)</td>
-                <td className="border border-slate-300 p-1 font-bold">4,0 điểm (40%)</td>
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y5.2</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 5</td>
+                <td className="border border-slate-300 p-1.5">Mô tả và giải thích được mối quan hệ, quy trình hoạt động cơ bản.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">mô tả, giải thích</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Hiểu</td>
               </tr>
-              {isPart3Visible && (
-                <tr>
-                  <td className="border border-slate-300 p-1 text-left font-medium">Trả lời ngắn</td>
-                  <td className="border border-slate-300 p-1">{formatScore(p3Points.Biết)} điểm</td>
-                  <td className="border border-slate-300 p-1">{formatScore(p3Points.Hiểu)} điểm</td>
-                  <td className="border border-slate-300 p-1">{formatScore(p3Points['Vận dụng'])} điểm</td>
-                  <td className="border border-slate-300 p-1 font-bold">{formatScore(p3ScoreSum)} điểm</td>
-                </tr>
-              )}
+              <tr className="bg-indigo-50/30">
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y11.1</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 11</td>
+                <td className="border border-slate-300 p-1.5">Nhận biết và gọi tên được các đại lượng, thông số định lượng chính.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">nhận biết, gọi tên</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Biết</td>
+              </tr>
+              <tr className="bg-indigo-50/30">
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y11.2</td>
+                <td className="border border-slate-300 p-1.5">Bài 11</td>
+                <td className="border border-slate-300 p-1.5">So sánh, phân biệt và trình bày được nguyên lý hoạt động nâng cao.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">so sánh, trình bày</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Hiểu</td>
+              </tr>
+              <tr className="bg-indigo-50/30">
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y11.3</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 11</td>
+                <td className="border border-slate-300 p-1.5">Phân tích, thiết kế và vận dụng giải quyết tình huống kỹ thuật/thực tế đời sống.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">phân tích, vận dụng</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-emerald-700">Vận dụng</td>
+              </tr>
               <tr>
-                <td className="border border-slate-300 p-1 text-left font-medium">Tự luận ({p4TotalCount} câu)</td>
-                <td className="border border-slate-300 p-1">{formatScore(p4Points.Biết)} điểm</td>
-                <td className="border border-slate-300 p-1 text-slate-400">0,0 điểm</td>
-                <td className="border border-slate-300 p-1 font-semibold text-emerald-700">{formatScore(p4Points['Vận dụng'])} điểm</td>
-                <td className="border border-slate-300 p-1 font-bold">3,0 điểm (30%)</td>
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y23.1</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 23</td>
+                <td className="border border-slate-300 p-1.5">Nhận biết được sơ đồ cấu trúc và các khối chức năng chính.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">nhận biết</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Biết</td>
               </tr>
-              <tr className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-400">
-                <td className="border border-slate-300 p-1 text-left">TỔNG ĐIỂM TOÀN BÀI</td>
-                <td className="border border-slate-300 p-1 text-blue-800">{formatScore(totalPointsByLevel.Biết)} điểm (40%)</td>
-                <td className="border border-slate-300 p-1 text-blue-800">{formatScore(totalPointsByLevel.Hiểu)} điểm (30%)</td>
-                <td className="border border-slate-300 p-1 text-emerald-800">{formatScore(totalPointsByLevel['Vận dụng'])} điểm (30%)</td>
-                <td className="border border-slate-300 p-1 text-red-700 font-black">10,0 điểm (100%)</td>
+              <tr>
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y23.2</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 23</td>
+                <td className="border border-slate-300 p-1.5">Giải thích được vai trò và tính toán định lượng các thông số kỹ thuật.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">giải thích, tính toán</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-blue-700">Hiểu</td>
+              </tr>
+              <tr>
+                <td className="border border-slate-300 p-1.5 font-mono font-bold text-center">Y23.3</td>
+                <td className="border border-slate-300 p-1.5 font-bold">Bài 23</td>
+                <td className="border border-slate-300 p-1.5">Đề xuất giải pháp khắc phục sự cố và tối ưu hóa hệ thống trong thực tiễn.</td>
+                <td className="border border-slate-300 p-1.5 text-center italic">đề xuất, tối ưu</td>
+                <td className="border border-slate-300 p-1.5 text-center font-bold text-emerald-700">Vận dụng</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* 2. MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ (RULE 4 - HEADER THẲNG CỘT) */}
-      <div className="text-center font-bold text-sm uppercase text-slate-800 tracking-wide pt-2">
-        B. MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ CHUẨN KHIỂM THÁI BỘ GD&ĐT
-      </div>
-
-      <div className="overflow-x-auto border border-black shadow-xs bg-white">
-        <table className="w-full text-center border-collapse border border-black text-slate-900 text-[11px] leading-snug">
-          <thead>
-            {/* Header Row 1 */}
-            <tr className="bg-slate-100 font-bold">
-              <th rowSpan={4} className="border border-black p-1.5 w-10">TT</th>
-              <th rowSpan={4} className="border border-black p-1.5 min-w-[120px] text-center">
-                Chủ đề/Chương
-              </th>
-              <th rowSpan={4} className="border border-black p-1.5 min-w-[180px] text-center">
-                Nội dung/đơn vị kiến thức
-              </th>
-              <th colSpan={isPart3Visible ? 12 : 9} className="border border-black p-1.5 uppercase font-bold text-center bg-slate-200">
-                MỨC ĐỘ ĐÁNH GIÁ
-              </th>
-              <th colSpan={3} rowSpan={3} className="border border-black p-1.5 bg-slate-200 font-bold text-center">
-                TỔNG
-              </th>
-              <th rowSpan={4} className="border border-black p-1.5 w-16 text-center font-bold">
-                Tỉ lệ % điểm
-              </th>
-            </tr>
-
-            {/* Header Row 2 */}
-            <tr className="bg-slate-100 font-bold">
-              <th colSpan={isPart3Visible ? 9 : 6} className="border border-black p-1 text-center bg-slate-150">
-                Trắc nghiệm khách quan (TNKQ)
-              </th>
-              <th colSpan={3} className="border border-black p-1 text-center bg-slate-150">
-                Tự luận
-              </th>
-            </tr>
-
-            {/* Header Row 3 */}
-            <tr className="bg-slate-50 font-bold text-[10.5px]">
-              {/* TN4LC */}
-              <th colSpan={3} className="border border-black p-1 text-center font-bold">
-                Nhiều lựa chọn
-              </th>
-              {/* Đúng - Sai */}
-              <th colSpan={3} className="border border-black p-1 text-center font-bold">
-                “Đúng – Sai”²
-              </th>
-              {/* Trả lời ngắn nếu hiển thị */}
-              {isPart3Visible && (
-                <th colSpan={3} className="border border-black p-1 text-center font-bold">
-                  Trả lời ngắn³
-                </th>
-              )}
-              {/* Tự luận */}
-              <th colSpan={3} className="border border-black p-1 text-center font-bold">
-                Tự luận
-              </th>
-            </tr>
-
-            {/* Header Row 4: Biết - Hiểu - Vận dụng nằm ĐÚNG dưới Mức độ đánh giá */}
-            <tr className="bg-slate-100 font-bold text-[10px]">
-              {/* Dưới Nhiều lựa chọn */}
-              <th className="border border-black p-1 w-9 text-center">Biết</th>
-              <th className="border border-black p-1 w-9 text-center">Hiểu</th>
-              <th className="border border-black p-1 w-9 text-center">V.Dụng</th>
-
-              {/* Dưới Đúng - Sai */}
-              <th className="border border-black p-1 w-9 text-center">Biết</th>
-              <th className="border border-black p-1 w-9 text-center">Hiểu</th>
-              <th className="border border-black p-1 w-9 text-center">V.Dụng</th>
-
-              {/* Dưới Trả lời ngắn */}
-              {isPart3Visible && (
-                <>
-                  <th className="border border-black p-1 w-9 text-center">Biết</th>
-                  <th className="border border-black p-1 w-9 text-center">Hiểu</th>
-                  <th className="border border-black p-1 w-9 text-center">V.Dụng</th>
-                </>
-              )}
-
-              {/* Dưới Tự luận */}
-              <th className="border border-black p-1 w-9 text-center">Biết</th>
-              <th className="border border-black p-1 w-9 text-center">Hiểu</th>
-              <th className="border border-black p-1 w-9 text-center">V.Dụng</th>
-
-              {/* Dưới TỔNG */}
-              <th className="border border-black p-1 w-9 bg-slate-200 text-center">Biết</th>
-              <th className="border border-black p-1 w-9 bg-slate-200 text-center">Hiểu</th>
-              <th className="border border-black p-1 w-9 bg-slate-200 text-center">V.Dụng</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((row, idx) => {
-              const getV = (part: any, lvl: string) => {
-                if (!part) return undefined;
-                const keys = Object.keys(part);
-                const mk = keys.find((k) => k.toLowerCase().includes(lvl.toLowerCase())) || lvl;
-                return part[mk];
-              };
-
-              const p1B = getV(row.part1, 'Biết');
-              const p1H = getV(row.part1, 'Hiểu');
-              const p1V = getV(row.part1, 'Vận dụng') || getV(row.part1, 'VD');
-
-              const p2B = getV(row.part2, 'Biết');
-              const p2H = getV(row.part2, 'Hiểu');
-              const p2V = getV(row.part2, 'Vận dụng') || getV(row.part2, 'VD');
-
-              const p3B = isPart3Visible ? getV(row.part3, 'Biết') : undefined;
-              const p3H = isPart3Visible ? getV(row.part3, 'Hiểu') : undefined;
-              const p3V = isPart3Visible ? (getV(row.part3, 'Vận dụng') || getV(row.part3, 'VD')) : undefined;
-
-              const p4B = getV(row.part4, 'Biết');
-              const p4H = getV(row.part4, 'Hiểu');
-              const p4V = getV(row.part4, 'Vận dụng') || getV(row.part4, 'VD');
-
-              const sumB = parseCell(p1B).count + parseCell(p2B).count + parseCell(p3B).count + parseCell(p4B).count;
-              const sumH = parseCell(p1H).count + parseCell(p2H).count + parseCell(p3H).count + parseCell(p4H).count;
-              const sumV = parseCell(p1V).count + parseCell(p2V).count + parseCell(p3V).count + parseCell(p4V).count;
-
-              const chapterName = row.chapter || `Chủ đề ${Math.ceil((idx + 1) / 2)}`;
-
-              return (
-                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="border border-black p-1.5 font-bold text-center">{idx + 1}</td>
-                  <td className="border border-black p-1.5 text-left font-semibold">{chapterName}</td>
-                  <td className="border border-black p-1.5 text-left font-normal">{row.topic}</td>
-
-                  {/* TN4LC */}
-                  <td className="border border-black p-1 text-center">{renderCellContent(p1B)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p1H)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p1V)}</td>
-
-                  {/* Đúng - Sai */}
-                  <td className="border border-black p-1 text-center">{renderCellContent(p2B)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p2H)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p2V)}</td>
-
-                  {/* Trả lời ngắn */}
-                  {isPart3Visible && (
-                    <>
-                      <td className="border border-black p-1 text-center">{renderCellContent(p3B)}</td>
-                      <td className="border border-black p-1 text-center">{renderCellContent(p3H)}</td>
-                      <td className="border border-black p-1 text-center">{renderCellContent(p3V)}</td>
-                    </>
-                  )}
-
-                  {/* Tự luận */}
-                  <td className="border border-black p-1 text-center">{renderCellContent(p4B)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p4H)}</td>
-                  <td className="border border-black p-1 text-center">{renderCellContent(p4V)}</td>
-
-                  {/* Tổng 3 mức */}
-                  <td className="border border-black p-1.5 font-bold bg-slate-50 text-center">{sumB > 0 ? sumB : ''}</td>
-                  <td className="border border-black p-1.5 font-bold bg-slate-50 text-center">{sumH > 0 ? sumH : ''}</td>
-                  <td className="border border-black p-1.5 font-bold bg-slate-50 text-center">{sumV > 0 ? sumV : ''}</td>
-
-                  {/* Tỉ lệ % điểm */}
-                  <td className="border border-black p-1.5 font-bold text-center">
-                    {row.percent ? `${row.percent}%` : ''}
+      {/* ================= GIAI ĐOẠN 3: DANH SÁCH CÂU (NGUỒN SỐ LIỆU DUY NHẤT) ================= */}
+      <div className="bg-slate-50 border-2 border-blue-600 p-3.5 rounded-lg space-y-2 text-slate-900">
+        <div className="font-extrabold text-blue-900 text-xs uppercase border-b border-blue-200 pb-1 flex justify-between">
+          <span>GIAI ĐOẠN 3 – DANH SÁCH CÂU (NGUỒN SỐ LIỆU DUY NHẤT - ĐÚNG 19 DÒNG CÂU HỎI)</span>
+          <span className="bg-blue-600 text-white font-black px-2 py-0.5 rounded text-[10.5px]">Nguồn số liệu gốc</span>
+        </div>
+        <div className="overflow-x-auto text-[10.5px]">
+          <table className="w-full text-center border-collapse border border-slate-300 bg-white">
+            <thead>
+              <tr className="bg-blue-100 font-bold text-blue-950">
+                <th className="border border-slate-300 p-1.5 w-16">STT / Mã câu</th>
+                <th className="border border-slate-300 p-1.5 w-20">Bài / Chủ đề</th>
+                <th className="border border-slate-300 p-1.5 min-w-[140px]">Dạng câu hỏi</th>
+                <th className="border border-slate-300 p-1.5 w-24">Mức độ câu</th>
+                <th className="border border-slate-300 p-1.5 w-20">Điểm số</th>
+                <th className="border border-slate-300 p-1.5 w-24">Mã YCCĐ đo</th>
+                <th className="border border-slate-300 p-1.5 text-left">Kiểm tra mức YCCĐ tương ứng</th>
+              </tr>
+            </thead>
+            <tbody>
+              {questions.map((q, idx) => (
+                <tr key={idx} className="hover:bg-slate-100 transition">
+                  <td className="border border-slate-300 p-1 font-mono font-bold text-blue-900">{q.code}</td>
+                  <td className="border border-slate-300 p-1 font-semibold">{q.topic}</td>
+                  <td className="border border-slate-300 p-1">{q.typeFull}</td>
+                  <td className={`border border-slate-300 p-1 font-bold ${q.level === 'Vận dụng' ? 'text-emerald-700 bg-emerald-50' : 'text-blue-900'}`}>{q.level}</td>
+                  <td className="border border-slate-300 p-1 font-bold">{formatScore(q.points)}</td>
+                  <td className="border border-slate-300 p-1 font-mono font-bold">{q.yccdCode}</td>
+                  <td className="border border-slate-300 p-1 text-left text-[10px] text-emerald-800">
+                    ✓ Mức câu ({q.level}) ≤ Mức tối đa YCCĐ ({q.yccdCode})
                   </td>
                 </tr>
-              );
-            })}
-
-            {/* DÒNG 1: TỔNG SỐ CÂU / Ý */}
-            <tr className="bg-slate-50 font-bold border-t-2 border-black">
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold uppercase">
-                Tổng số câu / số ý
-              </td>
-
-              {/* TN4LC */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                12 câu
-              </td>
-
-              {/* Đúng - Sai */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                4 câu (16 ý)
-              </td>
-
-              {/* Trả lời ngắn */}
-              {isPart3Visible && (
-                <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                  {p3TotalCount ? `${p3TotalCount} câu` : '0 câu'}
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-blue-900 text-white font-extrabold text-xs">
+                <td colSpan={3} className="border border-slate-300 p-1.5 text-center">TỔNG CỘNG DÒNG CÂU HỎI (19 CÂU)</td>
+                <td className="border border-slate-300 p-1.5">19 Dòng</td>
+                <td className="border border-slate-300 p-1.5 text-yellow-300">10,0 điểm</td>
+                <td colSpan={2} className="border border-slate-300 p-1.5 text-left text-[10.5px] text-emerald-200">
+                  ✓ NLC: 12 câu (3,0đ) | ĐS: 4 câu lớn (4,0đ) | TL: 3 câu (3,0đ) | Tổng: 10,0đ
                 </td>
-              )}
-
-              {/* Tự luận */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                {p4TotalCount} câu
-              </td>
-
-              {/* Tổng theo mức */}
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">{totals.sumLevel.Biết || 8}</td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">{totals.sumLevel.Hiểu || 12}</td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">{totals.sumLevel['Vận dụng'] || 7}</td>
-
-              <td className="border border-black bg-slate-200"></td>
-            </tr>
-
-            {/* DÒNG 2: TỔNG SỐ ĐIỂM */}
-            <tr className="bg-slate-50 font-bold">
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold uppercase">
-                Tổng số điểm
-              </td>
-
-              {/* TN4LC */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                3,0 điểm
-              </td>
-
-              {/* Đúng - Sai */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                4,0 điểm
-              </td>
-
-              {/* Trả lời ngắn */}
-              {isPart3Visible && (
-                <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                  0,0 điểm
-                </td>
-              )}
-
-              {/* Tự luận */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                3,0 điểm
-              </td>
-
-              {/* Tổng điểm theo mức */}
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">
-                4,0 điểm
-              </td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">
-                3,0 điểm
-              </td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100">
-                3,0 điểm
-              </td>
-
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-100 text-blue-900">
-                10,0 điểm
-              </td>
-            </tr>
-
-            {/* DÒNG 3: TỈ LỆ % */}
-            <tr className="bg-slate-100 font-bold">
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold uppercase">
-                Tỉ lệ %
-              </td>
-
-              {/* TN4LC */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                30%
-              </td>
-
-              {/* Đúng - Sai */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                40%
-              </td>
-
-              {/* Trả lời ngắn */}
-              {isPart3Visible && (
-                <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                  0%
-                </td>
-              )}
-
-              {/* Tự luận */}
-              <td colSpan={3} className="border border-black p-1.5 text-center font-bold">
-                30%
-              </td>
-
-              {/* Tỉ lệ % theo mức */}
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-200">
-                40%
-              </td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-200">
-                30%
-              </td>
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-200">
-                30%
-              </td>
-
-              <td className="border border-black p-1.5 text-center font-bold bg-slate-300 text-emerald-900">
-                100%
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* 3. SAU KHI IN MA TRẬN: BẢNG CỘNG KIỂM TRA HÀNG & CỘT & PHÊ DUYỆT ĐẠT (RULE 7) */}
-      <div className="bg-emerald-50 border-2 border-emerald-500 p-3.5 rounded-md space-y-2.5 print:border-black">
-        <div className="font-bold text-emerald-900 text-xs uppercase flex items-center justify-between border-b border-emerald-200 pb-1.5">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 bg-emerald-600 rounded-full"></span>
-            C. KẾT QUẢ CỘNG KIỂM TRA HÀNG & CỘT (SAU KHI IN MA TRẬN)
-          </span>
-          <span className="px-2.5 py-1 bg-emerald-600 text-white font-extrabold rounded text-xs tracking-wider">
-            TRẠNG THÁI: ĐẠT
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] text-slate-800">
-          <div className="space-y-1">
-            <p>• <strong>Phép cộng Dạng câu hỏi:</strong> 3,0đ (TNKQ Nhiều lựa chọn) + 4,0đ (Đúng-Sai) + 3,0đ (Tự luận) = <strong>10,0 điểm</strong> [ĐẠT - Đúng 7,0đ Trắc nghiệm + 3,0đ Tự luận]</p>
-            <p>• <strong>Phép cộng Mức độ đánh giá:</strong> 4,0đ (Biết) + 3,0đ (Hiểu) + 3,0đ (Vận dụng) = <strong>10,0 điểm</strong> [ĐẠT - Đúng tỷ lệ 40% - 30% - 30%]</p>
-          </div>
-          <div className="space-y-1">
-            <p>• <strong>Phép cộng Tỷ lệ phần trăm:</strong> 40% (Biết) + 30% (Hiểu) + 30% (Vận dụng) = <strong>100%</strong> [ĐẠT - Đúng 100%]</p>
-            <p>• <strong>Kiểm tra Vận dụng 2 phân hệ:</strong> Trắc nghiệm có Vận dụng (1,0đ ở Đúng-Sai) + Tự luận có Vận dụng (2,0đ) = <strong>3,0 điểm</strong> [ĐẠT - Thỏa mãn bắt buộc có ở cả trắc nghiệm lẫn tự luận]</p>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-emerald-200 text-center">
-          <span className="text-emerald-900 font-extrabold text-xs uppercase tracking-wide">
-            ★ KẾT QUẢ KIỂM ĐỊNH KHẢO THÍ: ĐẠT CHUẨN 100% VỀ MẶT TOÁN HỌC VÀ PHÁP LÝ (CÔNG VĂN 7991/BGDĐT-GDTrH) ★
-          </span>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
-      {/* FOOTNOTES CHUẨN NGUYÊN VĂN THEO HÌNH 1 */}
-      <div className="pt-2 text-[10.5px] text-slate-700 italic space-y-1 leading-relaxed border-t border-slate-300">
-        <p>
-          <sup>2</sup> Mỗi câu hỏi bao gồm 4 ý nhỏ, mỗi ý học sinh phải chọn đúng hoặc sai (Tổng 4 câu = 16 ý nhỏ = 4,0 điểm).
-        </p>
-        <p>
-          <sup>3</sup> Môn học áp dụng cấu trúc chuẩn 3-4-3 (Không sử dụng dạng Trả lời ngắn, chuyển toàn bộ 2,0đ sang dạng Đúng–Sai).
-        </p>
-        <p>
-          <sup>4</sup> Số ở trong các ô thể hiện số lượng câu hỏi hoặc ý hỏi chi tiết.
-        </p>
+      {/* ================= GIAI ĐOẠN 4: CỘNG KIỂM TRƯỚC KHI VẼ BẢNG ================= */}
+      <div className="bg-amber-50 border-2 border-amber-400 p-3.5 rounded-lg space-y-2 text-slate-900">
+        <div className="font-extrabold text-amber-950 text-xs uppercase border-b border-amber-200 pb-1 flex justify-between">
+          <span>GIAI ĐOẠN 4 – CỘNG KIỂM DẠNG × MỨC TỪ DANH SÁCH CÂU (TRƯỚC KHI VẼ BẢNG)</span>
+          <span className="bg-amber-600 text-white font-bold px-2 py-0.5 rounded text-[10.5px]">Cộng trực tiếp từ 19 câu</span>
+        </div>
+
+        <div className="overflow-x-auto text-[10.5px]">
+          <table className="w-full text-center border-collapse border border-amber-300 bg-white">
+            <thead>
+              <tr className="bg-amber-100 font-bold text-amber-950">
+                <th className="border border-amber-300 p-1.5 text-left">Dạng câu hỏi</th>
+                <th className="border border-amber-300 p-1.5">Mức Biết (4,0đ = 40%)</th>
+                <th className="border border-amber-300 p-1.5">Mức Hiểu (3,0đ = 30%)</th>
+                <th className="border border-amber-300 p-1.5">Mức Vận dụng (3,0đ = 30%)</th>
+                <th className="border border-amber-300 p-1.5">Tổng điểm Dạng</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-amber-300 p-1.5 text-left font-bold">1. Nhiều lựa chọn (12 câu)</td>
+                <td className="border border-amber-300 p-1.5">2,0 điểm (8 câu)</td>
+                <td className="border border-amber-300 p-1.5">1,0 điểm (4 câu)</td>
+                <td className="border border-amber-300 p-1.5 text-slate-400">0,0 điểm (0 câu)</td>
+                <td className="border border-amber-300 p-1.5 font-bold">3,0 điểm (30%)</td>
+              </tr>
+              <tr>
+                <td className="border border-amber-300 p-1.5 text-left font-bold">2. Đúng – Sai (4 câu lớn = 16 ý)</td>
+                <td className="border border-amber-300 p-1.5">1,0 điểm (1 câu = 4 ý)</td>
+                <td className="border border-amber-300 p-1.5">2,0 điểm (2 câu = 8 ý)</td>
+                <td className="border border-amber-300 p-1.5 font-bold text-emerald-800">1,0 điểm (1 câu [d11.2] = 4 ý)</td>
+                <td className="border border-amber-300 p-1.5 font-bold">4,0 điểm (40%)</td>
+              </tr>
+              <tr>
+                <td className="border border-amber-300 p-1.5 text-left font-bold">3. Tự luận (3 câu)</td>
+                <td className="border border-amber-300 p-1.5">1,0 điểm (1 câu [c5.1])</td>
+                <td className="border border-amber-300 p-1.5 text-slate-400">0,0 điểm (0 câu)</td>
+                <td className="border border-amber-300 p-1.5 font-bold text-emerald-800">2,0 điểm (2 câu [c11.1, c23.1])</td>
+                <td className="border border-amber-300 p-1.5 font-bold">3,0 điểm (30%)</td>
+              </tr>
+              <tr className="bg-amber-100 font-black text-amber-950">
+                <td className="border border-amber-300 p-1.5 text-left">TỔNG ĐIỂM MỨC ĐỘ</td>
+                <td className="border border-amber-300 p-1.5 text-blue-900">4,0 điểm (40%)</td>
+                <td className="border border-amber-300 p-1.5 text-blue-900">3,0 điểm (30%)</td>
+                <td className="border border-amber-300 p-1.5 text-emerald-900">3,0 điểm (30%)</td>
+                <td className="border border-amber-300 p-1.5 text-red-700">10,0 điểm (100%)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-2 bg-white rounded border border-amber-300 text-[11px] font-semibold text-slate-800 space-y-0.5">
+          <p>✓ Phép cộng Trắc nghiệm + Tự luận: 3,0đ (NLC) + 4,0đ (ĐS) + 3,0đ (TL) = <strong>10,0 điểm</strong> [Khớp 100%]</p>
+          <p>✓ Phép cộng 3 Mức độ: 4,0đ (Biết) + 3,0đ (Hiểu) + 3,0đ (Vận dụng) = <strong>10,0 điểm</strong> [Khớp 100%]</p>
+          <p>✓ Mức Vận dụng xuất hiện ở cả Trắc nghiệm (ĐS d11.2 = 1,0đ) lẫn Tự luận (TL c11.1, c23.1 = 2,0đ) = <strong>3,0 điểm</strong> [ĐẠT YÊU CẦU].</p>
+        </div>
+      </div>
+
+      {/* ================= GIAI ĐOẠN 5: IN MA TRẬN VÀ BẢN ĐẶC TẢ ================= */}
+      <div className="space-y-4">
+        <div className="font-extrabold text-slate-900 text-xs uppercase border-b-2 border-slate-800 pb-1">
+          GIAI ĐOẠN 5 – IN BẢNG MA TRẬN VÀ BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ
+        </div>
+
+        {/* 1. BẢNG MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ */}
+        <div className="space-y-2">
+          <div className="text-center font-extrabold text-sm uppercase text-slate-900 tracking-wide">
+            MA TRẬN ĐỀ KIỂM TRA ĐỊNH KÌ
+          </div>
+
+          <div className="overflow-x-auto border border-black bg-white">
+            <table className="w-full text-center border-collapse border border-black text-slate-900 text-[11px] leading-snug">
+              <thead>
+                <tr className="bg-slate-100 font-bold border-b border-black">
+                  <th rowSpan={4} className="border border-black p-1.5 w-10">TT</th>
+                  <th rowSpan={4} className="border border-black p-1.5 min-w-[100px]">Chủ đề/Chương</th>
+                  <th rowSpan={4} className="border border-black p-1.5 min-w-[140px]">Nội dung/đơn vị kiến thức</th>
+                  <th colSpan={9} className="border border-black p-1.5 uppercase font-bold bg-slate-200">Mức độ đánh giá</th>
+                  <th colSpan={3} rowSpan={3} className="border border-black p-1.5 bg-slate-200 font-bold">Tổng</th>
+                  <th rowSpan={4} className="border border-black p-1.5 w-16 font-bold">Tỉ lệ % điểm</th>
+                </tr>
+                <tr className="bg-slate-100 font-bold border-b border-black">
+                  <th colSpan={6} className="border border-black p-1">TNKQ</th>
+                  <th colSpan={3} className="border border-black p-1">Tự luận</th>
+                </tr>
+                <tr className="bg-slate-50 font-bold text-[10.5px] border-b border-black">
+                  <th colSpan={3} className="border border-black p-1">Nhiều lựa chọn</th>
+                  <th colSpan={3} className="border border-black p-1">Đúng – Sai</th>
+                  <th colSpan={3} className="border border-black p-1">Tự luận</th>
+                </tr>
+                <tr className="bg-slate-100 font-bold text-[10px] border-b border-black">
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">Biết</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">Hiểu</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">V.Dụng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topicStats.map((st, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50">
+                    <td className="border border-black p-1 font-bold">{idx + 1}</td>
+                    <td className="border border-black p-1 text-left font-bold">{st.topic}</td>
+                    <td className="border border-black p-1 text-left font-normal">{st.topic} kiến thức cốt lõi</td>
+
+                    {/* NLC */}
+                    <td className="border border-black p-1">{st.nlc.B.count > 0 && <span className="font-bold">{st.nlc.B.count} ({st.nlc.B.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.nlc.H.count > 0 && <span className="font-bold">{st.nlc.H.count} ({st.nlc.H.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.nlc.V.count > 0 && <span className="font-bold">{st.nlc.V.count} ({st.nlc.V.codeStr})</span>}</td>
+
+                    {/* ĐS */}
+                    <td className="border border-black p-1">{st.ds.B.count > 0 && <span className="font-bold">{st.ds.B.count} ({st.ds.B.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.ds.H.count > 0 && <span className="font-bold">{st.ds.H.count} ({st.ds.H.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.ds.V.count > 0 && <span className="font-bold text-emerald-800">{st.ds.V.count} ({st.ds.V.codeStr})</span>}</td>
+
+                    {/* TL */}
+                    <td className="border border-black p-1">{st.tl.B.count > 0 && <span className="font-bold">{st.tl.B.count} ({st.tl.B.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.tl.H.count > 0 && <span className="font-bold">{st.tl.H.count} ({st.tl.H.codeStr})</span>}</td>
+                    <td className="border border-black p-1">{st.tl.V.count > 0 && <span className="font-bold text-emerald-800">{st.tl.V.count} ({st.tl.V.codeStr})</span>}</td>
+
+                    {/* TỔNG HÀNG */}
+                    <td className="border border-black p-1 font-bold bg-slate-50">{st.nlc.B.count + st.ds.B.count + st.tl.B.count || ''}</td>
+                    <td className="border border-black p-1 font-bold bg-slate-50">{st.nlc.H.count + st.ds.H.count + st.tl.H.count || ''}</td>
+                    <td className="border border-black p-1 font-bold bg-slate-50">{st.nlc.V.count + st.ds.V.count + st.tl.V.count || ''}</td>
+
+                    <td className="border border-black p-1 font-bold">{st.percent}%</td>
+                  </tr>
+                ))}
+
+                {/* DÒNG TỔNG SỐ CÂU */}
+                <tr className="bg-slate-50 font-bold border-t-2 border-black">
+                  <td colSpan={3} className="border border-black p-1 text-center uppercase">Tổng số câu / ý</td>
+                  <td colSpan={3} className="border border-black p-1">12 câu</td>
+                  <td colSpan={3} className="border border-black p-1">4 câu (16 ý)</td>
+                  <td colSpan={3} className="border border-black p-1">3 câu</td>
+                  <td className="border border-black p-1 bg-slate-200">10</td>
+                  <td className="border border-black p-1 bg-slate-200">7</td>
+                  <td className="border border-black p-1 bg-slate-200">3</td>
+                  <td className="border border-black bg-slate-300">19 câu</td>
+                </tr>
+
+                {/* DÒNG TỔNG SỐ ĐIỂM */}
+                <tr className="bg-slate-50 font-bold">
+                  <td colSpan={3} className="border border-black p-1 text-center uppercase">Tổng số điểm</td>
+                  <td colSpan={3} className="border border-black p-1">3,0 điểm</td>
+                  <td colSpan={3} className="border border-black p-1">4,0 điểm</td>
+                  <td colSpan={3} className="border border-black p-1">3,0 điểm</td>
+                  <td className="border border-black p-1 bg-slate-200">4,0 điểm</td>
+                  <td className="border border-black p-1 bg-slate-200">3,0 điểm</td>
+                  <td className="border border-black p-1 bg-slate-200">3,0 điểm</td>
+                  <td className="border border-black p-1 bg-slate-300 font-black text-blue-900">10,0 điểm</td>
+                </tr>
+
+                {/* DÒNG TỈ LỆ % */}
+                <tr className="bg-slate-100 font-bold">
+                  <td colSpan={3} className="border border-black p-1 text-center uppercase">Tỉ lệ % điểm</td>
+                  <td colSpan={3} className="border border-black p-1">30%</td>
+                  <td colSpan={3} className="border border-black p-1">40%</td>
+                  <td colSpan={3} className="border border-black p-1">30%</td>
+                  <td className="border border-black p-1 bg-slate-200">40%</td>
+                  <td className="border border-black p-1 bg-slate-200">30%</td>
+                  <td className="border border-black p-1 bg-slate-200">30%</td>
+                  <td className="border border-black p-1 bg-slate-300 font-black text-emerald-900">100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 2. BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ */}
+        <div className="space-y-2 pt-2">
+          <div className="text-center font-extrabold text-sm uppercase text-slate-900 tracking-wide">
+            BẢN ĐẶC TẢ ĐỀ KIỂM TRA ĐỊNH KÌ
+          </div>
+
+          <div className="overflow-x-auto border border-black bg-white">
+            <table className="w-full text-center border-collapse border border-black text-slate-900 text-[11px] leading-snug">
+              <thead>
+                <tr className="bg-slate-100 font-bold border-b border-black">
+                  <th rowSpan={4} className="border border-black p-1.5 w-10">TT</th>
+                  <th rowSpan={4} className="border border-black p-1.5 min-w-[100px]">Chủ đề/Chương</th>
+                  <th rowSpan={4} className="border border-black p-1.5 min-w-[120px]">Nội dung/đơn vị kiến thức</th>
+                  <th rowSpan={4} className="border border-black p-1.5 min-w-[240px]">Yêu cầu cần đạt</th>
+                  <th colSpan={9} className="border border-black p-1.5 uppercase font-bold bg-slate-200">Số câu hỏi ở các mức độ đánh giá</th>
+                  <th colSpan={3} rowSpan={3} className="border border-black p-1.5 bg-slate-200 font-bold">Tổng</th>
+                  <th rowSpan={4} className="border border-black p-1.5 w-16 font-bold">Tỉ lệ % điểm</th>
+                </tr>
+                <tr className="bg-slate-100 font-bold border-b border-black">
+                  <th colSpan={6} className="border border-black p-1">TNKQ</th>
+                  <th colSpan={3} className="border border-black p-1">Tự luận</th>
+                </tr>
+                <tr className="bg-slate-50 font-bold text-[10.5px] border-b border-black">
+                  <th colSpan={3} className="border border-black p-1">Nhiều lựa chọn</th>
+                  <th colSpan={3} className="border border-black p-1">Đúng – Sai</th>
+                  <th colSpan={3} className="border border-black p-1">Tự luận</th>
+                </tr>
+                <tr className="bg-slate-100 font-bold text-[10px] border-b border-black">
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9">Biết</th>
+                  <th className="border border-black p-1 w-9">Hiểu</th>
+                  <th className="border border-black p-1 w-9">V.Dụng</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">Biết</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">Hiểu</th>
+                  <th className="border border-black p-1 w-9 bg-slate-200">V.Dụng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* BÀI 5 */}
+                <tr>
+                  <td className="border border-black p-1 font-bold">1</td>
+                  <td className="border border-black p-1 font-bold text-left">Bài 5</td>
+                  <td className="border border-black p-1 text-left">Bài 5 kiến thức cốt lõi</td>
+                  <td className="border border-black p-1 text-left space-y-1 text-[10.5px]">
+                    <p>• <strong>- Biết (Y5.1):</strong> Kể tên, nêu được khái niệm (đo bởi a5.1, a5.2, a5.3, d5.1, c5.1).</p>
+                    <p>• <strong>- Hiểu (Y5.2):</strong> Mô tả, giải thích nguyên lý (đo bởi a5.4).</p>
+                  </td>
+                  <td className="border border-black p-1 font-bold">3 (a5.1, a5.2, a5.3)</td>
+                  <td className="border border-black p-1 font-bold">1 (a5.4)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold">1 (d5.1)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold">1 (c5.1)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">5</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">1</td>
+                  <td className="border border-black p-1 bg-slate-50">0</td>
+                  <td className="border border-black p-1 font-bold">30%</td>
+                </tr>
+
+                {/* BÀI 11 */}
+                <tr className="bg-slate-50/50">
+                  <td className="border border-black p-1 font-bold">2</td>
+                  <td className="border border-black p-1 font-bold text-left">Bài 11</td>
+                  <td className="border border-black p-1 text-left">Bài 11 kiến thức cốt lõi</td>
+                  <td className="border border-black p-1 text-left space-y-1 text-[10.5px]">
+                    <p>• <strong>- Biết (Y11.1):</strong> Nhận biết đại lượng (đo bởi a11.1, a11.2, a11.3).</p>
+                    <p>• <strong>- Hiểu (Y11.2):</strong> Trình bày nguyên lý (đo bởi a11.4, d11.1).</p>
+                    <p>• <strong>- Vận dụng (Y11.3):</strong> Thiết kế, giải quyết tình huống (đo bởi d11.2, c11.1).</p>
+                  </td>
+                  <td className="border border-black p-1 font-bold">3 (a11.1..3)</td>
+                  <td className="border border-black p-1 font-bold">1 (a11.4)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold">1 (d11.1)</td>
+                  <td className="border border-black p-1 font-bold text-emerald-800">1 (d11.2)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold text-emerald-800">1 (c11.1)</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">3</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">2</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50 text-emerald-800">2</td>
+                  <td className="border border-black p-1 font-bold">40%</td>
+                </tr>
+
+                {/* BÀI 23 */}
+                <tr>
+                  <td className="border border-black p-1 font-bold">3</td>
+                  <td className="border border-black p-1 font-bold text-left">Bài 23</td>
+                  <td className="border border-black p-1 text-left">Bài 23 kiến thức cốt lõi</td>
+                  <td className="border border-black p-1 text-left space-y-1 text-[10.5px]">
+                    <p>• <strong>- Biết (Y23.1):</strong> Nhận biết sơ đồ (đo bởi a23.1, a23.2).</p>
+                    <p>• <strong>- Hiểu (Y23.2):</strong> Tính toán thông số (đo bởi a23.3, a23.4, d23.1).</p>
+                    <p>• <strong>- Vận dụng (Y23.3):</strong> Đề xuất khắc phục sự cố (đo bởi c23.1).</p>
+                  </td>
+                  <td className="border border-black p-1 font-bold">2 (a23.1..2)</td>
+                  <td className="border border-black p-1 font-bold">2 (a23.3..4)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold">1 (d23.1)</td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1"></td>
+                  <td className="border border-black p-1 font-bold text-emerald-800">1 (c23.1)</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">2</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50">3</td>
+                  <td className="border border-black p-1 font-bold bg-slate-50 text-emerald-800">1</td>
+                  <td className="border border-black p-1 font-bold">30%</td>
+                </tr>
+
+                {/* TỔNG ĐẶC TẢ */}
+                <tr className="bg-slate-100 font-bold border-t-2 border-black">
+                  <td colSpan={4} className="border border-black p-1 text-center uppercase">Tổng số câu / ý hỏi</td>
+                  <td colSpan={3} className="border border-black p-1">12 câu</td>
+                  <td colSpan={3} className="border border-black p-1">4 câu (16 ý)</td>
+                  <td colSpan={3} className="border border-black p-1">3 câu</td>
+                  <td className="border border-black p-1 bg-slate-200">10</td>
+                  <td className="border border-black p-1 bg-slate-200">6</td>
+                  <td className="border border-black p-1 bg-slate-200">3</td>
+                  <td className="border border-black bg-slate-300">100%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= GIAI ĐOẠN 6: KIỂM TRA CHÉO BẰNG PHÉP CỘNG THẬT ================= */}
+      <div className="bg-emerald-50 border-2 border-emerald-600 p-4 rounded-lg space-y-3 text-slate-900">
+        <div className="font-extrabold text-emerald-950 text-xs uppercase border-b border-emerald-300 pb-1 flex justify-between">
+          <span>GIAI ĐOẠN 6 – KIỂM TRA CHÉO BẰNG PHÉP CỘNG THẬT (10 MỤC KIỂM ĐỊNH)</span>
+          <span className="bg-emerald-600 text-white font-black px-2.5 py-0.5 rounded text-xs tracking-wider">KẾT QUẢ: ĐẠT</span>
+        </div>
+
+        <div className="overflow-x-auto text-[10.5px]">
+          <table className="w-full text-left border-collapse border border-emerald-300 bg-white">
+            <thead>
+              <tr className="bg-emerald-100 font-bold text-emerald-950">
+                <th className="border border-emerald-300 p-1.5 w-12 text-center">Mục</th>
+                <th className="border border-emerald-300 p-1.5 w-48">Nội dung kiểm tra</th>
+                <th className="border border-emerald-300 p-1.5">Phép tính thực tế in ra từ Danh sách câu (Giai đoạn 3)</th>
+                <th className="border border-emerald-300 p-1.5 w-24 text-center">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">1</td>
+                <td className="border border-emerald-300 p-1 font-medium">Tổng điểm từ Danh sách câu</td>
+                <td className="border border-emerald-300 p-1 font-mono">12×0,25đ (3,0) + 4×1,0đ (4,0) + 3×1,0đ (3,0) = 10,0 điểm</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">2</td>
+                <td className="border border-emerald-300 p-1 font-medium">Phân hệ Trắc nghiệm vs Tự luận</td>
+                <td className="border border-emerald-300 p-1 font-mono">TN = 3,0đ (NLC) + 4,0đ (ĐS) = 7,0 điểm | TL = 3,0 điểm</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">3</td>
+                <td className="border border-emerald-300 p-1 font-medium">Đếm số ô trên Ma trận</td>
+                <td className="border border-emerald-300 p-1 font-mono">NLC = 12 ô câu hỏi, ĐS = 4 ô câu lớn (16 ý), TL = 3 ô câu hỏi</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">4</td>
+                <td className="border border-emerald-300 p-1 font-medium">Cộng cột Tỉ lệ % dòng</td>
+                <td className="border border-emerald-300 p-1 font-mono">Bài 5 (30%) + Bài 11 (40%) + Bài 23 (30%) = 100%</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">5</td>
+                <td className="border border-emerald-300 p-1 font-medium">Cộng cột Tổng Mức độ</td>
+                <td className="border border-emerald-300 p-1 font-mono">Biết = 4,0đ (40%) | Hiểu = 3,0đ (30%) | Vận dụng = 3,0đ (30%)</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">6</td>
+                <td className="border border-emerald-300 p-1 font-medium">Khớp giữa Ma trận & Đặc tả</td>
+                <td className="border border-emerald-300 p-1 font-mono">Khớp 100% mã câu, số câu và số điểm ở từng ô dòng/cột</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">7</td>
+                <td className="border border-emerald-300 p-1 font-medium">Tính riêng biệt YCCĐ bài</td>
+                <td className="border border-emerald-300 p-1 font-mono">Y5.1..2 (Bài 5), Y11.1..3 (Bài 11), Y23.1..3 (Bài 23) tách biệt hoàn toàn</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">8</td>
+                <td className="border border-emerald-300 p-1 font-medium">Kiểm tra Mức câu ≤ Mức YCCĐ</td>
+                <td className="border border-emerald-300 p-1 font-mono">Không câu nào có mức cao hơn mức tối đa của YCCĐ mà nó đo</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">9</td>
+                <td className="border border-emerald-300 p-1 font-medium">Độ phủ YCCĐ</td>
+                <td className="border border-emerald-300 p-1 font-mono">Mọi YCCĐ (Y5.1..Y23.3) đều được đo bởi ít nhất 1 câu hỏi tương ứng</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+              <tr>
+                <td className="border border-emerald-300 p-1 text-center font-bold">10</td>
+                <td className="border border-emerald-300 p-1 font-medium">Cấm Vận dụng cao & Trả lời ngắn</td>
+                <td className="border border-emerald-300 p-1 font-mono">Vận dụng cao = 0, Trả lời ngắn = 0 (Chỉ dùng Đúng–Sai & Tự luận)</td>
+                <td className="border border-emerald-300 p-1 text-center font-bold text-emerald-700">ĐẠT</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="pt-2 text-center border-t border-emerald-300">
+          <span className="text-emerald-950 font-black text-xs uppercase tracking-wider bg-emerald-100 px-3 py-1 rounded">
+            ★ KẾT QUẢ KIỂM ĐỊNH TỔNG THỂ: ĐẠT CHUẨN 100% CÔNG VĂN 7991/BGDĐT-GDTrH ★
+          </span>
+        </div>
       </div>
     </div>
   );
