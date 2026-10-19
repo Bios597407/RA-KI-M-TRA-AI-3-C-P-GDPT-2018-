@@ -197,51 +197,97 @@ QUY TẮC PHÂN BỔ ĐA TÀI LIỆU (MỆNH LỆNH BẮT BUỘC):
 
   const noDocumentInstruction = !referenceContext.trim()
     ? `BẮT BUỘC: Giáo viên KHÔNG tải tài liệu đính kèm. Bạn BẮT BUỘC phải dựa đúng vào kiến thức chuẩn Sách Giáo Khoa môn ${subject}, Lớp ${config.grade}, Bộ sách "${config.textbook}" thuộc Chương trình GDPT 2018 Việt Nam để biên soạn câu hỏi chuyên môn thực tế, có chiều sâu.`
-    : `BẮT BUỘC: 100% nội dung đề thi PHẢI DỰA TRỰC TIẾP TRÊN TÀI LIỆU VÀ NGỮ LIỆU ĐÃ CUNG CẤP. ${config.sourceOption === 'doc_only' ? 'NGHIÊM CẤM bịa đặt bất kỳ khái niệm hay số liệu nào nằm ngoài văn bản đã cung cấp.' : ''} ${distributionInstruction}`;
+    : '';
+  const isPrimary = config.gradeLevel === 'primary' || Number(config.grade) <= 5;
+  const isVan = subject.toLowerCase().includes('văn') || subject.toLowerCase().includes('ngữ văn');
 
-  // Requirement 4: Master Exam Only
-  const prompt = `Bạn là chuyên gia Khảo thí Giáo dục Việt Nam hàng đầu.
+  let tierPromptRules = '';
+  if (isPrimary) {
+    tierPromptRules = `
+QUY CHUẨN KHẢO THÍ TIỂU HỌC (THEO THÔNG TƯ 27/2020/TT-BGDĐT):
+1. 3 MỨC ĐỘ NHẬN THỨC ĐẶC THÙ:
+   - "Mức 1" (Nhận biết, nhắc lại): Nhận biết, nhắc lại, mô tả được kiến thức/kỹ năng trong tình huống quen thuộc (chiếm ~40-50%).
+   - "Mức 2" (Thông hiểu, kết nối): Kết nối, sắp xếp để giải quyết tình huống tương tự (chiếm ~30-40%).
+   - "Mức 3" (Vận dụng): Vận dụng vào tình huống mới hoặc liên hệ giải quyết vấn đề thực tế (chiếm ~20-30%).
+2. ĐỊNH DẠNG CÂU HỎI TIỂU HỌC:
+   - Trắc nghiệm 4 lựa chọn đơn giản (Phần I).
+   - Tự luận viết ngắn, điền khuyết, hoặc bài toán có lời văn (Phần IV).
+3. ĐỘNG TỪ BẢN ĐẶC TẢ:
+   - Mức 1: Đọc được, viết được, nhận biết được, tính nhẩm trực tiếp.
+   - Mức 2: Thực hiện phép tính có nhớ, tóm tắt bài toán, so sánh số, điền dấu.
+   - Mức 3: Giải bài toán có lời văn (2-3 bước tính), giải quyết tình huống thực tế đời sống.`;
+  } else if (isVan) {
+    tierPromptRules = `
+QUY CHUẨN MÔN NGỮ VĂN THCS & THPT (THEO CÔNG VĂN 7991/BGDĐT-GDTrH):
+1. 3 MỨC ĐỘ NHẬN THỨC: Nhận biết (40%), Thông hiểu (30%), Vận dụng (30%). TUYỆT ĐỐI KHÔNG chia "Vận dụng cao" thành cột riêng.
+2. CẤU TRÚC ĐỀ MÔN NGỮ VĂN:
+   - Phần I: ĐỌC HIỂU (4,0 điểm): Dùng ngữ liệu văn bản hoàn chỉnh ngoài SGK. Gồm các câu hỏi đọc hiểu mức độ Nhận biết, Thông hiểu và Vận dụng.
+   - Phần II: VIẾT (6,0 điểm): Câu 1 viết đoạn văn (2,0đ) và Câu 2 viết bài văn hoàn chỉnh (4,0đ).
+3. ĐỘNG TỪ CHUẨN GDPT 2018:
+   - Nhận biết: Nhận biết được ngôi kể, nhân vật, thể thơ, từ ngữ, chi tiết, phương thức biểu đạt...
+   - Thông hiểu: Phân tích được tác dụng biện pháp tu từ, giải thích ý nghĩa hình ảnh, thông điệp...
+   - Vận dụng: Rút ra bài học, liên hệ thực tiễn, thể hiện thái độ/quan điểm bản thân.`;
+  } else {
+    tierPromptRules = `
+QUY CHUẨN THCS & THPT (THEO CÔNG VĂN 7991/BGDĐT-GDTrH & THÔNG TƯ 22/2021/TT-BGDĐT):
+1. CẤU TRÚC ĐIỂM SỐ BẮT BUỘC KHẢO THÍ:
+   - Tổng điểm = 10,0 điểm (Trắc nghiệm = 7,0 điểm + Tự luận = 3,0 điểm).
+   - Phần I (Trắc nghiệm Nhiều lựa chọn): 12 câu × 0,25đ = 3,0 điểm (30%).
+   - Phần II (Trắc nghiệm Đúng – Sai): 4 câu lớn (16 ý nhỏ a,b,c,d) × 0,25đ/ý = 4,0 điểm (40%).
+   - Phần III (Trả lời ngắn): 0 câu (0,0đ - KHÔNG SỬ DỤNG DẠNG NÀY).
+   - Phần IV (Tự luận): 3,0 điểm (30%).
+2. TỶ LỆ MỨC ĐỘ NHẬN THỨC BẮT BUỘC (40% - 30% - 30%):
+   - Mức Biết: 40% = 4,0 điểm (3,0đ Trắc nghiệm + 1,0đ Tự luận).
+   - Mức Hiểu: 30% = 3,0 điểm (3,0đ Trắc nghiệm + 0,0đ Tự luận).
+   - Mức Vận dụng: 30% = 3,0 điểm (1,0đ Trắc nghiệm ở Phần II + 2,0đ Tự luận ở Phần IV).
+   - ĐIỀU KIỆN TIÊN QUYẾT: Mức Vận dụng MUST xuất hiện ở CẢ Trắc nghiệm LẪN Tự luận!
+3. YÊU CẦU NỘI DUNG VÀ YCCĐ (NGUYÊN TẮC KHÔNG TỰ SÁNG TÁC):
+   - Tên chương, đơn vị kiến thức và YCCĐ CHỈ ĐƯỢC LẤY từ thông tin/tài liệu giáo viên đã cung cấp.
+   - Nếu nội dung thiếu YCCĐ, BẮT BUỘC ghi rõ nhãn "THIẾU YCCĐ – cần bổ sung", TUYỆT ĐỐI KHÔNG điền chữ chung chung suy đoán!`;
+  }
+
+  // Master Prompt
+  const prompt = `Bạn là Chuyên gia Khảo thí và Đo lường Giáo dục hàng đầu của Bộ Giáo dục & Đào tạo Việt Nam.
 ${referenceContext}
 
-Nhiệm vụ: Hãy biên soạn DUY NHẤT MỘT (01) BỘ ĐỀ KIỂM TRA GỐC (Master Exam) chuẩn mực theo cấu trúc GDPT 2018 cho:
-- Cấp học: ${config.gradeLevel === 'primary' ? 'Tiểu học' : config.gradeLevel === 'secondary' ? 'THCS' : 'THPT'} | Lớp: ${config.grade} | Môn học: ${subject}
+Nhiệm vụ: Hãy biên soạn DUY NHẤT MỘT (01) BỘ ĐỀ KIỂM TRA GỐC (Master Exam) chuẩn mực tuân thủ tuyệt đối quy định Bộ GD&ĐT cho:
+- Cấp học: ${isPrimary ? 'Tiểu học (Thông tư 27/2020)' : Number(config.grade) <= 9 ? 'THCS (Công văn 7991)' : 'THPT (Công văn 7991 & Cấu trúc 2025)'}
+- Khối lớp: Lớp ${config.grade} | Môn học: ${subject}
 - Bộ sách: ${config.textbook} | Thời gian: ${config.durationMinutes} phút
-${isEquivalent ? 'CHÚ Ý: Đây là chế độ TẠO ĐỀ TƯƠNG ĐƯƠNG (Đề B). Giữ nguyên cấu trúc nhưng đổi toàn bộ số liệu và ngữ cảnh.' : ''}
+${isEquivalent ? 'CHÚ Ý: Chế độ TẠO ĐỀ TƯƠNG ĐƯƠNG (Đề B): Giữ nguyên ma trận nhưng thay mới 100% số liệu và ngữ cảnh.' : ''}
 
 ${noDocumentInstruction}
 
-QUY TẮC CẤU TRÚC VÀ MA TRẬN (BẮT BUỘC):
-1. PHÂN BỔ NHẬN THỨC (CỰC KỲ QUAN TRỌNG):
-   - Tuyệt đối KHÔNG được để trống mức "Thông hiểu" hoặc bất kỳ mức độ nào.
-   - Phân bổ câu hỏi theo tỷ lệ: Nhận biết ~40%, Thông hiểu ~30%, Vận dụng ~20%, Vận dụng cao ~10%.
-   - Phải có sự phân bổ đều các mức độ cho TẤT CẢ các phần (Phần I, II, III, IV).
-2. TÊN CHỦ ĐỀ/BÀI:
-   - BẮT BUỘC sử dụng chính xác tên các tệp tin đã tải lên làm tên Chủ đề/Đơn vị kiến thức trong câu hỏi.
-   - NGHIÊM CẤM tự ý thay đổi tên bài hoặc bịa đặt tên chủ đề khác không có trong tài liệu.
-3. KHỚP DỮ LIỆU:
-   - Số lượng câu hỏi ở từng phần (I, II, III, IV) PHẢI KHỚP TUYỆT ĐỐI với cấu trúc đã yêu cầu dưới đây.
+${tierPromptRules}
 
-CẤU TRÚC BỘ ĐỀ GỐC:
-- Phần I (Trắc nghiệm 4 lựa chọn): ${p1} câu.
-- Phần II (Trắc nghiệm Đúng/Sai 4 ý a,b,c,d): ${p2} câu.
+CẤU TRÚC SỐ LƯỢNG CÂU BẮT BUỘC (PHẢI KHỚP 100%):
+- Phần I (Trắc nghiệm nhiều lựa chọn): ${p1} câu.
+- Phần II (Trắc nghiệm Đúng/Sai 4 ý): ${p2} câu.
 - Phần III (Trả lời ngắn): ${p3} câu.
 - Phần IV (Tự luận): ${p4} câu.
-
-HỆ THỐNG MỨC ĐỘ NĂNG LỰC: ${cognitiveList}.
 
 YÊU CẦU ĐỊNH DẠNG JSON (Mảng các đối tượng QuestionItem):
 [
   {
-    "question": "...",
+    "question": "Nội dung câu hỏi rõ ràng, sư phạm, chuẩn mực...",
     "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-    "correctAnswer": "...",
-    "explanation": "...",
-    "level": "Nhận biết" hoặc "Thông hiểu" hoặc "Vận dụng" hoặc "Vận dụng cao",
+    "correctAnswer": "A",
+    "explanation": "Lời giải chi tiết và căn cứ khoa học...",
+    "level": "${isPrimary ? 'Mức 1' : 'Nhận biết'}" hoặc "${isPrimary ? 'Mức 2' : 'Thông hiểu'}" hoặc "${isPrimary ? 'Mức 3' : 'Vận dụng'}",
     "part": "part1" hoặc "part2" hoặc "part3" hoặc "part4",
-    "type": "...",
-    "topic": "TÊN FILE CHÍNH XÁC (từ tài liệu tải lên)",
-    "subItems": [...],
-    "rubric": [...]
+    "type": "mcq_single" hoặc "true_false_group" hoặc "short_answer" hoặc "essay",
+    "topic": "Tên chủ đề/bài học trọng tâm",
+    "subItems": [
+      {"id": "a", "label": "a", "statement": "...", "isCorrect": true, "explanation": "..."},
+      {"id": "b", "label": "b", "statement": "...", "isCorrect": false, "explanation": "..."},
+      {"id": "c", "label": "c", "statement": "...", "isCorrect": true, "explanation": "..."},
+      {"id": "d", "label": "d", "statement": "...", "isCorrect": false, "explanation": "..."}
+    ],
+    "rubric": [
+      {"step": "Bước 1", "point": 1.0, "detail": "..."},
+      {"step": "Bước 2", "point": 1.0, "detail": "..."},
+      {"step": "Bước 3", "point": 1.0, "detail": "..."}
+    ]
   }
 ]
 `;
@@ -311,38 +357,69 @@ export function applyScoringRules(questions: QuestionItem[], config: ExamConfig)
   const targetTotal = config.totalScore || 10;
   if (questions.length === 0) return;
 
-  const part1 = questions.filter((q) => q.part === 'part1');
-  const part2 = questions.filter((q) => q.part === 'part2');
-  const part3 = questions.filter((q) => q.part === 'part3');
-  const part4 = questions.filter((q) => q.part === 'part4');
+  const isPrimary = config.gradeLevel === 'primary' || Number(config.grade) <= 5;
 
-  part1.forEach((q) => (q.score = 0.25));
-  part2.forEach((q) => (q.score = 1.0));
-  part3.forEach((q) => (q.score = 0.5));
+  if (isPrimary) {
+    // Primary School (TT 27/2020): Balanced between TN (MCQ) and TL (Essay/Short answers)
+    const mcqQuestions = questions.filter((q) => q.part === 'part1' || q.type === 'mcq_single');
+    const essayQuestions = questions.filter((q) => q.part !== 'part1' && q.type !== 'mcq_single');
 
-  const allocated =
-    part1.reduce((s, q) => s + q.score, 0) +
-    part2.reduce((s, q) => s + q.score, 0) +
-    part3.reduce((s, q) => s + q.score, 0);
+    const tnRatio = (config.cognitiveDist?.['Mức 1'] ?? 50) >= 50 ? 0.5 : 0.4;
+    const tnTotalTarget = Math.round(targetTotal * tnRatio * 10) / 10;
+    const tlTotalTarget = targetTotal - tnTotalTarget;
 
-  if (part4.length > 0) {
-    const remaining = Math.max(0, targetTotal - allocated);
-    const perEssay = Number((remaining / part4.length).toFixed(2));
-    part4.forEach((q) => {
-      q.score = perEssay;
-      if (q.rubric && q.rubric.length > 0) {
-        const stepPt = Number((perEssay / q.rubric.length).toFixed(2));
-        q.rubric.forEach((r) => {
-          r.point = stepPt;
+    if (mcqQuestions.length > 0) {
+      const perMcq = Number((tnTotalTarget / mcqQuestions.length).toFixed(2));
+      mcqQuestions.forEach((q) => (q.score = perMcq));
+    }
+
+    if (essayQuestions.length > 0) {
+      const perEssay = Number((tlTotalTarget / essayQuestions.length).toFixed(2));
+      essayQuestions.forEach((q) => {
+        q.score = perEssay;
+        if (q.rubric && q.rubric.length > 0) {
+          const stepPt = Number((perEssay / q.rubric.length).toFixed(2));
+          q.rubric.forEach((r) => {
+            r.point = stepPt;
+          });
+        }
+      });
+    }
+  } else {
+    // Secondary & High School (CV 7991): 7.0 TNKQ and 3.0 Tự luận
+    const part1 = questions.filter((q) => q.part === 'part1');
+    const part2 = questions.filter((q) => q.part === 'part2');
+    const part3 = questions.filter((q) => q.part === 'part3');
+    const part4 = questions.filter((q) => q.part === 'part4');
+
+    part1.forEach((q) => (q.score = 0.25));
+    part2.forEach((q) => (q.score = 1.0));
+    part3.forEach((q) => (q.score = 0.5));
+
+    const allocated =
+      part1.reduce((s, q) => s + q.score, 0) +
+      part2.reduce((s, q) => s + q.score, 0) +
+      part3.reduce((s, q) => s + q.score, 0);
+
+    if (part4.length > 0) {
+      const remaining = Math.max(0, targetTotal - allocated);
+      const perEssay = Number((remaining / part4.length).toFixed(2));
+      part4.forEach((q) => {
+        q.score = perEssay;
+        if (q.rubric && q.rubric.length > 0) {
+          const stepPt = Number((perEssay / q.rubric.length).toFixed(2));
+          q.rubric.forEach((r) => {
+            r.point = stepPt;
+          });
+        }
+      });
+    } else {
+      const currentSum = questions.reduce((s, q) => s + (q.score || 0), 0);
+      if (currentSum > 0) {
+        questions.forEach((q) => {
+          q.score = Number(((q.score / currentSum) * targetTotal).toFixed(2));
         });
       }
-    });
-  } else {
-    const currentSum = questions.reduce((s, q) => s + (q.score || 0), 0);
-    if (currentSum > 0) {
-      questions.forEach((q) => {
-        q.score = Number(((q.score / currentSum) * targetTotal).toFixed(2));
-      });
     }
   }
 

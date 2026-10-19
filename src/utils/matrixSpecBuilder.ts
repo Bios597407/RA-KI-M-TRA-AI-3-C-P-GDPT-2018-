@@ -152,14 +152,10 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
     .filter((s) => s.length > 2);
 
   let topics: string[] = [];
-  if (rawTopics.length >= 2) {
+  if (rawTopics.length >= 1) {
     topics = rawTopics.slice(0, 4);
   } else {
-    topics = [
-      `Bài 1: Vai trò và định nghĩa cốt lõi`,
-      `Bài 2: Nguyên lý hoạt động và tính toán`,
-      `Bài 3: Ứng dụng thực tế và bài toán nâng cao`,
-    ];
+    topics = ['THIẾU CƠ SỞ BÀI HỌC – Cần nhập/dán bài mới ở Bước 1'];
   }
 
   const p1 = config.sectionCounts.part1 || 0;
@@ -245,13 +241,13 @@ export function buildPlannedMatrixFromConfig(config: ExamConfig): ExamMatrix {
 
     const chapterStr = config.chapter
       ? config.chapter.split('\n')[tIdx] || config.chapter
-      : `Chủ đề ${Math.ceil((tIdx + 1) / 2)}`;
+      : 'THIẾU CHƯƠNG – Cần bổ sung';
 
     return {
       stt: tIdx + 1,
       chapter: chapterStr,
       topic,
-      subTopic: `Mạch kiến thức trọng tâm ${tIdx + 1}`,
+      subTopic: config.topicTitle ? `Mạch kiến thức ${tIdx + 1}` : 'THIẾU NỘI DUNG',
       part1,
       part2,
       part3,
@@ -386,28 +382,10 @@ export function buildPlannedSpecificationFromConfig(config: ExamConfig): ExamSpe
       const p4Count = getValCount(row.part4?.[lvl]);
 
       const makeCompetency = (levelName: string, topicName: string, partName: string) => {
-        if (config.learningOutcomes && config.learningOutcomes.length > 10) {
+        if (config.learningOutcomes && config.learningOutcomes.trim().length > 0) {
           return `${config.learningOutcomes} (Mức độ: ${levelName} – ${partName})`;
         }
-        if (config.gradeLevel === 'primary') {
-          if (levelName.includes('Mức 1')) {
-            return `Nhận biết, nhắc lại và gọi tên được các kiến thức cơ bản về ${topicName}.`;
-          } else if (levelName.includes('Mức 2')) {
-            return `Kết nối, so sánh và thực hiện thao tác giải quyết tình huống quen thuộc về ${topicName}.`;
-          } else {
-            return `Vận dụng kiến thức, kỹ năng giải quyết tình huống mới trong học tập và đời sống về ${topicName}.`;
-          }
-        } else {
-          if (levelName.includes('Nhận biết') || levelName.includes('Biết')) {
-            return `Nhận biết và phát biểu chính xác định nghĩa, tính chất, quy tắc cơ bản của ${topicName}.`;
-          } else if (levelName.includes('Thông hiểu') || levelName.includes('Hiểu')) {
-            return `Hiểu rõ bản chất, giải thích, phân loại và tính toán các bài toán tường minh về ${topicName}.`;
-          } else if (levelName.includes('Vận dụng cao')) {
-            return `Vận dụng sáng tạo, liên hệ thực tiễn và mô hình hóa giải quyết bài toán phức tạp về ${topicName}.`;
-          } else {
-            return `Vận dụng kiến thức, phương pháp và công thức đã học để giải quyết bài toán điển hình về ${topicName}.`;
-          }
-        }
+        return 'THIẾU YCCĐ – cần bổ sung';
       };
 
       if (p1Count > 0) {

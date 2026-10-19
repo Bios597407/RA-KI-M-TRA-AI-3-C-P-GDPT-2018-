@@ -54,6 +54,7 @@ interface AssessmentPipelineProps {
   onOpenQA: () => void;
   onOpenAnswerSheet: () => void;
   onSwitchToTraditionalWorkspace: () => void;
+  onOpenMatrixModal?: () => void;
 }
 
 export const AssessmentPipeline: React.FC<AssessmentPipelineProps> = ({
@@ -76,6 +77,7 @@ export const AssessmentPipeline: React.FC<AssessmentPipelineProps> = ({
   onOpenQA,
   onOpenAnswerSheet,
   onSwitchToTraditionalWorkspace,
+  onOpenMatrixModal,
 }) => {
   const toast = useToast();
 
@@ -568,6 +570,7 @@ export const AssessmentPipeline: React.FC<AssessmentPipelineProps> = ({
               onApproveMatrix={handleApproveMatrix}
               onExportWord={onExportMatrixSpecsWord}
               onPrintA4={() => onOpenPrintPreview('matrix')}
+              onOpenAutoSuggest={onOpenMatrixModal}
             />
           ) : (
             <OfficialMatrixTable matrix={matrix} config={config} />

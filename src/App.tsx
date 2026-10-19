@@ -42,6 +42,7 @@ import {
   exportStudyGuideWordDoc,
 } from './utils/exporter';
 import { downloadStandaloneSingleFileHtml } from './utils/singleFileBundle';
+import { releaseCachedFile } from './utils/memoryManager';
 
 const STORAGE_KEY_CONFIG = 'exam_ai_config_v2';
 const STORAGE_KEY_QUESTIONS = 'exam_ai_questions_v2';
@@ -74,20 +75,19 @@ const DEFAULT_CONFIG: ExamConfig = {
   scoreScale: 10,
   gradingRuleTF: 'stepped',
 
-  cognitiveSystem: 'secondary_4',
+  cognitiveSystem: 'secondary_3',
   distMode: 'percent',
   cognitiveDist: {
-    'Nhận biết': 40,
-    'Thông hiểu': 30,
-    'Vận dụng': 20,
-    'Vận dụng cao': 10,
+    'Biết': 40,
+    'Hiểu': 30,
+    'Vận dụng': 30,
   },
 
   sectionCounts: {
-    part1: 12, // 12 câu TN nhiều lựa chọn
-    part2: 4,  // 4 câu Đúng/Sai 4 ý
-    part3: 6,  // 6 câu Trả lời ngắn
-    part4: 0,  // Tự luận
+    part1: 12, // 12 câu TN nhiều lựa chọn × 0,25đ = 3,0đ
+    part2: 4,  // 4 câu Đúng/Sai (16 ý) × 0,25đ/ý = 4,0đ
+    part3: 0,  // Không sử dụng Trả lời ngắn
+    part4: 3,  // Tự luận = 3,0đ
   },
 
   topicTitle: '',
@@ -140,8 +140,10 @@ export default function App() {
         topicTitle: '',
         chapter: '',
         learningOutcomes: '',
+        knowledgeScope: '',
+        teacherNotes: '',
         readingPassage: '',
-        uploadedDocs: [], // Also clear uploaded docs to be safe
+        uploadedDocs: [],
       };
     } catch {
       return DEFAULT_CONFIG;
@@ -285,9 +287,11 @@ export default function App() {
     return buildExamSpecification(questions, config);
   }, [customSpecs, questions, config]);
 
-  const handleUpdateMatrix = (newMatrix: ExamMatrix, newSpecs: ExamSpecificationRow[]) => {
+  const handleUpdateMatrix = (newMatrix: ExamMatrix, newSpecs?: ExamSpecificationRow[]) => {
     setCustomMatrix(newMatrix);
-    setCustomSpecs(newSpecs);
+    if (newSpecs) {
+      setCustomSpecs(newSpecs);
+    }
   };
 
   // Derived Shuffled Codes (111, 222, 333, 444...)
@@ -391,6 +395,42 @@ export default function App() {
   const handleExportMatrixOnlyWord = () => {
     exportMatrixAndSpecsOnlyWordDoc(config, matrix, specs);
     toast.success('Đang tải xuống tài liệu: Ma trận & Bản đặc tả (.doc)...');
+  };
+
+  // 1 Nút bấm duy nhất: Xóa toàn bộ nội dung bài cũ, tài liệu đính kèm và đề cũ trước khi nạp bài mới
+  const handleClearAllOldContent = () => {
+    // 1. Giải phóng bộ nhớ đệm các tệp đã tải lên
+    releaseCachedFile();
+
+    // 2. Xóa sạch dữ liệu bài học cũ trong cấu hình
+    setConfig((prev) => ({
+      ...prev,
+      topicTitle: '',
+      chapter: '',
+      learningOutcomes: '',
+      knowledgeScope: '',
+      readingPassage: '',
+      teacherNotes: '',
+      uploadedDocs: [],
+      teacherFixedQuestions: [],
+      keepFixedQuestions: false,
+    }));
+
+    // 3. Xóa sạch danh sách câu hỏi đề thi và bảng ma trận/đặc tả cũ
+    setQuestions([]);
+    setCustomMatrix(null);
+    setCustomSpecs(null);
+    setViewMode('pipeline');
+
+    // 4. Xóa các dữ liệu lưu đệm trong localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY_QUESTIONS);
+      localStorage.removeItem(STORAGE_KEY_CONFIG);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    toast.success('🧹 ĐÃ XÓA SẠCH TOÀN BỘ NỘI DUNG BÀI CŨ! Ứng dụng đã sẵn sàng để nạp bài mới.');
   };
 
   const handleResetDefaults = () => {
@@ -650,6 +690,7 @@ export default function App() {
         onOpenHistory={() => setShowHistoryModal(true)}
         onResetDefaults={handleResetDefaults}
         onDownloadStandalone={handleDownloadStandalone}
+        onClearOldContent={handleClearAllOldContent}
         savedBankCount={bank.length}
         historyCount={history.length}
         hasApiKey={!!apiKey}
@@ -668,6 +709,7 @@ export default function App() {
             onBuildMatrixOnly={handleBuildMatrixOnly}
             isGenerating={isGenerating}
             apiKey={apiKey}
+            onClearOldContent={handleClearAllOldContent}
           />
         </div>
 
@@ -749,6 +791,7 @@ export default function App() {
               onOpenQA={() => setShowQAModal(true)}
               onOpenAnswerSheet={() => setShowAnswerSheetModal(true)}
               onSwitchToTraditionalWorkspace={() => setViewMode('workspace')}
+              onOpenMatrixModal={() => setShowMatrixModal(true)}
             />
           ) : (
             /* 6 Tab Workspace */
@@ -864,6 +907,9 @@ export default function App() {
         config={config}
         matrix={matrix}
         specs={specs}
+        onUpdateMatrix={handleUpdateMatrix}
+        onUpdateConfig={(updates) => setConfig((prev) => ({ ...prev, ...updates }))}
+        apiKey={apiKey}
         onGenerateFromMatrix={() => {
           setShowMatrixModal(false);
           handleGenerate();

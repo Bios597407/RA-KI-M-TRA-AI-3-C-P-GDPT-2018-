@@ -31,6 +31,7 @@ interface ConfigPanelProps {
   onBuildMatrixOnly: () => void;
   isGenerating: boolean;
   apiKey?: string;
+  onClearOldContent?: () => void;
 }
 
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -40,6 +41,7 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onBuildMatrixOnly,
   isGenerating,
   apiKey,
+  onClearOldContent,
 }) => {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -323,6 +325,34 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       onChange({ ...config, uploadedDocs: [] });
       toast.info('Đã xóa tất cả tài liệu đính kèm.');
     }
+  };
+
+  // 1 Nút bấm: Xóa toàn bộ nội dung bài học cũ & tài liệu trước khi nạp bài mới
+  const handleClearOldContent = () => {
+    if (onClearOldContent) {
+      onClearOldContent();
+      return;
+    }
+
+    releaseCachedFile();
+    onChange({
+      ...config,
+      topicTitle: '',
+      chapter: '',
+      learningOutcomes: '',
+      knowledgeScope: '',
+      readingPassage: '',
+      teacherNotes: '',
+      uploadedDocs: [],
+      teacherFixedQuestions: [],
+      keepFixedQuestions: false,
+    });
+    toast.success('✨ Đã xóa toàn bộ nội dung bài cũ và tài liệu! Bạn có thể nạp bài mới ngay bây giờ.');
+  };
+
+  // Xóa toàn bộ tài liệu đính kèm VÀ nội dung bài cũ (1 click)
+  const handleClearAllDocsAndContent = () => {
+    handleClearOldContent();
   };
 
   // Section Counts calculation
@@ -857,7 +887,17 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </h2>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleClearOldContent}
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 hover:border-rose-300 text-[11px] font-bold shadow-xs transition cursor-pointer"
+              title="Xóa toàn bộ nội dung bài cũ (Tên bài, Chương, Yêu cầu cần đạt, Ngữ liệu) trước khi nạp bài mới vào"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-rose-600" />
+              <span>Xóa toàn bộ nội dung bài cũ</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowCurriculumModal(true)}
@@ -905,9 +945,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           <div className="space-y-2">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                Tên bài / Chủ đề (Mỗi bài 1 dòng):
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-semibold text-slate-500">
+                  Tên bài / Chủ đề (Mỗi bài 1 dòng):
+                </label>
+                {config.topicTitle && (
+                  <button
+                    type="button"
+                    onClick={() => onChange({ ...config, topicTitle: '' })}
+                    className="text-[10px] text-rose-500 hover:text-rose-700 hover:underline font-semibold cursor-pointer"
+                    title="Xóa riêng tên bài cũ"
+                  >
+                    Xóa
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={2}
                 value={config.topicTitle}
@@ -917,9 +969,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                Chương / Phạm vi (Tương ứng theo bài):
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-semibold text-slate-500">
+                  Chương / Phạm vi (Tương ứng theo bài):
+                </label>
+                {config.chapter && (
+                  <button
+                    type="button"
+                    onClick={() => onChange({ ...config, chapter: '' })}
+                    className="text-[10px] text-rose-500 hover:text-rose-700 hover:underline font-semibold cursor-pointer"
+                    title="Xóa riêng chương cũ"
+                  >
+                    Xóa
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={2}
                 value={config.chapter}
@@ -931,9 +995,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Yêu cầu cần đạt / Mục tiêu đánh giá:
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-semibold text-slate-500">
+                Yêu cầu cần đạt / Mục tiêu đánh giá:
+              </label>
+              {config.learningOutcomes && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...config, learningOutcomes: '' })}
+                  className="text-[10px] text-rose-500 hover:text-rose-700 hover:underline font-semibold cursor-pointer"
+                  title="Xóa riêng YCCĐ cũ"
+                >
+                  Xóa
+                </button>
+              )}
+            </div>
             <textarea
               rows={4}
               value={config.learningOutcomes}
@@ -944,9 +1020,21 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Dán nội dung bài học hoặc ngữ liệu đọc hiểu:
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-semibold text-slate-500">
+                Dán nội dung bài học hoặc ngữ liệu đọc hiểu:
+              </label>
+              {config.readingPassage && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...config, readingPassage: '' })}
+                  className="text-[10px] text-rose-500 hover:text-rose-700 hover:underline font-semibold cursor-pointer"
+                  title="Xóa riêng ngữ liệu cũ"
+                >
+                  Xóa
+                </button>
+              )}
+            </div>
             <textarea
               rows={4}
               value={config.readingPassage}
@@ -1020,9 +1108,18 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   <button
                     type="button"
                     onClick={clearAllDocs}
-                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                    className="text-[11px] font-semibold text-slate-500 hover:text-rose-600 hover:underline cursor-pointer"
                   >
-                    Xóa tất cả
+                    Xóa file
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearAllDocsAndContent}
+                    className="text-[11px] font-bold text-rose-700 hover:text-rose-900 flex items-center space-x-1 cursor-pointer bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200 transition"
+                    title="Xóa sạch toàn bộ tệp đính kèm và nội dung bài cũ để làm mới 100%"
+                  >
+                    <Trash2 className="h-3 w-3 text-rose-600" />
+                    <span>Xóa sạch file & bài cũ</span>
                   </button>
                 </div>
               </div>
@@ -1360,8 +1457,8 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
           {/* Cognitive Percent Inputs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-            {Object.entries(config.cognitiveDist).map(([lvl, val]) => (
-              <div key={lvl} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
+            {Object.entries(config.cognitiveDist).map(([lvl, val], idx) => (
+              <div key={`${lvl}_${idx}`} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
                 <span className="block font-bold text-slate-700 truncate text-[10px]">{lvl}</span>
                 <div className="mt-0.5 flex items-center justify-center space-x-0.5">
                   <input

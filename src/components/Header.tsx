@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, Key, Download, Database, RotateCcw, History, Settings, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Key, Download, Database, RotateCcw, History, Settings, ChevronDown, Trash2 } from 'lucide-react';
 import { ExamConfig } from '../types/exam';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenHistory: () => void;
   onResetDefaults: () => void;
   onDownloadStandalone: () => void;
+  onClearOldContent?: () => void;
   savedBankCount: number;
   historyCount: number;
   hasApiKey: boolean;
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onResetDefaults,
   onDownloadStandalone,
+  onClearOldContent,
   savedBankCount,
   historyCount,
   hasApiKey,
@@ -92,6 +94,20 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden md:inline">{hasApiKey ? 'Gemini AI: Connected' : 'Cấu hình AI'}</span>
             {!hasApiKey && <span className="md:hidden">Cấu hình AI</span>}
           </button>
+
+          {/* 1 Nút bấm duy nhất: Xóa toàn bộ nội dung bài cũ */}
+          {onClearOldContent && (
+            <button
+              type="button"
+              onClick={onClearOldContent}
+              className="flex items-center space-x-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-600 hover:text-white hover:border-rose-600 px-3 py-2 text-xs font-black text-rose-700 transition-all shadow-xs cursor-pointer group"
+              title="1 Nút bấm duy nhất: Xóa toàn bộ nội dung bài cũ (tên bài, chương, yêu cầu cần đạt, ngữ liệu, file tải lên, câu hỏi cũ) trước khi nạp bài mới"
+            >
+              <Trash2 className="h-4 w-4 text-rose-600 group-hover:text-white transition-colors" />
+              <span className="hidden md:inline">Xóa toàn bộ bài cũ</span>
+              <span className="md:hidden">Xóa bài cũ</span>
+            </button>
+          )}
 
           <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 

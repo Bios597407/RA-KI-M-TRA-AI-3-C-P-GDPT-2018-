@@ -989,6 +989,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 }}
                 onExportWord={onExportMatrixSpecsWord}
                 onPrintA4={() => (onOpenPrintPreview ? onOpenPrintPreview('matrix') : onPrintA4())}
+                onOpenAutoSuggest={onOpenMatrixModal}
               />
             ) : (
               <OfficialMatrixTable matrix={matrix} config={config} />

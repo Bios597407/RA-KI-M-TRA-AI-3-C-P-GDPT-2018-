@@ -239,12 +239,12 @@ export function exportToWordDoc(
   <div class="text-center bold uppercase" style="font-size: 13pt; margin-bottom: 8pt;">
     MA TRẬN ĐỀ KIỂM TRA
   </div>
-  ${renderMatrixTable(matrix)}
+  ${renderMatrixTable(matrix, config)}
 
   <div class="text-center bold uppercase" style="font-size: 13pt; margin-top: 20pt; margin-bottom: 8pt;">
     BẢN ĐẶC TẢ ĐỀ KIỂM TRA
   </div>
-  ${renderSpecTable(specs, matrix)}
+  ${renderSpecTable(specs, matrix, config)}
 
   ${studyGuide ? `
   <!-- MỤC 4: ĐỀ CƯƠNG ÔN TẬP BỔ TRỢ -->
@@ -309,13 +309,13 @@ export function exportMatrixAndSpecsOnlyWordDoc(
   <div class="bold uppercase" style="font-size: 12pt; margin-bottom: 6pt; color: #003366;">
     A. KHUNG MA TRẬN ĐỀ KIỂM TRA
   </div>
-  ${renderMatrixTable(matrix)}
+  ${renderMatrixTable(matrix, config)}
 
   <div class="page-break"></div>
   <div class="bold uppercase" style="font-size: 12pt; margin-top: 10pt; margin-bottom: 6pt; color: #003366;">
     B. BẢN ĐẶC TẢ KỸ THUẬT ĐỀ KIỂM TRA
   </div>
-  ${renderSpecTable(specs, matrix)}
+  ${renderSpecTable(specs, matrix, config)}
 
   <div style="margin-top: 30pt;">
     <table class="header-table" style="width: 100%;">
@@ -662,7 +662,77 @@ function renderQuickAnswerTable(currentCode: ShuffledExamCode): string {
   `;
 }
 
-function renderMatrixTable(matrix: ExamMatrix): string {
+function renderMatrixTable(matrix: ExamMatrix, config?: ExamConfig): string {
+  const isPrimary = config?.gradeLevel === 'primary' || (config?.grade && Number(config.grade) <= 5);
+
+  if (isPrimary) {
+    const rows = matrix.rows || [];
+    return `
+    <div style="text-align: center; font-weight: bold; font-size: 11.5pt; text-transform: uppercase; margin-bottom: 4pt;">
+      MA TRẬN ĐỀ KIỂM TRA ĐỊNH KỲ TIỂU HỌC (THÔNG TƯ 27/2020/TT-BGDĐT)
+    </div>
+    <div style="text-align: center; font-style: italic; font-size: 10pt; margin-bottom: 8pt;">
+      Môn: ${config?.customSubject || config?.subject || 'Toán học'} – Lớp ${config?.grade || '4'}
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center;" border="1">
+      <thead>
+        <tr style="background-color: #f2f2f2; font-weight: bold;">
+          <th rowspan="2" style="width: 5%;">TT</th>
+          <th rowspan="2" style="width: 30%; text-align: left;">Mạch kiến thức, kĩ năng</th>
+          <th colspan="3" style="background-color: #e0f2fe;">Mức 1 (Nhận biết)</th>
+          <th colspan="3" style="background-color: #dcfce7;">Mức 2 (Thông hiểu)</th>
+          <th colspan="3" style="background-color: #f3e8ff;">Mức 3 (Vận dụng)</th>
+          <th colspan="3" style="background-color: #e2e8f0;">Tổng cộng</th>
+          <th rowspan="2" style="width: 8%;">Tỉ lệ %</th>
+        </tr>
+        <tr style="background-color: #f8fafc; font-size: 8.5pt; font-weight: bold;">
+          <th>TN</th><th>TL</th><th>Điểm</th>
+          <th>TN</th><th>TL</th><th>Điểm</th>
+          <th>TN</th><th>TL</th><th>Điểm</th>
+          <th>Số TN</th><th>Số TL</th><th>Điểm</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r, idx) => {
+          const parseC = (v: any) => (typeof v === 'object' ? Number(v?.count) || 0 : Number(v) || 0);
+          const p1 = r.part1 || {};
+          const p4 = r.part4 || {};
+          const m1TN = parseC(p1['Mức 1'] || p1['Biết']);
+          const m1TL = parseC(p4['Mức 1'] || p4['Biết']);
+          const m1Pt = (m1TN * 0.5 + m1TL * 1.0).toFixed(1);
+
+          const m2TN = parseC(p1['Mức 2'] || p1['Hiểu']);
+          const m2TL = parseC(p4['Mức 2'] || p4['Hiểu']);
+          const m2Pt = (m2TN * 0.5 + m2TL * 1.0).toFixed(1);
+
+          const m3TN = parseC(p1['Mức 3'] || p1['Vận dụng']);
+          const m3TL = parseC(p4['Mức 3'] || p4['Vận dụng']);
+          const m3Pt = (m3TN * 0.5 + m3TL * 1.5).toFixed(1);
+
+          const totTN = m1TN + m2TN + m3TN;
+          const totTL = m1TL + m2TL + m3TL;
+          const totPt = (Number(m1Pt) + Number(m2Pt) + Number(m3Pt)).toFixed(1);
+          const pct = Math.round((Number(totPt) / (config?.totalScore || 10)) * 100);
+
+          return `
+            <tr>
+              <td style="font-weight: bold;">${idx + 1}</td>
+              <td style="text-align: left; padding: 3pt;">${r.topic}</td>
+              <td>${m1TN || '-'}</td><td>${m1TL || '-'}</td><td style="font-weight: bold; background-color: #f0f9ff;">${m1Pt}</td>
+              <td>${m2TN || '-'}</td><td>${m2TL || '-'}</td><td style="font-weight: bold; background-color: #f0fdf4;">${m2Pt}</td>
+              <td>${m3TN || '-'}</td><td>${m3TL || '-'}</td><td style="font-weight: bold; background-color: #faf5ff;">${m3Pt}</td>
+              <td style="font-weight: bold;">${totTN || '-'}</td>
+              <td style="font-weight: bold;">${totTL || '-'}</td>
+              <td style="font-weight: bold; background-color: #f1f5f9;">${totPt}</td>
+              <td style="font-weight: bold;">${pct}%</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+    `;
+  }
+
   const parseVal = (val: any) => {
     if (val === undefined || val === null) return { count: 0, codeStr: '' };
     if (typeof val === 'number') return { count: val, codeStr: '' };
@@ -865,7 +935,52 @@ function renderMatrixTable(matrix: ExamMatrix): string {
   `;
 }
 
-function renderSpecTable(specs: ExamSpecificationRow[], matrix?: ExamMatrix): string {
+function renderSpecTable(specs: ExamSpecificationRow[], matrix?: ExamMatrix, config?: ExamConfig): string {
+  const isPrimary = config?.gradeLevel === 'primary' || (config?.grade && Number(config.grade) <= 5);
+
+  if (isPrimary) {
+    const rows = matrix?.rows || [];
+    return `
+    <div style="text-align: center; font-weight: bold; font-size: 11.5pt; text-transform: uppercase; margin-bottom: 4pt;">
+      BẢN ĐẶC TẢ KỸ THUẬT ĐỀ KIỂM TRA ĐỊNH KỲ TIỂU HỌC (THÔNG TƯ 27/2020)
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 9pt; text-align: left;" border="1">
+      <thead>
+        <tr style="background-color: #f2f2f2; font-weight: bold; text-align: center;">
+          <th style="width: 4%;">TT</th>
+          <th style="width: 25%;">Mạch kiến thức, kĩ năng</th>
+          <th style="width: 12%;">Mức độ</th>
+          <th>Yêu cầu cần đạt chi tiết</th>
+          <th style="width: 10%;">Hình thức</th>
+          <th style="width: 7%;">Số câu</th>
+          <th style="width: 8%;">Điểm</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.flatMap((r, rIdx) => {
+          const topic = r.topic || `Chủ đề ${rIdx + 1}`;
+          const items = [
+            { lvl: 'Mức 1', req: `Đọc được, viết được, nhận biết hoặc tính nhẩm trực tiếp thuộc ${topic}.`, count: ((r.part1?.['Mức 1'] as any)?.count || 0) + ((r.part4?.['Mức 1'] as any)?.count || 0), pt: '1.0' },
+            { lvl: 'Mức 2', req: `Thực hiện phép tính có nhớ, tóm tắt bài toán, so sánh hoặc điền dấu thuộc ${topic}.`, count: ((r.part1?.['Mức 2'] as any)?.count || 0) + ((r.part4?.['Mức 2'] as any)?.count || 0), pt: '1.0' },
+            { lvl: 'Mức 3', req: `Giải bài toán có lời văn, vận dụng vào giải quyết tình huống thực tế thuộc ${topic}.`, count: ((r.part1?.['Mức 3'] as any)?.count || 0) + ((r.part4?.['Mức 3'] as any)?.count || 0), pt: '1.5' },
+          ];
+
+          return items.map((it, idx) => `
+            <tr>
+              ${idx === 0 ? `<td rowspan="3" style="text-align: center; font-weight: bold;">${rIdx + 1}</td><td rowspan="3" style="font-weight: bold;">${topic}</td>` : ''}
+              <td style="text-align: center; font-weight: bold;">${it.lvl}</td>
+              <td style="font-size: 8.5pt;">${it.req}</td>
+              <td style="text-align: center;">${it.count > 0 ? 'TNKQ / TL' : '-'}</td>
+              <td style="text-align: center; font-weight: bold;">${it.count || '-'}</td>
+              <td style="text-align: center; font-weight: bold;">${it.count > 0 ? `${it.pt}đ` : '-'}</td>
+            </tr>
+          `);
+        }).join('')}
+      </tbody>
+    </table>
+    `;
+  }
+
   const rows = matrix?.rows || [];
 
   const parseVal = (val: any) => {

@@ -31,6 +31,7 @@ interface InteractiveMatrixDashboardProps {
   isApproved?: boolean;
   onExportWord?: () => void;
   onPrintA4?: () => void;
+  onOpenAutoSuggest?: () => void;
 }
 
 export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProps> = ({
@@ -42,6 +43,7 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
   isApproved = false,
   onExportWord,
   onPrintA4,
+  onOpenAutoSuggest,
 }) => {
   const toast = useToast();
   const [showSpecsSync, setShowSpecsSync] = useState(true);
@@ -51,7 +53,10 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
     level: string;
   } | null>(null);
 
-  const levels = matrix.levels || ['Biết', 'Hiểu', 'Vận dụng'];
+  const isPrimary = config.gradeLevel === 'primary' || Number(config.grade) <= 5;
+  const levels = isPrimary
+    ? ['Mức 1', 'Mức 2', 'Mức 3']
+    : (matrix.levels || ['Biết', 'Hiểu', 'Vận dụng']);
   const totalScoreGoal = config.totalScore || 10;
   const currentTotalScore = matrix.grandTotal?.score || 0;
   const currentTotalQuestions = matrix.grandTotal?.count || 0;
@@ -59,13 +64,27 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
   const isScorePerfect = Math.abs(scoreDiff) <= 0.05;
 
   // Cognitive distribution stats
-  const bietData = matrix.totalByLevel?.['Biết'] || matrix.totalByLevel?.['Nhận biết'] || { count: 0, score: 0, percent: 0 };
-  const hieuData = matrix.totalByLevel?.['Hiểu'] || matrix.totalByLevel?.['Thông hiểu'] || { count: 0, score: 0, percent: 0 };
-  const vanDungData = matrix.totalByLevel?.['Vận dụng'] || { count: 0, score: 0, percent: 0 };
+  const bietData = isPrimary
+    ? (matrix.totalByLevel?.['Mức 1'] || matrix.totalByLevel?.['Biết'] || { count: 0, score: 0, percent: 0 })
+    : (matrix.totalByLevel?.['Biết'] || matrix.totalByLevel?.['Nhận biết'] || { count: 0, score: 0, percent: 0 });
+  const hieuData = isPrimary
+    ? (matrix.totalByLevel?.['Mức 2'] || matrix.totalByLevel?.['Hiểu'] || { count: 0, score: 0, percent: 0 })
+    : (matrix.totalByLevel?.['Hiểu'] || matrix.totalByLevel?.['Thông hiểu'] || { count: 0, score: 0, percent: 0 });
+  const vanDungData = isPrimary
+    ? (matrix.totalByLevel?.['Mức 3'] || matrix.totalByLevel?.['Vận dụng'] || { count: 0, score: 0, percent: 0 })
+    : (matrix.totalByLevel?.['Vận dụng'] || { count: 0, score: 0, percent: 0 });
 
-  const targetBiet = (config.cognitiveDist?.['Nhận biết'] ?? config.cognitiveDist?.['Biết'] ?? 40);
-  const targetHieu = (config.cognitiveDist?.['Thông hiểu'] ?? config.cognitiveDist?.['Hiểu'] ?? 30);
+  const targetBiet = isPrimary
+    ? (config.cognitiveDist?.['Mức 1'] ?? 40)
+    : (config.cognitiveDist?.['Nhận biết'] ?? config.cognitiveDist?.['Biết'] ?? 40);
+  const targetHieu = isPrimary
+    ? (config.cognitiveDist?.['Mức 2'] ?? 40)
+    : (config.cognitiveDist?.['Thông hiểu'] ?? config.cognitiveDist?.['Hiểu'] ?? 30);
   const targetVanDung = 100 - targetBiet - targetHieu;
+
+  const labelLvl1 = isPrimary ? 'Mức 1 (Nhận biết)' : 'Biết';
+  const labelLvl2 = isPrimary ? 'Mức 2 (Thông hiểu)' : 'Hiểu';
+  const labelLvl3 = isPrimary ? 'Mức 3 (Vận dụng)' : 'V.Dụng';
 
   // Helper to extract numeric count from cell
   const parseVal = (val: any): number => {
@@ -221,7 +240,7 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wide">
-                Bảng Điều Khiển Tương Tác Ma Trận & Bản Đặc Tả (CV 7991 & TT 22)
+                Bảng Điều Khiển Tương Tác Ma Trận & Bản Đặc Tả ({isPrimary ? 'Thông tư 27/2020' : 'Công văn 7991 & TT 22'})
               </h3>
               <p className="text-xs text-slate-500">
                 Cho phép chỉnh sửa trực tiếp, tăng/giảm số câu, kéo thả chuyển mức độ và tự động tính lại 100% điểm số
@@ -230,6 +249,18 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenAutoSuggest && (
+              <button
+                type="button"
+                onClick={onOpenAutoSuggest}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer group"
+                title="AI phân tích môn học và khối lớp để tự động gợi ý và điền các Đơn vị kiến thức chuẩn"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-300 group-hover:scale-110 transition-transform" />
+                <span>Gợi Ý Ma Trận Tự Động</span>
+              </button>
+            )}
+
             {!isScorePerfect && (
               <button
                 type="button"
@@ -305,7 +336,9 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
             </div>
 
             <p className="text-[10px] text-slate-500 mt-1">
-              {isScorePerfect ? 'Hợp chuẩn Công văn 7991' : 'Bấm nút Cân Bằng để tự động điều chỉnh'}
+              {isScorePerfect
+                ? (isPrimary ? 'Hợp chuẩn Thông tư 27/2020' : 'Hợp chuẩn Công văn 7991')
+                : 'Bấm nút Cân Bằng để tự động điều chỉnh'}
             </p>
           </div>
 
@@ -313,37 +346,46 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
           <div className="p-3.5 rounded-xl border border-indigo-100 bg-indigo-50/40 flex flex-col justify-between space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                Tỷ lệ Biết – Hiểu – Vận dụng
+                {isPrimary ? 'Tỷ lệ Mức 1 – Mức 2 – Mức 3' : 'Tỷ lệ Biết – Hiểu – Vận dụng'}
               </span>
               <span className="text-[10px] font-bold text-indigo-700">Mục tiêu: {targetBiet}% – {targetHieu}% – {targetVanDung}%</span>
             </div>
 
             <div className="flex items-center justify-between font-bold text-xs pt-1">
-              <span className="text-sky-800">Biết: {bietData.percent}% <span className="text-[10px] font-normal text-slate-500">({bietData.score}đ)</span></span>
-              <span className="text-emerald-800">Hiểu: {hieuData.percent}% <span className="text-[10px] font-normal text-slate-500">({hieuData.score}đ)</span></span>
-              <span className="text-purple-800">V.Dụng: {vanDungData.percent}% <span className="text-[10px] font-normal text-slate-500">({vanDungData.score}đ)</span></span>
+              <span className="text-sky-800">{isPrimary ? 'Mức 1' : 'Biết'}: {bietData.percent}% <span className="text-[10px] font-normal text-slate-500">({bietData.score}đ)</span></span>
+              <span className="text-emerald-800">{isPrimary ? 'Mức 2' : 'Hiểu'}: {hieuData.percent}% <span className="text-[10px] font-normal text-slate-500">({hieuData.score}đ)</span></span>
+              <span className="text-purple-800">{isPrimary ? 'Mức 3' : 'V.Dụng'}: {vanDungData.percent}% <span className="text-[10px] font-normal text-slate-500">({vanDungData.score}đ)</span></span>
             </div>
 
             {/* Visual ratio bar */}
             <div className="h-2 rounded-full bg-slate-200 overflow-hidden flex">
-              <div style={{ width: `${bietData.percent}%` }} className="bg-sky-500" title={`Biết: ${bietData.percent}%`} />
-              <div style={{ width: `${hieuData.percent}%` }} className="bg-emerald-500" title={`Hiểu: ${hieuData.percent}%`} />
-              <div style={{ width: `${vanDungData.percent}%` }} className="bg-purple-500" title={`Vận dụng: ${vanDungData.percent}%`} />
+              <div style={{ width: `${bietData.percent}%` }} className="bg-sky-500" title={`${labelLvl1}: ${bietData.percent}%`} />
+              <div style={{ width: `${hieuData.percent}%` }} className="bg-emerald-500" title={`${labelLvl2}: ${hieuData.percent}%`} />
+              <div style={{ width: `${vanDungData.percent}%` }} className="bg-purple-500" title={`${labelLvl3}: ${vanDungData.percent}%`} />
             </div>
           </div>
 
           {/* Card 3: Formats Summary */}
           <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-              Quy chuẩn thang điểm dạng câu
+              {isPrimary ? 'Quy chuẩn Tiểu học (TT 27)' : 'Quy chuẩn THCS & THPT (CV 7991)'}
             </span>
 
-            <div className="grid grid-cols-2 gap-1 text-[11px] font-medium text-slate-700 mt-1">
-              <div>• Phần I: <strong>0.25đ</strong> / câu</div>
-              <div>• Phần II: <strong>1.0đ</strong> / 4 lệnh</div>
-              <div>• Phần III: <strong>0.5đ</strong> / câu</div>
-              <div>• Phần IV: <strong>Rubric</strong> tự luận</div>
-            </div>
+            {isPrimary ? (
+              <div className="grid grid-cols-2 gap-1 text-[11px] font-medium text-slate-700 mt-1">
+                <div>• TN 4 lựa chọn: <strong>0.5đ</strong> / câu</div>
+                <div>• Tự luận lời văn: <strong>1.0-1.5đ</strong></div>
+                <div>• Tỷ lệ: <strong>50% TN - 50% TL</strong></div>
+                <div>• Thang điểm: <strong>Chuẩn 10đ</strong></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-1 text-[11px] font-medium text-slate-700 mt-1">
+                <div>• Dạng 1 (TN 4LC): <strong>0.25đ</strong> / câu</div>
+                <div>• Dạng 2 (Đúng/Sai): <strong>1.0đ</strong> / 4 ý</div>
+                <div>• Dạng 3 (Trả lời ngắn): <strong>0.5đ</strong> / câu</div>
+                <div>• Dạng 4 (Tự luận): <strong>Rubric 3.0đ</strong></div>
+              </div>
+            )}
 
             <span className="text-[10px] text-slate-500 italic mt-1">
               Rê chuột vào từng ô để tăng/giảm [+] [-] hoặc kéo thả số câu
@@ -447,7 +489,7 @@ export const InteractiveMatrixDashboard: React.FC<InteractiveMatrixDashboardProp
                 ) => {
                   return (
                     <td
-                      key={levelName}
+                      key={`${partName}_${levelName}`}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => handleDropOnLevel(rIdx, partName, levelName)}
                       className={`border border-black p-1 text-center font-bold text-xs relative group ${bgColor} hover:ring-2 hover:ring-indigo-400`}
